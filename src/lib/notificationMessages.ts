@@ -34,3 +34,39 @@ export function getPrimaryNotification(data: StageNotificationData, stageName: s
   
   return '';
 }
+
+// Function for detailed stage notification messages (used in ProjectOverview)
+export function getStageNotificationMessage(stage: any): string {
+  const notifications: string[] = [];
+  
+  // 1. Revision requested (highest priority)
+  if (stage.revisions?.some((rev: any) => rev.requested_at && !rev.viewed_by_freelancer_at)) {
+    notifications.push('⚠️ Revision requested');
+  }
+  
+  // 2. Payment marked
+  if (stage.stage_payments?.some((payment: any) => 
+    payment.status === 'marked_paid' && 
+    payment.marked_paid_at && 
+    !payment.viewed_by_freelancer_at
+  )) {
+    notifications.push('💰 Payment marked');
+  }
+  
+  // 3. Stage approved
+  if (stage.approved_at && !stage.viewed_by_freelancer_at) {
+    notifications.push('✅ Approved');
+  }
+  
+  // 4. New messages (lower priority)
+  const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
+    note.author_type === 'client' && !note.viewed_by_freelancer_at
+  ).length || 0;
+  
+  if (unreadMessageCount > 0) {
+    notifications.push(`💬 ${unreadMessageCount} new message${unreadMessageCount > 1 ? 's' : ''}`);
+  }
+  
+  // Return the highest priority notification, or combine if multiple
+  return notifications.length > 0 ? notifications[0] : '';
+}

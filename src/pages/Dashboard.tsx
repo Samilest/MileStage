@@ -117,6 +117,11 @@ export default function Dashboard() {
         let hasUnreadActions = false;
 
         for (const stage of stages) {
+          // ✅ Skip completed/closed stages - they're locked and inaccessible
+          if (stage.status === 'complete' || stage.status === 'completed') {
+            continue;
+          }
+
           const hasUnreadRevision = stage.revisions?.some((rev: any) =>
             rev.requested_at && !rev.viewed_by_freelancer_at
           ) || false;
@@ -138,8 +143,7 @@ export default function Dashboard() {
           if (stageHasUnread) {
             hasUnreadActions = true;
             if (!primaryNotification) {
-              console.log(`[Dashboard] Stage ${stage.stage_number} has ${unreadMessageCount} unread messages`);
-              // ✅ FIX: Remove stage number - just pass empty string or don't pass it at all
+              console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
               primaryNotification = getPrimaryNotification(
                 {
                   hasUnviewedPayment: hasUnreadPayment,
@@ -147,7 +151,7 @@ export default function Dashboard() {
                   hasUnviewedApproval: hasUnreadApproval,
                   unreadMessageCount: unreadMessageCount
                 },
-                '' // ✅ Pass empty string instead of stage number
+                ''
               );
               console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
             }
