@@ -24,7 +24,7 @@ function Navigation() {
 <img 
   src={logo} 
   alt="MileStage" 
-  className="h-12"
+  className="h-14"
 />
   </Link>
 </div>
