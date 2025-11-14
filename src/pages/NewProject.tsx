@@ -154,12 +154,13 @@ export default function NewProject() {
       newErrors.clientEmail = validateClientEmail(clientEmail);
     }
 
-    const total = calculateTotal(stages);
-    newErrors.totalAmount = validateTotalAmount(total, budgetReference);
+    const stagesTotal = calculateTotal(stages);
+    const fullTotal = stagesTotal + (includeDownPayment ? downPaymentAmount : 0);
+    newErrors.totalAmount = validateTotalAmount(fullTotal, budgetReference);
     newErrors.stages = stages.map(s => validateStageAmount(s.amount));
 
     setErrors(newErrors);
-  }, [projectName, clientName, clientEmail, stages, budgetReference, touched]);
+  }, [projectName, clientName, clientEmail, stages, budgetReference, touched, includeDownPayment, downPaymentAmount]);
 
   const handleBudgetReferenceChange = (newBudget: number) => {
     setBudgetReference(newBudget);
