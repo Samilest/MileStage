@@ -139,6 +139,7 @@ export default function Dashboard() {
             hasUnreadActions = true;
             if (!primaryNotification) {
               console.log(`[Dashboard] Stage ${stage.stage_number} has ${unreadMessageCount} unread messages`);
+              // ✅ FIX: Remove stage number - just pass empty string or don't pass it at all
               primaryNotification = getPrimaryNotification(
                 {
                   hasUnviewedPayment: hasUnreadPayment,
@@ -146,7 +147,7 @@ export default function Dashboard() {
                   hasUnviewedApproval: hasUnreadApproval,
                   unreadMessageCount: unreadMessageCount
                 },
-                `Stage ${stage.stage_number}`
+                '' // ✅ Pass empty string instead of stage number
               );
               console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
             }
@@ -192,214 +193,187 @@ export default function Dashboard() {
     fetchProjects(true);
   }, [fetchProjects]);
 
-  const handleNavigateToProject = useCallback((id: string) => {
-    navigate(`/project/${id}`);
-  }, [navigate]);
-
-  const getStatusColor = useCallback((status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => {
-    const isFullyComplete = totalStages > 0 && completedStages === totalStages;
-
-    // Completed projects always show green, ignore unread actions
-    if (isFullyComplete) {
-      return 'bg-green-100 text-green-700 border-green-200';
-    }
-
-    switch (status) {
-      case 'active':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'paused':
-        return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'complete':
-      case 'completed':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'archived':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  }, []);
-
-  const getStatusLabel = useCallback((status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => {
-    const isFullyComplete = totalStages > 0 && completedStages === totalStages;
-
-    // Completed projects always show Complete, ignore unread actions
-    if (isFullyComplete) {
-      return 'Complete';
-    }
-
-    switch (status) {
-      case 'active':
-        return 'Active';
-      case 'paused':
-        return 'Paused';
-      case 'complete':
-      case 'completed':
-        return 'Complete';
-      case 'archived':
-        return 'Archived';
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-  }, []);
-
-  // Check Stripe connection status
   useEffect(() => {
-    const checkStripeStatus = async () => {
-      if (!userId) return;
+    console.log('[Dashboard] Component mounted, fetching projects');
+    fetchProjects();
+  }, [fetchProjects]);
 
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('stripe_account_id, stripe_charges_enabled')
-        .eq('id', userId)
-        .single();
-
-      if (data?.stripe_account_id && data?.stripe_charges_enabled) {
-        setStripeConnected(true);
-      }
-    };
-
-    checkStripeStatus();
-  }, [userId]);
-
-  // Handle Stripe connection redirect
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('stripe') === 'success') {
-      setStripeConnected(true);
-      toast.success('Stripe connected successfully!');
-      window.history.replaceState({}, '', '/dashboard');
-    }
-    if (urlParams.get('stripe') === 'refresh') {
-      toast.error('Please complete Stripe setup');
-      window.history.replaceState({}, '', '/dashboard');
-    }
-  }, []);
+    if (!userId) return;
 
-  // Load projects once on mount
-  useEffect(() => {
-    let isMounted = true;
+    console.log('[Dashboard] Setting up realtime subscription');
 
-    if (userId && isMounted) {
-      fetchProjects();
-    }
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Dashboard] Project change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stages',
+        },
+        () => {
+          console.log('[Dashboard] Stage change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stage_notes',
+        },
+        () => {
+          console.log('[Dashboard] New note detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_payments',
+        },
+        () => {
+          console.log('[Dashboard] Payment change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'revisions',
+        },
+        () => {
+          console.log('[Dashboard] Revision change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Dashboard] Realtime subscription status:', status);
+      });
 
     return () => {
-      isMounted = false;
+      console.log('[Dashboard] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
     };
   }, [userId, fetchProjects]);
 
+  useEffect(() => {
+    const checkStripeConnection = async () => {
+      if (!userId) return;
+
+      try {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('stripe_account_id')
+          .eq('user_id', userId)
+          .single();
+
+        setStripeConnected(!!data?.stripe_account_id);
+      } catch (error) {
+        console.error('[Dashboard] Error checking Stripe connection:', error);
+      }
+    };
+
+    checkStripeConnection();
+  }, [userId]);
+
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
-    console.log('=== STRIPE CONNECT DEBUG START ===');
-
     try {
-      console.log('[Dashboard] Step 1: Getting auth session...');
-      const { data, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error('[Dashboard] Auth error:', error);
-        throw new Error('Authentication error: ' + error.message);
-      }
-
-      if (!data.session) {
-        console.error('[Dashboard] No session found');
-        throw new Error('Not authenticated - please log in again');
-      }
-
-      console.log('[Dashboard] Step 2: Session obtained successfully');
-      console.log('[Dashboard] User ID:', data.session.user.id);
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-connect-onboarding`;
-      console.log('[Dashboard] Step 3: Calling API endpoint:', apiUrl);
-      console.log('[Dashboard] Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer [REDACTED]'
+      const { data, error } = await supabase.functions.invoke('create-stripe-connect-account', {
+        body: { userId },
       });
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${data.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      if (error) throw error;
 
-      console.log('[Dashboard] Step 4: Got response - Status:', response.status, response.statusText);
-      console.log('[Dashboard] Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Dashboard] Response not OK. Status:', response.status);
-        console.error('[Dashboard] Error text:', errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('[Dashboard] Step 5: Parsed response:', result);
-
-      if (result.error) {
-        console.error('[Dashboard] API returned error:', result.error);
-        throw new Error(result.error);
-      }
-
-      if (!result.url) {
-        console.error('[Dashboard] No URL in response:', result);
-        throw new Error('No onboarding URL received from server');
-      }
-
-      console.log('[Dashboard] Step 6: Redirecting to Stripe onboarding...');
-      console.log('[Dashboard] Target URL:', result.url);
-      console.log('=== STRIPE CONNECT DEBUG END - REDIRECTING ===');
-
-      // Do a full page redirect to Stripe onboarding (not iframe or popup)
-      window.location.href = result.url;
-      // Note: Code after this won't execute because we're redirecting
-
-    } catch (error: any) {
-      console.error('=== STRIPE CONNECT ERROR ===');
-      console.error('[Dashboard] Error type:', error.constructor.name);
-      console.error('[Dashboard] Error message:', error.message);
-      console.error('[Dashboard] Error stack:', error.stack);
-      console.error('=== STRIPE CONNECT DEBUG END ===');
-
-      let userMessage = 'Failed to connect Stripe';
-      if (error.message.includes('STRIPE_SECRET_KEY')) {
-        userMessage = 'Stripe is not configured on the server. Please contact support.';
-      } else if (error.message.includes('Not authenticated')) {
-        userMessage = 'Please log in again to connect Stripe.';
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        userMessage = 'Network error. Please check your connection and try again.';
+      if (data?.url) {
+        window.location.href = data.url;
       } else {
-        userMessage = `Failed to connect Stripe: ${error.message}`;
+        toast.error('Could not generate Stripe connection link');
       }
-
-      toast.error(userMessage);
+    } catch (error: any) {
+      console.error('[Dashboard] Stripe connection error:', error);
+      toast.error('Could not connect to Stripe. Please try again.');
+    } finally {
       setConnectingStripe(false);
     }
   };
 
+  const handleNavigateToProject = useCallback((projectId: string) => {
+    console.log('[Dashboard] Navigating to project:', projectId);
+    navigate(`/project/${projectId}`);
+  }, [navigate]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-secondary-bg">
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
-      {/* Fixed bottom-right container */}
-      <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
-        <RealtimeStatus />
-      </div>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6 sm:space-y-8 page-enter">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 animate-fade-in">
+      <RealtimeStatus />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-gray-900">My Projects</h1>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">Welcome back, {user?.name}!</p>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+              Dashboard
+            </h1>
+            <p className="text-base sm:text-lg text-gray-600 mt-2">
+              Manage your projects and track payments
+            </p>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
+          <div className="flex gap-3">
             <Button
               onClick={handleRefresh}
+              disabled={refreshing}
               variant="secondary"
-              disabled={refreshing || loading}
-              className="flex items-center justify-center gap-2 min-h-[44px] flex-1 sm:flex-initial"
+              className="flex-shrink-0 min-h-[44px]"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
+              <span className="sm:hidden">↻</span>
             </Button>
             <Button
               onClick={() => navigate('/templates')}
