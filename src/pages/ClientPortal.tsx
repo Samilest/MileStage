@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowUp, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import StageList from '../components/StageList';
 import RealtimeStatus from '../components/RealtimeStatus';
 import PaymentInfoBox from '../components/PaymentInfoBox';
 import toast from 'react-hot-toast';
+import logo from '../assets/milestage-logo.png';
 
 interface ProjectData {
   id: string;
@@ -209,6 +210,33 @@ export default function ClientPortal() {
 
   return (
     <div className="min-h-screen bg-secondary-bg" ref={topRef}>
+      {/* Navigation Header */}
+      <nav className="bg-background border-b border-border mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center">
+                <img 
+                  src={logo} 
+                  alt="MileStage" 
+                  className="h-12"
+                />
+              </Link>
+            </div>
+            
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 text-sm sm:text-base bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 hover:border-gray-400 focus:ring-gray-300 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Refresh project data"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
       {/* Fixed bottom-right container for stacked elements */}
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 flex flex-col gap-3 items-end z-50">
         {showScrollTop && (
@@ -223,44 +251,31 @@ export default function ClientPortal() {
         <RealtimeStatus />
       </div>
 
-      <header className="bg-white border-b shadow-sm sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
-                  {projectData.project_name}
-                </h1>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing || loading}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 min-h-[44px]"
-                  aria-label="Refresh project data"
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                    {refreshing ? 'Refreshing...' : 'Refresh'}
-                  </span>
-                </button>
-              </div>
-              <p className="text-gray-600 mt-1 text-sm sm:text-base">
-                Client: {projectData.client_name}
-              </p>
-              <p className="text-gray-500 text-xs sm:text-sm mt-1">
-                Freelancer: {projectData.user_profiles.name}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0 hidden sm:block">
-              <div className="text-xs sm:text-sm text-gray-600">Total Project Value</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
-            </div>
+      {/* Project Header */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
+              {projectData.project_name}
+            </h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
+              Client: {projectData.client_name}
+            </p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-1">
+              Freelancer: {projectData.user_profiles.name}
+            </p>
           </div>
-          <div className="sm:hidden mt-3 text-center pt-3 border-t border-gray-200">
-            <div className="text-xs text-gray-600">Total Project Value</div>
-            <div className="text-xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
+          <div className="text-right flex-shrink-0 hidden sm:block">
+            <div className="text-xs sm:text-sm text-gray-600">Total Project Value</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
           </div>
         </div>
-      </header>
+        <div className="sm:hidden mt-3 text-center pt-3 border-t border-gray-200">
+          <div className="text-xs text-gray-600">Total Project Value</div>
+          <div className="text-xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
+        </div>
+      </div>
+
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6">
         <PaymentInfoBox
           paymentMethods={projectData.payment_methods || {}}
