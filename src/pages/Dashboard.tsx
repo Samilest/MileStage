@@ -373,7 +373,7 @@ return (
               onClick={handleRefresh}
               disabled={refreshing}
               variant="secondary"
-              className="flex-shrink-0 min-h-[44px]"
+              className="flex-shrink-0"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
@@ -382,7 +382,7 @@ return (
             <Button
               onClick={() => navigate('/templates')}
               variant="primary"
-              className="flex-1 sm:flex-initial min-h-[44px] whitespace-nowrap"
+              className="flex-1 sm:flex-initial whitespace-nowrap"
             >
               <span className="hidden sm:inline">Create Project</span>
               <span className="sm:hidden">Create</span>
@@ -405,7 +405,7 @@ return (
               <Button
                 onClick={handleConnectStripe}
                 disabled={connectingStripe}
-                className="w-full sm:w-auto min-h-[44px] whitespace-nowrap flex items-center gap-2"
+                className="w-full sm:w-auto whitespace-nowrap flex items-center gap-2"
               >
                 {connectingStripe ? (
                   <>
