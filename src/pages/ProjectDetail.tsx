@@ -983,14 +983,30 @@ export default function ProjectDetail() {
           Back to Project
         </Link>
 
-        <div className="mb-8">
-          <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-black mb-2">
-            {project.project_name || project.name}
-          </h1>
-          <p className="text-neutral-600 text-lg">
-            Client: {project.client_name}
-          </p>
-        </div>
+<div className="mb-8 flex items-start justify-between gap-4">
+  <div>
+    <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-black mb-2">
+      {project.project_name || project.name}
+    </h1>
+    <p className="text-neutral-600 text-lg">
+      Client: {project.client_name}
+    </p>
+  </div>
+  <div className="flex items-center gap-4 flex-shrink-0">
+    <button
+      onClick={() => loadProjectData()}
+      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+    >
+      🔄 Refresh
+    </button>
+    <div className="text-right">
+      <p className="text-sm text-gray-500">Total Project Value</p>
+      <p className="text-2xl font-bold text-gray-900">
+        ${project.total_amount.toLocaleString()}
+      </p>
+    </div>
+  </div>
+</div>
 
         {successMessage && (
           <div className="mb-6 bg-emerald-50 border border-emerald-500 text-emerald-700 px-4 py-3 rounded-lg">
