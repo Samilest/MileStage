@@ -409,7 +409,7 @@ return (
               <Button
                 onClick={handleConnectStripe}
                 disabled={connectingStripe}
-                className="w-full sm:w-auto whitespace-nowrap"
+                className="w-full sm:w-auto whitespace-nowrap !bg-black hover:!bg-gray-900"
               >
                 {connectingStripe ? (
                   <>
