@@ -1,77 +1,36 @@
-interface Notification {
-  priority: number;
-  icon: string;
-  text: string;
-}
-
-interface StageNotificationData {
+// Types for notification data
+export interface StageNotificationData {
   hasUnviewedPayment: boolean;
   hasUnviewedRevision: boolean;
   hasUnviewedApproval: boolean;
   unreadMessageCount: number;
 }
 
-export function getStageNotificationMessage(data: StageNotificationData, isMobile = false): string {
-  const notifications: Notification[] = [];
-
-  // 1. Revision requested (highest priority)
-  if (data.hasUnviewedRevision) {
-    notifications.push({
-      priority: 1,
-      icon: '⚠️',
-      text: isMobile ? 'Revision' : 'Revision requested'
-    });
-  }
-
-  // 2. Payment marked
-  if (data.hasUnviewedPayment) {
-    notifications.push({
-      priority: 1,
-      icon: '💰',
-      text: isMobile ? 'Payment pending' : 'Payment marked - verify'
-    });
-  }
-
-  // 3. Stage approved
-  if (data.hasUnviewedApproval) {
-    notifications.push({
-      priority: 1,
-      icon: '✅',
-      text: isMobile ? 'Approved' : 'Stage approved - awaiting payment'
-    });
-  }
-
-  // 4. New messages (lower priority)
-  if (data.unreadMessageCount > 0) {
-    const messageText = `${data.unreadMessageCount} ${isMobile ? 'message' : 'new message'}${data.unreadMessageCount > 1 ? 's' : ''}`;
-    notifications.push({
-      priority: 2,
-      icon: '💬',
-      text: messageText
-    });
-  }
-
-  // Sort by priority (lower number = higher priority)
-  notifications.sort((a, b) => a.priority - b.priority);
-
-  // Format as "icon text • icon text"
-  return notifications.map(n => `${n.icon} ${n.text}`).join(' • ');
-}
-
+// Priority order for notifications:
+// 1. Revision Request (highest priority - client needs something)
+// 2. Payment Pending (money matters)
+// 3. Approval (stage completed)
+// 4. Messages (lowest priority)
 export function getPrimaryNotification(data: StageNotificationData, stageName: string): string {
-  // ✅ FIX: Removed "on ${stageName}" from all notifications - simpler and cleaner!
-  // Return only the highest priority notification for dashboard cards
+  // ⚠️ REVISION REQUEST - Highest Priority
   if (data.hasUnviewedRevision) {
     return `⚠️ Revision Requested`;
   }
+  
+  // 💰 PAYMENT - Second Priority
   if (data.hasUnviewedPayment) {
     return `💰 Payment Pending`;
   }
+  
+  // ✅ APPROVAL - Third Priority
   if (data.hasUnviewedApproval) {
     return `✅ Approved`;
   }
+  
+  // 💬 MESSAGES - Lowest Priority
   if (data.unreadMessageCount > 0) {
     return `💬 ${data.unreadMessageCount} new message${data.unreadMessageCount > 1 ? 's' : ''}`;
   }
+  
   return '';
 }

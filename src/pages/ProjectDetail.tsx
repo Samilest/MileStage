@@ -312,13 +312,17 @@ export default function ProjectDetail() {
 
   const markStagesAsViewed = async (stages: any[]) => {
     try {
-      // Mark all stages as viewed
-      const stageIds = stages.map(s => s.id);
-      if (stageIds.length > 0) {
+      // Only mark stages as viewed if they have been approved
+      const approvedStageIds = stages
+        .filter(s => s.approved_at && !s.viewed_by_freelancer_at)
+        .map(s => s.id);
+      
+      if (approvedStageIds.length > 0) {
         await supabase
           .from('stages')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
-          .in('id', stageIds);
+          .in('id', approvedStageIds);
+        console.log(`✅ Marked ${approvedStageIds.length} approved stages as viewed`);
       }
 
       // Mark all unviewed revisions as viewed
@@ -335,6 +339,7 @@ export default function ProjectDetail() {
             .from('revisions')
             .update({ viewed_by_freelancer_at: new Date().toISOString() })
             .in('id', revisionIds);
+          console.log(`✅ Marked ${revisionIds.length} revisions as viewed for stage ${stage.stage_number}`);
         }
       }
 
@@ -352,6 +357,7 @@ export default function ProjectDetail() {
             .from('stage_payments')
             .update({ viewed_by_freelancer_at: new Date().toISOString() })
             .in('id', paymentIds);
+          console.log(`✅ Marked ${paymentIds.length} payments as viewed for stage ${stage.stage_number}`);
         }
       }
 
@@ -370,10 +376,11 @@ export default function ProjectDetail() {
             .from('stage_notes')
             .update({ viewed_by_freelancer_at: new Date().toISOString() })
             .in('id', messageIds);
+          console.log(`✅ Marked ${messageIds.length} messages as viewed for stage ${stage.stage_number}`);
         }
       }
 
-      console.log('✅ Marked stages, revisions, payments, and messages as viewed');
+      console.log('✅ Finished marking items as viewed');
     } catch (error) {
       console.error('Error marking as viewed:', error);
     }
