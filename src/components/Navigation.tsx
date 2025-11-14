@@ -16,21 +16,21 @@ function Navigation() {
   };
 
   return (
-    <nav className="bg-background border-b border-border">
+    <nav className="bg-background border-b border-border mb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
-<div className="flex items-center">
-  <Link to="/dashboard" className="flex items-center">
-<img 
-  src={logo} 
-  alt="MileStage" 
-  className="h-14"
-/>
-  </Link>
-</div>
+          <div className="flex items-center">
+            <Link to="/dashboard" className="flex items-center">
+              <img 
+                src={logo} 
+                alt="MileStage" 
+                className="h-10"
+              />
+            </Link>
+          </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Button variant="secondary" onClick={handleLogout} className="min-h-[44px] text-sm sm:text-base px-4 sm:px-6">
+            <Button variant="secondary" onClick={handleLogout} className="text-sm sm:text-base px-4 sm:px-6">
               Logout
             </Button>
           </div>

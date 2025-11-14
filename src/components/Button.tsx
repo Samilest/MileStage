@@ -12,7 +12,7 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'px-4 sm:px-6 py-2.5 sm:py-3 min-h-[44px] rounded-lg font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 text-sm sm:text-base transform hover:scale-105 active:scale-95';
+  const baseStyles = 'px-4 sm:px-6 py-2 sm:py-2.5 min-h-[36px] rounded-lg font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 text-sm sm:text-base transform hover:scale-105 active:scale-95';
 
   const variants = {
     primary: 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-500 hover:shadow-lg',
