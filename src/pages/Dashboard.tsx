@@ -270,6 +270,18 @@ export default function Dashboard() {
           fetchProjects(true);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stage_notes',
+        },
+        () => {
+          console.log('[Dashboard] Message viewed, refreshing...');
+          fetchProjects(true);
+        }
+      )
       .subscribe((status) => {
         console.log('[Dashboard] Realtime subscription status:', status);
       });
