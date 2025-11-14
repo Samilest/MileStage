@@ -180,6 +180,12 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
 
       console.log('🟡 [NoteBox] Note sent successfully');
 
+      // ✅ If freelancer is replying, mark all client messages as viewed
+      if (authorType === 'freelancer') {
+        await markClientMessagesAsViewed();
+        console.log('✅ [NoteBox] Marked client messages as viewed after reply');
+      }
+
       // Realtime subscription will add the note to state
       // Scroll to bottom after a brief delay to allow realtime to update
       setTimeout(() => {
