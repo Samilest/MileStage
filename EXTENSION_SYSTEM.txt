@@ -1,0 +1,132 @@
+EXTENSION PURCHASE SYSTEM - IMPLEMENTATION COMPLETE (WITH STATUS FEEDBACK)
+==========================================================================
+
+The extension system allows clients to purchase additional revision rounds when they've exhausted their included revisions.
+
+⭐ NEW: Complete client-side status feedback for pending/rejected extensions
+
+## HOW IT WORKS
+
+### CLIENT SIDE (ClientPortal):
+
+1. When client has used all revisions (e.g., 2/2), they see:
+   "All included revisions used (2/2)"
+   "Purchase Extension - $50" button
+
+2. Clicking the button opens ExtensionPurchaseModal showing:
+   - Extension price ($50)
+   - Payment instructions
+   - Freelancer's payment methods (PayPal, Venmo, etc.)
+   - Unique reference code (e.g., EXT-A1B2C3D4)
+
+3. Client pays freelancer directly using their preferred method
+
+4. Client clicks "✅ I've Paid - Mark Extension Payment Sent"
+   - Creates record in extensions table with status='marked_paid'
+   - Shows yellow alert with pending status
+
+### FREELANCER SIDE (ProjectDetail):
+
+1. Freelancer sees ExtensionVerificationAlert:
+   "Extension Payment Pending"
+   "Client purchased extension for $50"
+   "Reference: EXT-A1B2C3D4"
+   "Marked paid: Oct 18, 3:45 PM"
+
+2. Two buttons:
+   - "✅ Verify Payment Received"
+   - "❌ Payment Not Received"
+
+3. When freelancer clicks "Verify Payment Received":
+   - Updates extension status to 'verified'
+   - Increments stage.revisions_included (2 → 3)
+   - Client can now request 1 more revision
+
+4. When freelancer clicks "Payment Not Received":
+   - Updates extension status to 'rejected'
+   - Sets rejection_reason: "Payment not received"
+   - Client sees red alert with rejection notice
+
+### DATABASE STRUCTURE
+
+extensions table:
+- id (uuid)
+- stage_id (uuid, FK to stages)
+- amount (numeric) - Extension price
+- reference_code (text) - Unique payment reference
+- status (text) - 'marked_paid', 'verified', 'rejected'
+- marked_paid_at (timestamptz) - When client marked payment
+- verified_at (timestamptz) - When freelancer verified
+- rejected_at (timestamptz) - If payment wasn't received
+- rejection_reason (text) - Why payment was rejected
+- additional_revisions (int) - Default 1
+
+### SECURITY (RLS Policies):
+
+1. Public INSERT - Anyone can mark extension payment (client)
+2. Authenticated SELECT - Freelancers can see pending extensions
+3. Authenticated UPDATE - Freelancers can verify/reject
+
+### KEY FEATURES
+
+✅ Zero fees - Freelancer keeps 100% of extension revenue
+✅ Works with ANY payment method globally
+✅ Simple mark + verify workflow
+✅ Real-time updates via Supabase subscriptions
+✅ Unique reference codes for payment tracking
+✅ Automatic revision increment after verification
+✅ Client sees pending status while waiting for verification
+✅ Client sees rejection notice if payment not received
+✅ Cannot spam multiple extension purchases (button disabled when pending)
+✅ Clear communication about payment status at all times
+
+### COMPONENTS CREATED
+
+1. ExtensionPurchaseModal.tsx - Client purchase flow
+2. ExtensionVerificationAlert.tsx - Freelancer verification UI
+3. ExtensionStatusAlerts.tsx - Client-side pending/rejected status alerts
+4. Updated StageCard.tsx - Shows extension button with status feedback
+5. Updated ProjectDetail.tsx - Shows pending extensions to freelancer
+
+### CLIENT-SIDE STATUS FEEDBACK
+
+**Scenario 1: Pending Extension**
+When client marks payment sent, they see:
+- Yellow alert: "⏳ Extension Payment Pending Verification"
+- Shows: Amount, Reference Code, Date marked
+- Button changes to: "⏳ Extension Payment Pending" (disabled)
+- Cannot purchase duplicate extensions while one is pending
+
+**Scenario 2: Rejected Extension**
+When freelancer rejects payment, client sees:
+- Red alert: "⚠️ Extension Payment Issue"
+- Shows: "Your extension payment for $X was not received"
+- Shows: Rejection date and reason
+- Guidance: "Verify payment was sent or try different method"
+- Button re-enabled: "Purchase Extension - $X"
+
+**Scenario 3: Verified Extension**
+When freelancer verifies payment:
+- Alert disappears
+- Revisions count increases (2/3 instead of 2/2)
+- "Request Changes" button re-enabled
+
+### TESTING STEPS
+
+1. Create a project with extension_enabled=true and extension_price=50
+2. Use all revisions on a stage (revisions_used = revisions_included)
+3. Client sees "Purchase Extension - $50" button
+4. Client clicks, sees payment modal with instructions
+5. Client marks payment sent → sees yellow "Pending" alert
+6. Freelancer sees pending extension notification
+7. SCENARIO A: Freelancer verifies → Client's revision count increases
+8. SCENARIO B: Freelancer rejects → Client sees red "Rejected" alert
+
+### UX IMPROVEMENTS IMPLEMENTED
+
+✅ Fixed UX issue where rejected extensions had no client feedback
+✅ Added pending extension tracking to prevent duplicate purchases
+✅ Clear visual indicators (yellow for pending, red for rejected, green for verified)
+✅ Disabled purchase button while extension is pending verification
+✅ Detailed rejection information shown to client
+✅ Automatic status checking with real-time updates
