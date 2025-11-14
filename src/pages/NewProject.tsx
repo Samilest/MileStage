@@ -417,7 +417,6 @@ export default function NewProject() {
     clientEmail.includes('@') &&
     projectTotal > 0 &&
     stages.every(s => s.amount > 0) &&
-    (!includeDownPayment || downPaymentAmount > 0) &&
     (isCustomProject || matchStatus !== 'far');
 
   const getProjectNamePlaceholder = (): string => {
