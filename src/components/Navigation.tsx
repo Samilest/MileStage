@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
 import Button from './Button';
+import logo from '../assets/milestage-logo.png';
 
 function Navigation() {
   const navigate = useNavigate();
@@ -21,10 +22,9 @@ function Navigation() {
 <div className="flex items-center">
   <Link to="/dashboard" className="flex items-center">
 <img 
-  src="/milestage-logo.png" 
+  src={logo} 
   alt="MileStage" 
   className="h-10"
-  style={{ maxHeight: '40px' }}
 />
   </Link>
 </div>
