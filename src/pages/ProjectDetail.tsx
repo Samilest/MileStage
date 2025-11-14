@@ -995,13 +995,13 @@ export default function ProjectDetail() {
   <div className="flex items-center gap-4 flex-shrink-0">
 <button
   onClick={() => loadProjectData()}
-  className="p-2 hover:bg-gray-100 text-gray-600 hover:text-gray-900 rounded-lg transition-colors flex items-center gap-2"
+  className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
   title="Refresh"
 >
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
+    width="18" 
+    height="18" 
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
