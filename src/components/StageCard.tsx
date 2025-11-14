@@ -214,211 +214,124 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       console.error('Error checking stage payment status:', error);
     }
   };
+
   const getStatusInfo = () => {
     switch (stage.status) {
       case 'locked':
         return {
-          icon: Lock,
           label: 'Locked',
-          color: 'text-gray-500',
+          color: 'text-gray-600',
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-300',
           iconBg: 'bg-gray-200',
-          cardOpacity: 'opacity-75',
         };
       case 'active':
-      case 'in_progress':
         return {
-          icon: Circle,
-          label: 'In Progress',
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-green-500',
-          iconBg: 'bg-yellow-100',
-          cardOpacity: '',
-        };
-      case 'delivered':
-        return {
-          icon: CheckCircle2,
-          label: 'Delivered',
+          label: 'Active - Waiting for Payment',
           color: 'text-blue-600',
           bgColor: 'bg-blue-50',
           borderColor: 'border-blue-200',
           iconBg: 'bg-blue-100',
-          cardOpacity: '',
         };
-      case 'payment_pending':
+      case 'in_progress':
         return {
-          icon: DollarSign,
-          label: 'Payment Pending',
+          label: 'In Progress',
           color: 'text-yellow-600',
           bgColor: 'bg-yellow-50',
           borderColor: 'border-yellow-200',
           iconBg: 'bg-yellow-100',
-          cardOpacity: '',
         };
-      case 'paused':
+      case 'delivered':
         return {
-          icon: Pause,
-          label: 'Paused',
+          label: 'Delivered - Awaiting Approval',
+          color: 'text-purple-600',
+          bgColor: 'bg-purple-50',
+          borderColor: 'border-purple-200',
+          iconBg: 'bg-purple-100',
+        };
+      case 'approved':
+        return {
+          label: 'Approved',
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          iconBg: 'bg-green-100',
+        };
+      case 'completed':
+        return {
+          label: 'Completed',
+          color: 'text-green-600',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          iconBg: 'bg-green-100',
+        };
+      case 'revision_requested':
+        return {
+          label: 'Revision Requested',
           color: 'text-orange-600',
           bgColor: 'bg-orange-50',
           borderColor: 'border-orange-200',
           iconBg: 'bg-orange-100',
-          cardOpacity: '',
-        };
-      case 'review':
-        return {
-          icon: MessageSquare,
-          label: 'In Review',
-          color: 'text-yellow-600',
-          bgColor: 'bg-yellow-50',
-          borderColor: 'border-yellow-200',
-          iconBg: 'bg-yellow-100',
-          cardOpacity: '',
-        };
-      case 'completed':
-      case 'complete':
-        return {
-          icon: CheckCircle2,
-          label: 'Completed',
-          color: 'text-green-600',
-          bgColor: 'bg-green-50',
-          borderColor: 'border-green-500',
-          iconBg: 'bg-green-100',
-          cardOpacity: '',
-        };
-      case 'cancelled':
-        return {
-          icon: XCircle,
-          label: 'Cancelled',
-          color: 'text-red-600',
-          bgColor: 'bg-red-50',
-          borderColor: 'border-red-200',
-          iconBg: 'bg-red-100',
-          cardOpacity: '',
         };
       default:
         return {
-          icon: Clock,
-          label: stage.status,
+          label: 'Unknown',
           color: 'text-gray-600',
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200',
-          iconBg: 'bg-gray-100',
-          cardOpacity: '',
+          borderColor: 'border-gray-300',
+          iconBg: 'bg-gray-200',
         };
     }
   };
 
   const getPaymentStatusInfo = () => {
-    switch (stage.payment_status) {
-      case 'paid':
-        return {
-          label: '✅ Verified',
-          color: 'text-green-700',
-          bgColor: 'bg-green-100',
-        };
-      case 'pending':
-        return {
-          label: '⏳ Pending',
-          color: 'text-yellow-700',
-          bgColor: 'bg-yellow-100',
-        };
-      case 'unpaid':
-        return {
-          label: 'Awaiting Payment',
-          color: 'text-gray-700',
-          bgColor: 'bg-gray-100',
-        };
-      case 'overdue':
-        return {
-          label: '❌ Overdue',
-          color: 'text-red-700',
-          bgColor: 'bg-red-100',
-        };
-      default:
-        return {
-          label: stage.payment_status,
-          color: 'text-gray-700',
-          bgColor: 'bg-gray-100',
-        };
+    if (actualPaymentStatus === 'paid') {
+      return {
+        label: '✓ Paid',
+        color: 'text-green-700',
+        bgColor: 'bg-green-100',
+      };
     }
+    if (stage.payment_status === 'pending') {
+      return {
+        label: '⏳ Payment Pending',
+        color: 'text-yellow-700',
+        bgColor: 'bg-yellow-100',
+      };
+    }
+    return {
+      label: 'Not Paid',
+      color: 'text-gray-700',
+      bgColor: 'bg-gray-100',
+    };
   };
 
   const statusInfo = getStatusInfo();
   const paymentInfo = getPaymentStatusInfo();
-  const StatusIcon = statusInfo.icon;
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+  const StatusIcon = stage.status === 'locked' ? Lock
+    : stage.status === 'active' || stage.status === 'in_progress' ? Clock
+      : stage.status === 'delivered' ? FileText
+        : stage.status === 'approved' || stage.status === 'completed' ? CheckCircle2
+          : stage.status === 'revision_requested' ? RotateCcw
+            : Circle;
+
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
     });
   };
 
-  const handleApproveStage = async () => {
-    setShowPaymentModal(true);
-  };
-
-  const handleMarkPaymentSent = async () => {
-    setIsMarkingPayment(true);
-    try {
-      const referenceCode = `STAGE${stage.stage_number}-${stage.id.slice(0, 8).toUpperCase()}`;
-
-      const { error: paymentError } = await supabase
-        .from('stage_payments')
-        .insert({
-          stage_id: stage.id,
-          amount: stage.amount,
-          reference_code: referenceCode,
-          status: 'marked_paid',
-          marked_paid_at: new Date().toISOString()
-        });
-
-      if (paymentError) throw paymentError;
-
-      const { error: stageError } = await supabase
-        .from('stages')
-        .update({
-          status: 'payment_pending',
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', stage.id);
-
-      if (stageError) throw stageError;
-
-      setSuccessMessage('Payment marked! Waiting for freelancer verification.');
-      setShowPaymentModal(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (err: any) {
-      alert('Failed to mark payment: ' + err.message);
-    } finally {
-      setIsMarkingPayment(false);
-    }
-  };
-
   const handleRequestRevision = async () => {
-    console.log('🔍 === REVISION SUBMISSION DEBUG ===');
-    console.log('Stage object:', stage);
-    console.log('Stage ID:', stage?.id);
-    console.log('Stage ID type:', typeof stage?.id);
-    console.log('Feedback:', revisionFeedback);
-    console.log('Feedback length:', revisionFeedback?.length);
-
-    const trimmed = revisionFeedback.trim();
-
-    if (trimmed.length === 0) {
-      setValidationError('Please describe what changes you need');
+    if (!revisionFeedback.trim()) {
+      setValidationError('Please provide feedback for the revision');
       return;
     }
 
-    if (trimmed.length < 10) {
-      setValidationError('Please provide more detail (at least 10 characters)');
+    if (revisionFeedback.trim().length < 10) {
+      setValidationError('Please provide at least 10 characters of feedback');
       return;
     }
 
@@ -426,301 +339,266 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     setValidationError('');
 
     try {
-      console.log('Attempting INSERT...');
+      const nextRevisionNumber = stage.revisions.length + 1;
 
-      const insertData = {
-        stage_id: stage.id,
-        feedback: trimmed,
-        revision_number: (stage.revisions_used || 0) + 1,
-      };
-
-      console.log('Insert data:', insertData);
-
-      const { data, error: revisionError } = await supabase
+      const { error: revisionError } = await supabase
         .from('revisions')
-        .insert(insertData)
-        .select();
-
-      if (revisionError) {
-        console.error('❌ INSERT ERROR:', {
-          message: revisionError.message,
-          code: revisionError.code,
-          details: revisionError.details,
-          hint: revisionError.hint
+        .insert({
+          stage_id: stage.id,
+          revision_number: nextRevisionNumber,
+          feedback: revisionFeedback.trim(),
+          status: 'requested',
         });
-        alert('Insert failed: ' + revisionError.message);
-        throw revisionError;
-      }
 
-      console.log('✅ INSERT SUCCESS:', data);
+      if (revisionError) throw revisionError;
 
-      console.log('═══ STAGE UPDATE DEBUG ═══');
-      console.log('Stage object:', stage);
-      console.log('Stage ID:', stage.id);
-      console.log('Stage ID type:', typeof stage.id);
-      console.log('Current revisions_used:', stage.revisions_used);
-      console.log('Will update to:', (stage.revisions_used || 0) + 1);
-      console.log('═══════════════════════════');
-
-      console.log('Updating stage...');
-      const { data: updatedData, error: stageError } = await supabase
+      const { error: stageUpdateError } = await supabase
         .from('stages')
         .update({
-          status: 'in_progress',
-          revisions_used: (stage.revisions_used || 0) + 1,
+          status: 'revision_requested',
+          revisions_used: stage.revisions_used + 1,
         })
-        .eq('id', stage.id)
-        .select();
+        .eq('id', stage.id);
 
-      console.log('Update result:', updatedData);
-      console.log('Update error:', stageError);
+      if (stageUpdateError) throw stageUpdateError;
 
-      if (!updatedData || updatedData.length === 0) {
-        console.error('❌ UPDATE MATCHED ZERO ROWS!');
-        console.error('This means stage.id does not exist in the database');
-      }
-
-      if (stageError) {
-        console.error('❌ STAGE UPDATE ERROR:', {
-          message: stageError.message,
-          code: stageError.code,
-          details: stageError.details,
-          hint: stageError.hint
+      const { error: activityError } = await supabase
+        .from('activity_log')
+        .insert({
+          stage_id: stage.id,
+          action: 'revision_requested',
+          description: `Revision ${nextRevisionNumber} requested`,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
         });
-        throw stageError;
-      }
 
-      console.log('✅ Stage updated');
+      if (activityError) throw activityError;
 
-      setSuccessMessage('Revision requested successfully!');
+      setSuccessMessage('✓ Revision request sent!');
       setIsRevisionModalOpen(false);
       setRevisionFeedback('');
-      setValidationError('');
 
       setTimeout(() => {
-        setSuccessMessage('');
         window.location.reload();
-      }, 1500);
-    } catch (error: any) {
-      console.error('❌ CATCH ERROR:', error);
-      alert('Failed: ' + (error?.message || 'Unknown error'));
+      }, 1000);
+    } catch (error) {
+      console.error('Error requesting revision:', error);
       setValidationError('Failed to submit revision request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const revisionsRemaining = (stage.revisions_included || 2) - (stage.revisions_used || 0);
+  const handleApproveStage = async () => {
+    setIsSubmitting(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('stages')
+        .update({ status: 'approved' })
+        .eq('id', stage.id);
+
+      if (updateError) throw updateError;
+
+      const { error: activityError } = await supabase
+        .from('activity_log')
+        .insert({
+          stage_id: stage.id,
+          action: 'stage_approved',
+          description: 'Stage deliverables approved',
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+        });
+
+      if (activityError) throw activityError;
+
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error('Error approving stage:', error);
+      alert('Failed to approve stage. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleMarkPaymentSent = async () => {
+    setIsMarkingPayment(true);
+    try {
+      const referenceCode = `STAGE${stage.stage_number}-${stage.id.slice(0, 8).toUpperCase()}`;
+
+      const { data: existingPayment } = await supabase
+        .from('stage_payments')
+        .select('id')
+        .eq('stage_id', stage.id)
+        .eq('reference_code', referenceCode)
+        .maybeSingle();
+
+      if (existingPayment) {
+        alert('This payment has already been marked as sent.');
+        setIsMarkingPayment(false);
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('stage_payments')
+        .insert({
+          stage_id: stage.id,
+          amount: stage.amount,
+          reference_code: referenceCode,
+          status: 'marked_paid',
+        });
+
+      if (insertError) throw insertError;
+
+      const { error: stageUpdateError } = await supabase
+        .from('stages')
+        .update({ payment_status: 'pending' })
+        .eq('id', stage.id);
+
+      if (stageUpdateError) throw stageUpdateError;
+
+      const { error: activityError } = await supabase
+        .from('activity_log')
+        .insert({
+          stage_id: stage.id,
+          action: 'payment_marked',
+          description: `Payment marked as sent: ${referenceCode}`,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+        });
+
+      if (activityError) throw activityError;
+
+      setShowPaymentModal(false);
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      console.error('Error marking payment:', error);
+      alert('Failed to mark payment as sent. Please try again.');
+    } finally {
+      setIsMarkingPayment(false);
+    }
+  };
+
+  const revisionsRemaining = stage.revisions_included - stage.revisions_used;
   const canRequestRevision = revisionsRemaining > 0;
-  const isCompleted = stage.status === 'completed' || stage.status === 'complete';
 
-  if (stage.stage_number === 0) {
-    const isPaid = actualPaymentStatus === 'paid' || stage.payment_status === 'paid';
+  // If this is a locked stage (not yet active), show minimal info
+  if (stage.status === 'locked') {
     return (
-      <div
-        className={`bg-white border-2 ${
-          isPaid ? 'border-green-500' : 'border-yellow-400'
-        } rounded-xl overflow-hidden shadow-md`}
-      >
-        <div className={`${
-          isPaid ? 'bg-green-50' : 'bg-yellow-50'
-        } px-4 sm:px-6 py-5 sm:py-6 space-y-4`}>
-          <div className="flex items-start gap-3">
-            <div className={`${
-              isPaid ? 'bg-green-100' : 'bg-yellow-100'
-            } rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
-              <DollarSign className={`w-5 h-5 ${
-                isPaid ? 'text-green-600' : 'text-yellow-600'
-              }`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-bold text-gray-900">
-                Stage 0: Down Payment
-              </h3>
-              <span className={`text-base font-semibold ${
-                isPaid ? 'text-green-600' : 'text-yellow-600'
-              }`}>
-                {isPaid ? 'Paid ✓' : 'Awaiting Payment'}
-              </span>
-            </div>
-          </div>
-
+      <div className={`bg-white border-2 ${statusInfo.borderColor} rounded-xl overflow-hidden shadow-sm opacity-75`}>
+        <div className={`${statusInfo.bgColor} px-4 sm:px-6 py-4 sm:py-6 border-b ${statusInfo.borderColor}`}>
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="text-lg font-semibold text-gray-900">
-              Amount: <span className="text-2xl font-black">${stage.amount.toLocaleString()}</span>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
+                <StatusIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${statusInfo.color}`} />
+              </div>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-600">
+                  Stage {stage.stage_number}: {stage.name}
+                </h3>
+                <span className={`text-sm sm:text-base font-semibold ${statusInfo.color}`}>
+                  {statusInfo.label}
+                </span>
+              </div>
             </div>
-            {!isPaid && (
-              <button
-                onClick={async () => {
-                  if (!shareCode) {
-                    alert('Invalid share code');
-                    return;
-                  }
-
-                  setCreatingPayment(true);
-                  try {
-                    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-link`;
-                    const response = await fetch(apiUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        stageId: stage.id,
-                        shareCode: shareCode,
-                      }),
-                    });
-
-                    const result = await response.json();
-
-                    if (result.setupRequired) {
-                      alert('Payment setup required. The freelancer needs to connect their Stripe account first.');
-                      return;
-                    }
-
-                    if (result.error) {
-                      throw new Error(result.error);
-                    }
-
-                    if (result.url) {
-                      window.location.href = result.url;
-                    }
-                  } catch (error: any) {
-                    console.error('Error creating payment:', error);
-                    alert('Failed to create payment link. Please try again.');
-                  } finally {
-                    setCreatingPayment(false);
-                  }
-                }}
-                disabled={creatingPayment}
-                className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {creatingPayment ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Pay Now'
-                )}
-              </button>
-            )}
+            <div className="text-right">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
+              <div className="text-2xl lg:text-3xl font-black text-gray-600">
+                ${stage.amount.toLocaleString()}
+              </div>
+            </div>
           </div>
         </div>
 
-        {isPaid && (
-          <div className="p-4 sm:p-6">
-            <div className="flex items-center gap-2 text-green-700 bg-green-100 rounded-lg p-4">
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm font-medium">
-                Payment received on {formatDate(stage.payment_received_at)}
-              </p>
-            </div>
+        <div className="p-4 sm:p-6">
+          <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <Lock className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <p className="text-gray-600 font-medium">
+              This stage is locked
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Complete previous stages to unlock
+            </p>
           </div>
-        )}
+        </div>
       </div>
     );
   }
 
-  if (isCompleted) {
+  // FREELANCER VIEW - Expanded info in dropdown
+  if (!readOnly) {
     return (
-      <div
-        className="bg-green-50 border-2 border-green-500 rounded-lg p-4 sm:p-6 cursor-pointer hover:bg-green-100 transition-all shadow-md hover:shadow-lg"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-            <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
+      <div className={`bg-white border-2 ${statusInfo.borderColor} rounded-xl overflow-hidden transition-shadow duration-300 ${
+        stage.status === 'active' || stage.status === 'in_progress'
+          ? 'shadow-lg hover:shadow-xl'
+          : 'shadow-md hover:shadow-lg'
+      }`}>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={`w-full ${statusInfo.bgColor} px-4 sm:px-6 py-4 sm:py-6 border-b ${statusInfo.borderColor} hover:opacity-90 transition-opacity`}
+        >
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
+                <StatusIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${statusInfo.color}`} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                  Stage {stage.stage_number}: {stage.name}
+                </h3>
+                <span className={`text-sm sm:text-base font-semibold ${statusInfo.color}`}>
+                  {statusInfo.label}
+                </span>
+              </div>
             </div>
-
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-medium text-green-900 truncate">
-                Stage {stage.stage_number}: {stage.name}
-              </h3>
-              <p className="text-sm text-green-700">
-                Completed {formatDate(stage.payment_received_at)} • ${stage.amount.toLocaleString()} paid
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-            <div className="bg-green-500 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg font-bold text-sm sm:text-base">
-              ${stage.amount.toLocaleString()}
-            </div>
-
-            <div className="text-green-600">
-              {isExpanded ? (
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              )}
+            <div className="flex items-center gap-4">
+              <span className={`px-4 py-2 rounded-full text-base font-semibold ${paymentInfo.bgColor} ${paymentInfo.color}`}>
+                {paymentInfo.label}
+              </span>
+              <div className="text-right">
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
+                <div className="text-2xl lg:text-3xl font-black text-gray-900">
+                  ${stage.amount.toLocaleString()}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </button>
 
         {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-green-200" onClick={(e) => e.stopPropagation()}>
-            {stage.stage_number === 0 ? (
-              // Stage 0 (Down Payment) - Simple display, no work/revisions
-              <div className="text-center py-2">
-                <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-lg">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="font-medium">Down payment completed</span>
-                </div>
-              </div>
-            ) : (
-              // Regular stages - Show deliverables and revisions
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <p className="text-gray-600">Deliverables:</p>
-                  <p className="font-semibold text-gray-900">{stage.deliverables?.length || 0} files</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">Revisions Used:</p>
-                  <p className="font-semibold text-gray-900">
-                    {stage.revisions_used || 0}/{stage.revisions_included || 2}
-                  </p>
-                </div>
-              </div>
-            )}
+          <div className="p-4 sm:p-6 space-y-4">
+            <StageProgress
+              status={stage.status}
+              isLocked={false}
+              deliverablesCount={stage.deliverables.length}
+            />
 
-            {/* Only show deliverables and revisions for non-down-payment stages */}
-            {stage.stage_number !== 0 && (
+            {stage.deliverables.length > 0 && (
               <>
-                {stage.deliverables && stage.deliverables.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold text-gray-700 mb-3">Deliverables:</h4>
-                    <div className="space-y-2">
-                      {stage.deliverables.map((deliverable) => (
-                        <div key={deliverable.id} className="bg-white rounded p-3 border border-green-200 hover:border-green-400 transition-colors">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 truncate">{deliverable.name}</div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Uploaded {formatDate(deliverable.uploaded_at)}
-                              </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
+                    <FileText className="w-5 h-5" />
+                    Deliverables ({stage.deliverables.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {stage.deliverables.map((deliverable) => (
+                      <div key={deliverable.id} className="bg-white rounded p-3 border border-green-200 hover:border-green-400 transition-colors">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 truncate">{deliverable.name}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Uploaded {formatDate(deliverable.uploaded_at)}
                             </div>
-                            <a
-                              href={deliverable.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-shrink-0 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-                            >
-                              Open →
-                            </a>
                           </div>
+                          <a
+                            href={deliverable.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                          >
+                            Open →
+                          </a>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
 
                 {stage.revisions && stage.revisions.length > 0 && (
                   <div className="mt-4">
@@ -795,6 +673,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               <div className="text-2xl lg:text-3xl font-black text-gray-900">
                 ${stage.amount.toLocaleString()}
               </div>
+              {/* ✅ BUG FIX #1: Only show revisions if NOT Stage 0 (Down Payment) */}
               {stage.stage_number !== 0 && (
                 <div className="text-sm mt-1 font-semibold" style={{
                   color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
@@ -907,45 +786,61 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </>
           )}
 
-          {/* Extension purchase section */}
-          {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && (
+          {/* ✅ BUG FIX #2: Show extra revision box ALWAYS when extension is enabled AND stage 0 (no revisions for down payment) */}
+          {readOnly && stage.status === 'delivered' && stage.extension_enabled && stage.stage_number !== 0 && (
             <div className="mb-4">
               <ExtensionStatusAlerts
                 pendingExtensions={pendingExtensions}
                 rejectedExtensions={rejectedExtensions}
               />
 
-              <div className="bg-orange-50 border border-orange-300 rounded-lg p-4 text-center">
-                <p className="text-orange-800 font-semibold mb-2">
-                  All included revisions used ({stage.revisions_used}/{stage.revisions_included})
-                </p>
-                <p className="text-orange-700 text-sm mb-3">
-                  Need more changes? Purchase an extra revision to get one additional revision beyond what's included.
-                </p>
+              {!canRequestRevision ? (
+                // Show when all revisions are used (original behavior)
+                <div className="bg-orange-50 border border-orange-300 rounded-lg p-4 text-center">
+                  <p className="text-orange-800 font-semibold mb-2">
+                    All included revisions used ({stage.revisions_used}/{stage.revisions_included})
+                  </p>
+                  <p className="text-orange-700 text-sm mb-3">
+                    Need more changes? Purchase an extra revision to get one additional revision beyond what's included.
+                  </p>
 
-                <div className="flex justify-center">
-                  {pendingExtensions.length > 0 ? (
-                    <div className="text-center">
+                  <div className="flex justify-center">
+                    {pendingExtensions.length > 0 ? (
+                      <div className="text-center">
+                        <button
+                          disabled
+                          className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                        >
+                          ⏳ Extra Revision Payment Pending
+                        </button>
+                        <p className="text-xs text-gray-500 mt-2">
+                          You have a pending extra revision payment awaiting verification
+                        </p>
+                      </div>
+                    ) : (
                       <button
-                        disabled
-                        className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                        onClick={() => setIsExtensionModalOpen(true)}
+                        className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200"
                       >
-                        ⏳ Extra Revision Payment Pending
+                        Buy Extra Revision - ${stage.extension_price}
                       </button>
-                      <p className="text-xs text-gray-500 mt-2">
-                        You have a pending extra revision payment awaiting verification
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setIsExtensionModalOpen(true)}
-                      className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200"
-                    >
-                      Buy Extra Revision - ${stage.extension_price}
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // ✅ NEW: Show info box even when revisions remain
+                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 text-center">
+                  <p className="text-blue-800 font-semibold mb-2">
+                    💡 Extra Revisions Available
+                  </p>
+                  <p className="text-blue-700 text-sm mb-3">
+                    If you need more than the {stage.revisions_included} included revisions, you can purchase extra revisions for ${stage.extension_price} each.
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    You have {revisionsRemaining} included revision{revisionsRemaining !== 1 ? 's' : ''} remaining.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1000,44 +895,25 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {stage.status === 'locked' && (
-          <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 sm:p-12 text-center">
-            <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-10 h-10 text-gray-500" />
-            </div>
-            <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">
-              🔒 Stage Locked
-            </p>
-            <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
-              This stage will unlock once the previous stage is completed and payment is received.
-            </p>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="bg-green-50 border border-green-500 text-green-700 px-4 py-3 rounded-lg">
-            {successMessage}
-          </div>
-        )}
-
-        {/* Payment status alerts */}
-        {readOnly && stage.status === 'payment_pending' && pendingPayments.length > 0 && (
+        {pendingPayments.length > 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <h3 className="font-bold text-yellow-900 mb-2">
-              ⏳ Payment Pending Verification
+            <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              ⏳ Payment Verification Pending
             </h3>
-            <p className="text-sm text-yellow-800">
-              You marked the payment as sent. Waiting for the freelancer to verify payment received.
+            <p className="text-yellow-800">
+              Your payment of ${stage.amount.toLocaleString()} is pending verification by the freelancer.
             </p>
-            <p className="text-xs text-yellow-700 mt-2">
-              Amount: ${stage.amount.toLocaleString()} | Reference: {pendingPayments[0].reference_code}
+            <p className="text-sm text-yellow-700 mt-2">
+              Reference Code: <span className="font-mono font-bold">{pendingPayments[0].reference_code}</span>
             </p>
           </div>
         )}
 
-        {readOnly && rejectedPayments.length > 0 && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
-            <h3 className="font-bold text-red-900 mb-2">
+        {rejectedPayments.length > 0 && (
+          <div className="bg-red-50 border-l-4 border-red-400 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-red-900 mb-2 flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
               ⚠️ Payment Issue
             </h3>
             <p className="text-red-800">
