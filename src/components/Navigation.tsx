@@ -20,11 +20,12 @@ function Navigation() {
         <div className="flex justify-between items-center h-14 sm:h-16">
 <div className="flex items-center">
   <Link to="/dashboard" className="flex items-center">
-    <img 
-      src="/milestage-logo.png" 
-      alt="MileStage" 
-      className="h-7 sm:h-8"
-    />
+<img 
+  src="/milestage-logo.png" 
+  alt="MileStage" 
+  className="h-10"
+  style={{ maxHeight: '40px' }}
+/>
   </Link>
 </div>
 
