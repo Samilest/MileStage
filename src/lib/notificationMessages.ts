@@ -59,18 +59,19 @@ export function getStageNotificationMessage(data: StageNotificationData, isMobil
 }
 
 export function getPrimaryNotification(data: StageNotificationData, stageName: string): string {
+  // ✅ FIX: Removed "on ${stageName}" from all notifications - simpler and cleaner!
   // Return only the highest priority notification for dashboard cards
   if (data.hasUnviewedRevision) {
-    return `⚠️ Revision on ${stageName}`;
+    return `⚠️ Revision Requested`;
   }
   if (data.hasUnviewedPayment) {
-    return `💰 Payment marked on ${stageName}`;
+    return `💰 Payment Pending`;
   }
   if (data.hasUnviewedApproval) {
-    return `✅ Approval on ${stageName}`;
+    return `✅ Approved`;
   }
   if (data.unreadMessageCount > 0) {
-    return `💬 ${data.unreadMessageCount} new message${data.unreadMessageCount > 1 ? 's' : ''} on ${stageName}`;
+    return `💬 ${data.unreadMessageCount} new message${data.unreadMessageCount > 1 ? 's' : ''}`;
   }
   return '';
 }
