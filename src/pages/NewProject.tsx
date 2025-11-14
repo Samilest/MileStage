@@ -252,8 +252,11 @@ export default function NewProject() {
       return;
     }
 
-    const projectTotal = calculateTotal(stages);
+    const stagesTotal = calculateTotal(stages);
+    const projectTotal = stagesTotal + (includeDownPayment ? downPaymentAmount : 0);
     console.log('[NewProject] Calculated Project Total:', projectTotal);
+    console.log('[NewProject] Stages Total:', stagesTotal);
+    console.log('[NewProject] Down Payment:', includeDownPayment ? downPaymentAmount : 0);
 
     if (projectTotal < 100) {
       console.error('[NewProject] ERROR: Project total too low:', projectTotal);
