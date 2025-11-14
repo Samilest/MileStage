@@ -405,7 +405,7 @@ return (
               <Button
                 onClick={handleConnectStripe}
                 disabled={connectingStripe}
-                className="w-full sm:w-auto whitespace-nowrap flex items-center gap-2"
+                className="w-full sm:w-auto whitespace-nowrap"
               >
                 {connectingStripe ? (
                   <>
