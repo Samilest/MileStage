@@ -409,14 +409,11 @@ return (
               >
                 {connectingStripe ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Connecting...
                   </>
                 ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    Connect Stripe
-                  </>
+                  'Connect Stripe'
                 )}
               </Button>
             </div>
