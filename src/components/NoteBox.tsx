@@ -128,22 +128,39 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
 
   const markClientMessagesAsViewed = async () => {
     try {
+      console.log('🟡 [NoteBox] Starting to mark messages as viewed for stage:', stageId);
+      
       // Get all unviewed client messages
-      const { data: unviewedMessages } = await supabase
+      const { data: unviewedMessages, error: selectError } = await supabase
         .from('stage_notes')
         .select('id')
         .eq('stage_id', stageId)
         .eq('author_type', 'client')
         .is('viewed_by_freelancer_at', null);
 
+      if (selectError) {
+        console.error('🔴 [NoteBox] Error selecting unviewed messages:', selectError);
+        return;
+      }
+
+      console.log('🟡 [NoteBox] Found', unviewedMessages?.length || 0, 'unviewed client messages');
+
       if (unviewedMessages && unviewedMessages.length > 0) {
         const messageIds = unviewedMessages.map(m => m.id);
-        await supabase
+        console.log('🟡 [NoteBox] Updating message IDs:', messageIds);
+        
+        const { data: updateData, error: updateError } = await supabase
           .from('stage_notes')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
           .in('id', messageIds);
 
-        console.log('🟡 [NoteBox] Marked', unviewedMessages.length, 'client messages as viewed');
+        if (updateError) {
+          console.error('🔴 [NoteBox] Error updating messages:', updateError);
+          return;
+        }
+
+        console.log('✅ [NoteBox] Successfully marked', unviewedMessages.length, 'client messages as viewed');
+        console.log('🟡 [NoteBox] Update response:', updateData);
       }
     } catch (error) {
       console.error('Error marking messages as viewed:', error);
