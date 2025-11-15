@@ -91,6 +91,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const [rejectedExtensions, setRejectedExtensions] = useState<Extension[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isMarkingPayment, setIsMarkingPayment] = useState(false);
+  const [isMarkingRevisionUsed, setIsMarkingRevisionUsed] = useState(false);
   const [pendingPayments, setPendingPayments] = useState<Array<{
     id: string;
     amount: number;
@@ -510,6 +511,40 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     }
   };
 
+  const handleMarkRevisionUsed = async () => {
+    if (revisionsRemaining <= 0) {
+      alert('No revisions remaining to mark as used.');
+      return;
+    }
+
+    if (!confirm(`Mark 1 revision as used? This will update the count from ${stage.revisions_used}/${stage.revisions_included} to ${stage.revisions_used + 1}/${stage.revisions_included}.`)) {
+      return;
+    }
+
+    setIsMarkingRevisionUsed(true);
+
+    try {
+      const { error } = await supabase
+        .from('stages')
+        .update({ 
+          revisions_used: (stage.revisions_used || 0) + 1 
+        })
+        .eq('id', stage.id);
+
+      if (error) throw error;
+
+      // Success - trigger parent refresh
+      window.dispatchEvent(new Event('revisionMarkedUsed'));
+      
+      alert(`✓ Revision marked as used. ${revisionsRemaining - 1} remaining.`);
+    } catch (error) {
+      console.error('Error marking revision as used:', error);
+      alert('Failed to mark revision as used. Please try again.');
+    } finally {
+      setIsMarkingRevisionUsed(false);
+    }
+  };
+
   const revisionsRemaining = (stage.revisions_included || 2) - (stage.revisions_used || 0);
   const canRequestRevision = revisionsRemaining > 0;
   const isCompleted = stage.status === 'completed' || stage.status === 'complete';
@@ -687,6 +722,16 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                   <p className="font-semibold text-gray-900">
                     {stage.revisions_used || 0}/{stage.revisions_included || 2}
                   </p>
+                  {!readOnly && revisionsRemaining > 0 && (
+                    <button
+                      onClick={handleMarkRevisionUsed}
+                      disabled={isMarkingRevisionUsed}
+                      className="mt-2 text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Mark 1 revision as used"
+                    >
+                      {isMarkingRevisionUsed ? 'Updating...' : 'Use Revision'}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
