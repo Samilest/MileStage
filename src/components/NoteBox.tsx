@@ -184,18 +184,34 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
     setMessage('');
 
     try {
-      console.log('🟡 [NoteBox] Sending note...');
-      const { error } = await supabase.from('stage_notes').insert({
+      console.log('🔵 [NoteBox] Sending note...');
+      console.log('🔵 [NoteBox] Stage ID:', stageId);
+      console.log('🔵 [NoteBox] Author Type:', authorType);
+      console.log('🔵 [NoteBox] Author Name:', authorName);
+      console.log('🔵 [NoteBox] Message:', messageToSend);
+
+      const { data, error } = await supabase.from('stage_notes').insert({
         stage_id: stageId,
         author_type: authorType,
         author_name: authorName,
         message: messageToSend,
         is_read: false,
-      });
+      }).select();
 
-      if (error) throw error;
+      console.log('🔵 [NoteBox] Insert response data:', data);
+      console.log('🔵 [NoteBox] Insert response error:', error);
 
-      console.log('🟡 [NoteBox] Note sent successfully');
+      if (error) {
+        console.error('🔴 [NoteBox] Supabase error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('🔴 [NoteBox] No data returned from insert!');
+        throw new Error('Insert succeeded but no data returned');
+      }
+
+      console.log('✅ [NoteBox] Note sent successfully, data:', data);
 
       // ✅ If freelancer is replying, mark all client messages as viewed
       if (authorType === 'freelancer') {
@@ -211,7 +227,7 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
 
       textareaRef.current?.focus();
     } catch (error) {
-      console.error('🟡 [NoteBox] Error sending note:', error);
+      console.error('🔴 [NoteBox] Error sending note:', error);
       // Restore message on error
       setMessage(messageToSend);
       alert('Failed to send message. Please try again.');
