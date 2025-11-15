@@ -200,6 +200,24 @@ export default function Dashboard() {
   useEffect(() => {
     console.log('[Dashboard] Component mounted, fetching projects');
     fetchProjects();
+    
+    // Also fetch when component becomes visible again (user navigates back)
+    return () => {
+      console.log('[Dashboard] Component unmounting');
+    };
+  }, [fetchProjects]);
+
+  // Refetch data when user comes back to this tab/window
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('[Dashboard] Tab became visible, refreshing data...');
+        fetchProjects(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [fetchProjects]);
 
   useEffect(() => {
