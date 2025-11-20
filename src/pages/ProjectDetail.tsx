@@ -824,7 +824,7 @@ export default function ProjectDetail() {
       if (error) throw error;
 
       // Refresh data
-      await fetchProjectData();
+      await loadProjectData();
       
       alert(`✓ Revision marked as used. ${revisionsRemaining - 1} remaining.`);
     } catch (error) {
