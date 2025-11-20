@@ -841,10 +841,22 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 ${stage.amount.toLocaleString()}
               </div>
               {stage.stage_number !== 0 && (
-                <div className="text-sm mt-1 font-semibold" style={{
-                  color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
-                }}>
-                  Revisions: {stage.revisions_used}/{stage.revisions_included}
+                <div className="flex items-center justify-end gap-2">
+                  <div className="text-sm font-semibold" style={{
+                    color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
+                  }}>
+                    Revisions: {stage.revisions_used}/{stage.revisions_included}
+                  </div>
+                  {!readOnly && revisionsRemaining > 0 && (
+                    <button
+                      onClick={handleMarkRevisionUsed}
+                      disabled={isMarkingRevisionUsed}
+                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Mark 1 revision as used"
+                    >
+                      {isMarkingRevisionUsed ? '...' : 'Use'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
