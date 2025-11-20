@@ -16,9 +16,15 @@ interface NoteBoxProps {
   stageId: string;
   authorType: 'freelancer' | 'client';
   authorName: string;
+  stage?: {
+    revisions_included: number;
+    revisions_used: number;
+  };
+  onMarkRevisionUsed?: (stageId: string, stage: any) => void;
+  isMarkingRevisionUsed?: boolean;
 }
 
-export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProps) {
+export default function NoteBox({ stageId, authorType, authorName, stage, onMarkRevisionUsed, isMarkingRevisionUsed = false }: NoteBoxProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -128,39 +134,22 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
 
   const markClientMessagesAsViewed = async () => {
     try {
-      console.log('🟡 [NoteBox] Starting to mark messages as viewed for stage:', stageId);
-      
       // Get all unviewed client messages
-      const { data: unviewedMessages, error: selectError } = await supabase
+      const { data: unviewedMessages } = await supabase
         .from('stage_notes')
         .select('id')
         .eq('stage_id', stageId)
         .eq('author_type', 'client')
         .is('viewed_by_freelancer_at', null);
 
-      if (selectError) {
-        console.error('🔴 [NoteBox] Error selecting unviewed messages:', selectError);
-        return;
-      }
-
-      console.log('🟡 [NoteBox] Found', unviewedMessages?.length || 0, 'unviewed client messages');
-
       if (unviewedMessages && unviewedMessages.length > 0) {
         const messageIds = unviewedMessages.map(m => m.id);
-        console.log('🟡 [NoteBox] Updating message IDs:', messageIds);
-        
-        const { data: updateData, error: updateError } = await supabase
+        await supabase
           .from('stage_notes')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
           .in('id', messageIds);
 
-        if (updateError) {
-          console.error('🔴 [NoteBox] Error updating messages:', updateError);
-          return;
-        }
-
-        console.log('✅ [NoteBox] Successfully marked', unviewedMessages.length, 'client messages as viewed');
-        console.log('🟡 [NoteBox] Update response:', updateData);
+        console.log('🟡 [NoteBox] Marked', unviewedMessages.length, 'client messages as viewed');
       }
     } catch (error) {
       console.error('Error marking messages as viewed:', error);
@@ -184,34 +173,18 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
     setMessage('');
 
     try {
-      console.log('🔵 [NoteBox] Sending note...');
-      console.log('🔵 [NoteBox] Stage ID:', stageId);
-      console.log('🔵 [NoteBox] Author Type:', authorType);
-      console.log('🔵 [NoteBox] Author Name:', authorName);
-      console.log('🔵 [NoteBox] Message:', messageToSend);
-
-      const { data, error } = await supabase.from('stage_notes').insert({
+      console.log('🟡 [NoteBox] Sending note...');
+      const { error } = await supabase.from('stage_notes').insert({
         stage_id: stageId,
         author_type: authorType,
         author_name: authorName,
         message: messageToSend,
         is_read: false,
-      }).select();
+      });
 
-      console.log('🔵 [NoteBox] Insert response data:', data);
-      console.log('🔵 [NoteBox] Insert response error:', error);
+      if (error) throw error;
 
-      if (error) {
-        console.error('🔴 [NoteBox] Supabase error:', error);
-        throw error;
-      }
-
-      if (!data || data.length === 0) {
-        console.error('🔴 [NoteBox] No data returned from insert!');
-        throw new Error('Insert succeeded but no data returned');
-      }
-
-      console.log('✅ [NoteBox] Note sent successfully, data:', data);
+      console.log('🟡 [NoteBox] Note sent successfully');
 
       // ✅ If freelancer is replying, mark all client messages as viewed
       if (authorType === 'freelancer') {
@@ -227,7 +200,7 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
 
       textareaRef.current?.focus();
     } catch (error) {
-      console.error('🔴 [NoteBox] Error sending note:', error);
+      console.error('🟡 [NoteBox] Error sending note:', error);
       // Restore message on error
       setMessage(messageToSend);
       alert('Failed to send message. Please try again.');
@@ -285,10 +258,27 @@ export default function NoteBox({ stageId, authorType, authorName }: NoteBoxProp
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-200">
-        <h3 className="text-xl font-bold text-black flex items-center gap-2">
-          <MessageSquare className="w-5 h-5" />
-          Notes & Feedback
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-black flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Notes & Feedback
+          </h3>
+          
+          {/* Log as Revision button - only for freelancers with revisions remaining */}
+          {authorType === 'freelancer' && stage && onMarkRevisionUsed && (
+            ((stage.revisions_included || 0) - (stage.revisions_used || 0) > 0) && (
+              <button
+                onClick={() => onMarkRevisionUsed(stageId, stage)}
+                disabled={isMarkingRevisionUsed}
+                className="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                title="Use this when you complete work requested in chat"
+              >
+                <span className="text-base">✓</span>
+                {isMarkingRevisionUsed ? 'Logging...' : 'Log as Revision'}
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       <div
