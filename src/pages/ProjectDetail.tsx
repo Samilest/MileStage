@@ -94,6 +94,7 @@ export default function ProjectDetail() {
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedStageForPayment, setSelectedStageForPayment] = useState<Stage | null>(null);
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [markingRevisionUsedStageId, setMarkingRevisionUsedStageId] = useState<string | null>(null);
 
   const loadingRef = useRef(false);
   const hasLoadedRef = useRef(false);
@@ -798,6 +799,42 @@ export default function ProjectDetail() {
     });
   };
 
+  const handleMarkRevisionUsed = async (stageId: string, stage: Stage) => {
+    const revisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
+    
+    if (revisionsRemaining <= 0) {
+      alert('No revisions remaining to mark as used.');
+      return;
+    }
+
+    if (!confirm(`Mark 1 revision as used? This will update the count from ${stage.revisions_used}/${stage.revisions_included} to ${stage.revisions_used + 1}/${stage.revisions_included}.`)) {
+      return;
+    }
+
+    setMarkingRevisionUsedStageId(stageId);
+
+    try {
+      const { error } = await supabase
+        .from('stages')
+        .update({ 
+          revisions_used: (stage.revisions_used || 0) + 1 
+        })
+        .eq('id', stageId);
+
+      if (error) throw error;
+
+      // Refresh data
+      await fetchProjectData();
+      
+      alert(`✓ Revision marked as used. ${revisionsRemaining - 1} remaining.`);
+    } catch (error) {
+      console.error('Error marking revision as used:', error);
+      alert('Failed to mark revision as used. Please try again.');
+    } finally {
+      setMarkingRevisionUsedStageId(null);
+    }
+  };
+
   const renderStageActionButton = (stage: Stage) => {
     const nextLockedStage = getNextLockedStage();
     const isNextInSequence = nextLockedStage?.id === stage.id;
@@ -1317,11 +1354,23 @@ export default function ProjectDetail() {
                     {stage.stage_number !== 0 && (
                       <div className="sm:mt-1">
                         <p className="text-neutral-600 text-xs sm:text-sm sm:hidden">Revisions</p>
-                        <p className="text-xs sm:text-sm font-semibold" style={{
-                          color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
-                        }}>
-                          Revisions: {stage.revisions_used}/{stage.revisions_included}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs sm:text-sm font-semibold" style={{
+                            color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
+                          }}>
+                            Revisions: {stage.revisions_used}/{stage.revisions_included}
+                          </p>
+                          {((stage.revisions_included || 0) - (stage.revisions_used || 0) > 0) && (
+                            <button
+                              onClick={() => handleMarkRevisionUsed(stage.id, stage)}
+                              disabled={markingRevisionUsedStageId === stage.id}
+                              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Mark 1 revision as used"
+                            >
+                              {markingRevisionUsedStageId === stage.id ? '...' : 'Use'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
