@@ -990,7 +990,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                   ) : (
                     <button
                       onClick={() => setIsExtensionModalOpen(true)}
-                      className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200"
+                      className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200"
                     >
                       Buy Extra Revision - {formatCurrency(stage.extension_price, currency)}
                     </button>
