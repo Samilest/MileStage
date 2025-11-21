@@ -445,7 +445,7 @@ export default function NewProject() {
   return (
     <div className="min-h-screen bg-secondary-bg">
       <Navigation />
-      <main className="max-w-2xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-8">
         <button
           onClick={() => navigate('/templates')}
           className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
