@@ -8,7 +8,7 @@ import StageProgress from '../components/StageProgress';
 import ExtensionVerificationAlert from '../components/ExtensionVerificationAlert';
 import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
-import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Deliverable {
@@ -1647,6 +1647,14 @@ export default function ProjectDetail() {
                           'Submit for Client Review'
                         )}
                       </button>
+                    </div>
+                  )}
+
+                  {(stage.status === 'active' || stage.status === 'in_progress') && stage.revisions_used > 0 && (
+                    <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center mt-6">
+                      <RotateCcw className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                      <p className="font-bold text-black text-lg mb-2">Revision In Progress</p>
+                      <p className="text-neutral-700">Edit your deliverables above and submit when ready.</p>
                     </div>
                   )}
 
