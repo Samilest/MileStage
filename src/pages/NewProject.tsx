@@ -471,6 +471,8 @@ export default function NewProject() {
               </div>
             )}
 
+            {/* Project Info Section - Narrower for better UX */}
+            <div className="max-w-2xl">
             <div>
               <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
                 Project Name <span className="text-red-500">*</span>
@@ -575,6 +577,8 @@ export default function NewProject() {
                 </div>
               </div>
             )}
+            </div>
+            {/* End Project Info Section */}
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
