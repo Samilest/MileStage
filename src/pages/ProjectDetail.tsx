@@ -1645,7 +1645,7 @@ export default function ProjectDetail() {
                     </div>
                   )}
 
-                  {stage.status === 'delivered' && (
+                  {stage.status === 'delivered' && stage.revisions_used === 0 && (
                     <div className="mt-6 flex justify-center">
                       <div className="px-8 py-3 bg-green-100 border-2 border-green-500 text-green-700 rounded-lg font-semibold flex items-center gap-2">
                         <CheckCircle className="w-5 h-5" />
