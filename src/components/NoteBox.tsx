@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Smile } from 'lucide-react';
+import { MessageSquare, Smile, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Note {
@@ -284,10 +284,10 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
               <button
                 onClick={() => onMarkRevisionUsed(stageId, stage)}
                 disabled={isMarkingRevisionUsed}
-                className="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                title="Use this when you complete work requested in chat"
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                title="Use this when you're ready to work on the revision"
               >
-                <span className="text-base">✓</span>
+                <RotateCcw className="w-4 h-4" />
                 {isMarkingRevisionUsed ? 'Using...' : buttonText}
               </button>
             );
