@@ -1654,7 +1654,7 @@ export default function ProjectDetail() {
                     </div>
                   )}
 
-                  {stage.status === 'delivered' && (
+                  {stage.status === 'delivered' && stage.revisions_used === 0 && (
                     <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center mt-6">
                       <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
                       <p className="font-bold text-black text-lg mb-2">Work Submitted!</p>
