@@ -834,8 +834,14 @@ export default function ProjectDetail() {
 
     try {
       const updateData = usingFreeRevision
-        ? { revisions_used: (stage.revisions_used || 0) + 1 }
-        : { extension_revisions_used: extensionRevisionsUsed + 1 };
+        ? { 
+            revisions_used: (stage.revisions_used || 0) + 1,
+            status: 'in_progress'
+          }
+        : { 
+            extension_revisions_used: extensionRevisionsUsed + 1,
+            status: 'in_progress'
+          };
 
       const { error } = await supabase
         .from('stages')
@@ -1621,8 +1627,7 @@ export default function ProjectDetail() {
                     </div>
                   )}
 
-                  {((stage.status === 'active' || stage.status === 'in_progress') || 
-                    (stage.status === 'delivered' && stage.revisions_used > 0)) && (
+                  {(stage.status === 'active' || stage.status === 'in_progress') && (
                     <div className="mt-6 flex justify-center">
                       <button
                         onClick={() => handleMarkAsDelivered(stage.id)}
@@ -1654,7 +1659,7 @@ export default function ProjectDetail() {
                     </div>
                   )}
 
-                  {stage.status === 'delivered' && stage.revisions_used === 0 && (
+                  {stage.status === 'delivered' && (
                     <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center mt-6">
                       <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
                       <p className="font-bold text-black text-lg mb-2">Work Submitted!</p>
