@@ -9,6 +9,7 @@ import Button from '../components/Button';
 import { ErrorFallback } from '../components/ErrorFallback';
 import { retryOperation } from '../lib/errorHandling';
 import { getStageNotificationMessage } from '../lib/notificationMessages';
+import { formatCurrency, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, Clock, CheckCircle2 } from 'lucide-react';
 
 interface ProjectData {
@@ -20,6 +21,7 @@ interface ProjectData {
   status: string;
   share_code: string;
   created_at: string;
+  currency: CurrencyCode;
   stages: Array<{
     id: string;
     stage_number: number;
@@ -83,6 +85,7 @@ export default function ProjectOverview() {
               status,
               share_code,
               created_at,
+              currency,
               stages (
                 id,
                 stage_number,
@@ -350,12 +353,12 @@ export default function ProjectOverview() {
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Revenue Earned</p>
                 <p className="text-5xl lg:text-6xl font-black text-gray-900 truncate">
-                  ${paidAmount.toLocaleString()}
+                  {formatCurrency(paidAmount, project.currency || 'USD')}
                 </p>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              of ${project.total_amount.toLocaleString()} total
+              of {formatCurrency(project.total_amount, project.currency || 'USD')} total
             </p>
           </Card>
 
@@ -466,7 +469,7 @@ export default function ProjectOverview() {
                             </span>
                           </div>
                           <p className="text-xs sm:text-sm text-green-700 mt-1">
-                            Amount: ${stage.amount.toLocaleString()}{stage.stage_number !== 0 && ` • Revisions: ${stage.revisions_used || 0}/${stage.revisions_included || 2}`}
+                            Amount: {formatCurrency(stage.amount, project.currency || 'USD')}{stage.stage_number !== 0 && ` • Revisions: ${stage.revisions_used || 0}/${stage.revisions_included || 2}`}
                           </p>
                         </div>
                       </div>
@@ -547,7 +550,7 @@ export default function ProjectOverview() {
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                        <span>Amount: ${stage.amount.toLocaleString()}</span>
+                        <span>Amount: {formatCurrency(stage.amount, project.currency || 'USD')}</span>
                         {stage.stage_number !== 0 && (
                           <span>Revisions: {stage.revisions_used || 0} / {stage.revisions_included || 2}</span>
                         )}
