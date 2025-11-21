@@ -1653,6 +1653,14 @@ export default function ProjectDetail() {
                       </div>
                     </div>
                   )}
+
+                  {stage.status === 'delivered' && (
+                    <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center mt-6">
+                      <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                      <p className="font-bold text-black text-lg mb-2">Work Submitted!</p>
+                      <p className="text-neutral-700">Client will be notified to review your work.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1702,14 +1710,6 @@ export default function ProjectDetail() {
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {stage.status === 'delivered' && (
-                  <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center">
-                    <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-                    <p className="font-bold text-black text-lg mb-2">Work Submitted!</p>
-                    <p className="text-neutral-700">Client will be notified to review your work.</p>
                   </div>
                 )}
 
