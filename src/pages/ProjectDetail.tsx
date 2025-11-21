@@ -1540,7 +1540,8 @@ export default function ProjectDetail() {
                       </div>
                       Deliverables ({stage.deliverables.length})
                     </h3>
-                    {(stage.status === 'active' || stage.status === 'in_progress') && (
+                    {((stage.status === 'active' || stage.status === 'in_progress') || 
+                      (stage.status === 'delivered' && stage.revisions_used > 0)) && (
                       <button
                         onClick={() => handleOpenModal(stage.id)}
                         className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-600 transition-colors"
@@ -1564,7 +1565,8 @@ export default function ProjectDetail() {
                   ) : (
                     <div className="space-y-3">
                       {stage.deliverables.map((deliverable) => {
-                        const canEdit = (stage.status === 'active' || stage.status === 'in_progress') && stage.status !== 'delivered';
+                        const canEdit = (stage.status === 'active' || stage.status === 'in_progress') || 
+                                       (stage.status === 'delivered' && stage.revisions_used > 0);
                         return (
                           <div
                             key={deliverable.id}
@@ -1619,7 +1621,8 @@ export default function ProjectDetail() {
                     </div>
                   )}
 
-                  {(stage.status === 'active' || stage.status === 'in_progress') && (
+                  {((stage.status === 'active' || stage.status === 'in_progress') || 
+                    (stage.status === 'delivered' && stage.revisions_used > 0)) && (
                     <div className="mt-6 flex justify-center">
                       <button
                         onClick={() => handleMarkAsDelivered(stage.id)}
