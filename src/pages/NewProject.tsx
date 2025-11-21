@@ -723,6 +723,9 @@ export default function NewProject() {
                       >
                         Extra Revision
                       </label>
+                      <p className="text-xs text-gray-600 mb-2">
+                        Keep revision pricing reasonable (typically 10-25% of stage price). Clients are more likely to purchase extras when fairly priced.
+                      </p>
                       <div className="stage-input-with-prefix">
                         <span>{getCurrencySymbol(currency)}</span>
                         <input
