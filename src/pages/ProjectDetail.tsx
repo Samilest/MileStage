@@ -1354,23 +1354,11 @@ export default function ProjectDetail() {
                     {stage.stage_number !== 0 && (
                       <div className="sm:mt-1">
                         <p className="text-neutral-600 text-xs sm:text-sm sm:hidden">Revisions</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs sm:text-sm font-semibold" style={{
-                            color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
-                          }}>
-                            Revisions: {stage.revisions_used}/{stage.revisions_included}
-                          </p>
-                          {((stage.revisions_included || 0) - (stage.revisions_used || 0) > 0) && (
-                            <button
-                              onClick={() => handleMarkRevisionUsed(stage.id, stage)}
-                              disabled={markingRevisionUsedStageId === stage.id}
-                              className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Mark 1 revision as used"
-                            >
-                              {markingRevisionUsedStageId === stage.id ? '...' : 'Use'}
-                            </button>
-                          )}
-                        </div>
+                        <p className="text-xs sm:text-sm font-semibold" style={{
+                          color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
+                        }}>
+                          Revisions: {stage.revisions_used}/{stage.revisions_included}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -1648,6 +1636,9 @@ export default function ProjectDetail() {
                     stageId={stage.id}
                     authorType="freelancer"
                     authorName={userName || 'You'}
+                    stage={stage}
+                    onMarkRevisionUsed={handleMarkRevisionUsed}
+                    isMarkingRevisionUsed={markingRevisionUsedStageId === stage.id}
                   />
                 </div>
 
