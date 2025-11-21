@@ -577,8 +577,6 @@ export default function NewProject() {
                 </div>
               </div>
             )}
-            </div>
-            {/* End Project Info Section */}
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
@@ -640,7 +638,10 @@ export default function NewProject() {
                 </div>
               )}
             </div>
+            </div>
+            {/* End Project Info Section */}
 
+            {/* Stages Section - Full Width */}
             <div className="border-t border-gray-200 pt-6 space-y-4">
               {/* Pricing Guidance Box */}
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
