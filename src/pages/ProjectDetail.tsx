@@ -1384,7 +1384,7 @@ export default function ProjectDetail() {
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
                 <StageProgress
                   status={stage.status}
                   isLocked={stage.status === 'locked'}
@@ -1422,7 +1422,7 @@ export default function ProjectDetail() {
                 )}
 
                 {stage.revisions_used > 0 && (
-                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-6 shadow-lg overflow-hidden">
+                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg mb-6 sm:mb-10 shadow-lg overflow-hidden">
                     <button
                       onClick={() => setExpandedRevisionBoxes(prev => ({ ...prev, [`main-${stage.id}`]: !prev[`main-${stage.id}`] }))}
                       className="w-full flex items-center justify-between p-6 hover:bg-yellow-100 transition-colors"
@@ -1650,7 +1650,7 @@ export default function ProjectDetail() {
                   )}
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-6 sm:mt-10">
                   <NoteBox
                     stageId={stage.id}
                     authorType="freelancer"
@@ -1662,7 +1662,7 @@ export default function ProjectDetail() {
                 </div>
 
                 {stage.status === 'in_progress' && stage.revisions.length > 0 && (
-                  <div className="mt-6 bg-orange-50 border-2 border-orange-300 rounded-lg overflow-hidden">
+                  <div className="mt-6 sm:mt-10 bg-orange-50 border-2 border-orange-300 rounded-lg overflow-hidden">
                     <button
                       onClick={() => setExpandedRevisionBoxes(prev => ({ ...prev, [`orange-${stage.id}`]: !prev[`orange-${stage.id}`] }))}
                       className="w-full flex items-center justify-between p-6 hover:bg-orange-100 transition-colors"
@@ -1701,7 +1701,7 @@ export default function ProjectDetail() {
                 )}
 
                 {stage.status === 'delivered' && (
-                  <div className="mt-6 bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center">
+                  <div className="mt-6 sm:mt-10 bg-blue-50 border-2 border-blue-300 rounded-lg p-6 text-center">
                     <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-3" />
                     <p className="font-bold text-black text-lg mb-2">Work Submitted!</p>
                     <p className="text-neutral-700">Client will be notified to review your work.</p>
