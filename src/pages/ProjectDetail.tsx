@@ -820,7 +820,11 @@ export default function ProjectDetail() {
       ? `${freeRevisionsRemaining - 1} free revision${freeRevisionsRemaining - 1 !== 1 ? 's' : ''}`
       : `${extensionRevisionsRemaining - 1} extension revision${extensionRevisionsRemaining - 1 !== 1 ? 's' : ''}`;
 
-    if (!confirm(`Log 1 ${revisionType} revision as used?\n\n${remainingText} will remain after this.`)) {
+    const confirmMessage = usingFreeRevision
+      ? `Use 1 included revision?\n\nThis will deduct from your included revisions.\n${remainingText} will remain after this.\n\n⚠️ This cannot be undone.`
+      : `Use 1 extension revision?\n\nThis will deduct from your purchased revisions.\n${remainingText} will remain after this.\n\n⚠️ This cannot be undone.`;
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -841,7 +845,7 @@ export default function ProjectDetail() {
       // Refresh data
       await loadProjectData();
       
-      alert(`✓ ${revisionType.charAt(0).toUpperCase() + revisionType.slice(1)} revision logged. ${remainingText} remaining.`);
+      alert(`✓ ${revisionType.charAt(0).toUpperCase() + revisionType.slice(1)} revision used. ${remainingText} remaining.`);
     } catch (error) {
       console.error('Error marking revision as used:', error);
       alert('Failed to mark revision as used. Please try again.');

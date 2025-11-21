@@ -266,7 +266,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             Notes & Feedback
           </h3>
           
-          {/* Log as Revision button - only for freelancers with revisions remaining */}
+          {/* Use Revision button - only for freelancers with revisions remaining */}
           {authorType === 'freelancer' && stage && onMarkRevisionUsed && (() => {
             const freeRevisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
             const extensionRevisionsTotal = stage.extension_purchased ? 3 : 0;
@@ -277,8 +277,8 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             if (totalRemaining <= 0) return null;
             
             const buttonText = freeRevisionsRemaining > 0 
-              ? 'Log as Revision'
-              : `Log as Revision (${extensionRevisionsRemaining} extra left)`;
+              ? 'Use Revision'
+              : `Use Revision (${extensionRevisionsRemaining} extra left)`;
             
             return (
               <button
@@ -288,7 +288,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
                 title="Use this when you complete work requested in chat"
               >
                 <span className="text-base">✓</span>
-                {isMarkingRevisionUsed ? 'Logging...' : buttonText}
+                {isMarkingRevisionUsed ? 'Using...' : buttonText}
               </button>
             );
           })()}
