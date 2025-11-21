@@ -464,7 +464,7 @@ export default function NewProject() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -637,8 +637,9 @@ export default function NewProject() {
               )}
             </div>
 
-            {/* Pricing Tip */}
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+            <div className="border-t border-gray-200 pt-6 space-y-4">
+              {/* Pricing Guidance Box */}
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <span className="text-xl">💡</span>
                   <div>
@@ -650,8 +651,6 @@ export default function NewProject() {
                 </div>
               </div>
 
-              {/* Stages */}
-              <div className="space-y-4">
               {stages.map((stage, index) => (
                 <div
                   key={index}
@@ -880,8 +879,6 @@ export default function NewProject() {
                 {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {loading ? 'Creating project...' : 'Create Project'}
               </Button>
-            </div>
-            </div>
             </div>
           </form>
         </Card>
