@@ -960,7 +960,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
           {/* Extension purchase section */}
           {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && (
-            <div className="mb-4">
+            <div className="mb-4 mt-12">
               <ExtensionStatusAlerts
                 pendingExtensions={pendingExtensions}
                 rejectedExtensions={rejectedExtensions}
