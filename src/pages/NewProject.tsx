@@ -657,6 +657,8 @@ export default function NewProject() {
                 </div>
               </div>
 
+              {/* Stages */}
+              <div className="space-y-4">
               {stages.map((stage, index) => (
                 <div
                   key={index}
@@ -885,6 +887,8 @@ export default function NewProject() {
                 {loading && <Loader2 className="w-5 h-5 animate-spin" />}
                 {loading ? 'Creating project...' : 'Create Project'}
               </Button>
+            </div>
+            </div>
             </div>
           </form>
         </Card>
