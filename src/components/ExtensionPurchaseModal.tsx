@@ -23,8 +23,10 @@ export default function ExtensionPurchaseModal({
   onClose,
 }: ExtensionPurchaseModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const referenceCode = `EXT-${stageId.slice(0, 8).toUpperCase()}`;
+  const [referenceCode] = useState(() => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    return `EXT-${stageId.slice(0, 8).toUpperCase()}-${timestamp}`;
+  });
 
   const handleMarkExtensionPaid = async () => {
     setIsSubmitting(true);
