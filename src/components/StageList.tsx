@@ -1,4 +1,5 @@
 import StageCard from './StageCard';
+import { type CurrencyCode } from '../lib/currency';
 
 interface Stage {
   id: string;
@@ -48,6 +49,7 @@ interface StageListProps {
   authorName?: string;
   projectId?: string;
   shareCode?: string;
+  currency?: CurrencyCode;
   paymentMethods?: {
     paypal?: string;
     venmo?: string;
@@ -56,7 +58,7 @@ interface StageListProps {
   };
 }
 
-export default function StageList({ stages, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, paymentMethods }: StageListProps) {
+export default function StageList({ stages, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, currency = 'USD', paymentMethods }: StageListProps) {
   if (!stages || stages.length === 0) {
     return (
       <div className="text-center py-12">
@@ -83,6 +85,7 @@ export default function StageList({ stages, readOnly = false, showNoteBox = fals
               authorName={authorName}
               projectId={projectId}
               shareCode={shareCode}
+              currency={currency}
               paymentMethods={paymentMethods}
             />
           </div>

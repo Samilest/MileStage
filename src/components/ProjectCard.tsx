@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { formatCurrency, type CurrencyCode } from '../lib/currency';
 
 interface ProjectCardProps {
   project: {
@@ -12,6 +13,7 @@ interface ProjectCardProps {
     amount_earned: number;
     has_unread_actions: boolean;
     primary_notification?: string;
+    currency: CurrencyCode;
   };
   onNavigate: (id: string) => void;
   getStatusColor: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => string;
@@ -91,10 +93,10 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
       {/* Revenue - clean layout, no labels */}
       <div className="flex items-end justify-between mb-2">
         <div className={`text-2xl sm:text-3xl font-black ${getEarnedColor()}`}>
-          ${project.amount_earned.toLocaleString()}
+          {formatCurrency(project.amount_earned, project.currency || 'USD')}
         </div>
         <div className="text-lg sm:text-xl font-bold text-gray-400">
-          ${project.total_amount.toLocaleString()}
+          {formatCurrency(project.total_amount, project.currency || 'USD')}
         </div>
       </div>
 
