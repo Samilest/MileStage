@@ -638,6 +638,19 @@ export default function NewProject() {
             </div>
 
             <div className="border-t border-gray-200 pt-6 space-y-4">
+              {/* Pricing Guidance Box */}
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">💡</span>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 mb-1">Pricing Tip</p>
+                    <p className="text-sm text-blue-800">
+                      Keep extra revisions at 10-25% of each stage price. Fair pricing encourages client purchases.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {stages.map((stage, index) => (
                 <div
                   key={index}
@@ -723,9 +736,6 @@ export default function NewProject() {
                       >
                         Extra Revision
                       </label>
-                      <p className="text-xs text-gray-600 mb-2">
-                        Keep revision pricing reasonable (typically 10-25% of stage price). Clients are more likely to purchase extras when fairly priced.
-                      </p>
                       <div className="stage-input-with-prefix">
                         <span>{getCurrencySymbol(currency)}</span>
                         <input
