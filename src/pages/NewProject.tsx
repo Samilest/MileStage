@@ -445,7 +445,7 @@ export default function NewProject() {
   return (
     <div className="min-h-screen bg-secondary-bg">
       <Navigation />
-      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-10">
         <button
           onClick={() => navigate('/templates')}
           className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
@@ -464,58 +464,63 @@ export default function NewProject() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-10">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
-            {/* Project Info Section - Narrower for better UX */}
-            <div className="max-w-2xl">
-            <div>
-              <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
-                Project Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="projectName"
-                type="text"
-                required
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                onBlur={() => setTouched({ ...touched, projectName: true })}
-                className={`w-full h-12 px-4 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base ${
-                  touched.projectName && errors.projectName ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder={getProjectNamePlaceholder()}
-              />
-              {touched.projectName && errors.projectName && (
-                <p className="mt-1 text-sm text-red-600">{errors.projectName}</p>
-              )}
-            </div>
+            {/* Project Information Card */}
+            <div className="bg-gray-50 rounded-xl p-6 sm:p-8 space-y-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Project Information</h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Project Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="projectName"
+                    type="text"
+                    required
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    onBlur={() => setTouched({ ...touched, projectName: true })}
+                    className={`w-full h-12 px-4 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base bg-white ${
+                      touched.projectName && errors.projectName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder={getProjectNamePlaceholder()}
+                  />
+                  {touched.projectName && errors.projectName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.projectName}</p>
+                  )}
+                </div>
 
-            <div>
-              <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
-                Client Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="clientName"
-                type="text"
-                required
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                onBlur={() => setTouched({ ...touched, clientName: true })}
-                className={`w-full h-12 px-4 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base ${
-                  touched.clientName && errors.clientName ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="John Smith"
-              />
-              {touched.clientName && errors.clientName && (
-                <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
-              )}
-            </div>
+                <div>
+                  <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="clientName"
+                    type="text"
+                    required
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    onBlur={() => setTouched({ ...touched, clientName: true })}
+                    className={`w-full h-12 px-4 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base bg-white ${
+                      touched.clientName && errors.clientName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="John Smith"
+                  />
+                  {touched.clientName && errors.clientName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
+                  )}
+                </div>
+              </div>
 
-            <div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
               <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-2">
                 Client Email <span className="text-red-500">*</span>
               </label>
@@ -638,13 +643,9 @@ export default function NewProject() {
                 </div>
               )}
             </div>
-            </div>
-            {/* End Project Info Section */}
 
-            {/* Stages Section - Full Width */}
-            <div className="border-t border-gray-200 pt-6 space-y-4">
-              {/* Pricing Guidance Box */}
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+            {/* Pricing Tip */}
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <span className="text-xl">💡</span>
                   <div>
