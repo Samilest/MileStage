@@ -941,21 +941,13 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                   <ThumbsUp className="w-5 h-5" />
                   Approve & Pay
                 </button>
-                {canRequestRevision ? (
+                {canRequestRevision && (
                   <button
                     onClick={() => setIsRevisionModalOpen(true)}
                     className="flex-1 sm:flex-initial bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="w-5 h-5" />
                     Request Changes ({revisionsRemaining})
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    className="flex-1 sm:flex-initial bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold cursor-not-allowed flex items-center justify-center gap-2 opacity-60"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    All Revisions Used
                   </button>
                 )}
               </div>
