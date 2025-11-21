@@ -21,6 +21,7 @@ import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
 import ExtensionPurchaseModal from './ExtensionPurchaseModal';
 import ExtensionStatusAlerts from './ExtensionStatusAlerts';
+import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 
 interface Extension {
   id: string;
@@ -72,6 +73,7 @@ interface StageCardProps {
   authorName?: string;
   projectId?: string;
   shareCode?: string;
+  currency?: CurrencyCode;
   paymentMethods?: {
     paypal?: string;
     venmo?: string;
@@ -80,7 +82,7 @@ interface StageCardProps {
   };
 }
 
-export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, paymentMethods = {} }: StageCardProps) {
+export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {} }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -582,7 +584,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="text-lg font-semibold text-gray-900">
-              Amount: <span className="text-2xl font-black">${stage.amount.toLocaleString()}</span>
+              Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
             </div>
             {!isPaid && (
               <button
@@ -676,14 +678,14 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 Stage {stage.stage_number}: {stage.name}
               </h3>
               <p className="text-sm text-green-700">
-                Completed {formatDate(stage.payment_received_at)} • ${stage.amount.toLocaleString()} paid
+                Completed {formatDate(stage.payment_received_at)} • {formatCurrency(stage.amount, currency)} paid
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <div className="bg-green-500 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg font-bold text-sm sm:text-base">
-              ${stage.amount.toLocaleString()}
+              {formatCurrency(stage.amount, currency)}
             </div>
 
             <div className="text-green-600">
@@ -838,7 +840,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             <div className="text-right">
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
               <div className="text-2xl lg:text-3xl font-black text-gray-900">
-                ${stage.amount.toLocaleString()}
+                {formatCurrency(stage.amount, currency)}
               </div>
               {stage.stage_number !== 0 && (
                 <div className="flex items-center justify-end gap-2">
@@ -998,7 +1000,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                       onClick={() => setIsExtensionModalOpen(true)}
                       className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200"
                     >
-                      Buy Extra Revision - ${stage.extension_price}
+                      Buy Extra Revision - {formatCurrency(stage.extension_price, currency)}
                     </button>
                   )}
                 </div>
@@ -1087,7 +1089,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               You marked the payment as sent. Waiting for the freelancer to verify payment received.
             </p>
             <p className="text-xs text-yellow-700 mt-2">
-              Amount: ${stage.amount.toLocaleString()} | Reference: {pendingPayments[0].reference_code}
+              Amount: {formatCurrency(stage.amount, currency)} | Reference: {pendingPayments[0].reference_code}
             </p>
           </div>
         )}
@@ -1098,7 +1100,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               ⚠️ Payment Issue
             </h3>
             <p className="text-red-800">
-              Your payment for ${stage.amount.toLocaleString()} was not received by the freelancer.
+              Your payment for {formatCurrency(stage.amount, currency)} was not received by the freelancer.
             </p>
             {rejectedPayments[0].rejection_reason && (
               <p className="text-sm text-red-700 mt-2">
@@ -1128,6 +1130,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           stageId={stage.id}
           stageName={stage.name}
           extensionPrice={stage.extension_price}
+          currency={currency}
           paymentMethods={paymentMethods}
           onClose={() => setIsExtensionModalOpen(false)}
         />
@@ -1138,7 +1141,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">
-                Stage {stage.stage_number} Payment - ${stage.amount.toLocaleString()}
+                Stage {stage.stage_number} Payment - {formatCurrency(stage.amount, currency)}
               </h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -1160,7 +1163,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             <div className="bg-blue-50 p-4 rounded mb-6">
               <h3 className="font-semibold mb-3">Payment Instructions:</h3>
               <p className="text-sm mb-4">
-                Pay ${stage.amount.toLocaleString()} using one of these methods:
+                Pay {formatCurrency(stage.amount, currency)} using one of these methods:
               </p>
 
               {paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
