@@ -10,6 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import ProjectCard from '../components/ProjectCard';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
+import { formatCurrency, type CurrencyCode } from '../lib/currency';
 import { RefreshCw, CreditCard, CheckCircle2 } from 'lucide-react';
 
 interface Project {
@@ -23,6 +24,7 @@ interface Project {
   amount_earned: number;
   has_unread_actions: boolean;
   primary_notification?: string;
+  currency: CurrencyCode;
 }
 
 export default function Dashboard() {
@@ -66,6 +68,7 @@ export default function Dashboard() {
               client_name,
               total_amount,
               status,
+              currency,
               stages (
                 id,
                 stage_number,
@@ -169,6 +172,7 @@ export default function Dashboard() {
           amount_earned: amountEarned,
           has_unread_actions: hasUnreadActions,
           primary_notification: primaryNotification,
+          currency: project.currency || 'USD',
         };
       }) || [];
 

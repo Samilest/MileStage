@@ -8,6 +8,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import { TEMPLATES, generateShareCode, Template } from '../lib/templates';
 import { EditableStage, calculateTotal, getBudgetMatchStatus } from '../lib/stageCalculations';
+import { CURRENCIES, formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, Minus, Check, AlertTriangle, X, Loader2 } from 'lucide-react';
 
 export default function NewProject() {
@@ -23,6 +24,7 @@ export default function NewProject() {
   const [projectName, setProjectName] = useState('');
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
+  const [currency, setCurrency] = useState<CurrencyCode>('USD');
   const [budgetReference, setBudgetReference] = useState(0);
   const [stagePercentages, setStagePercentages] = useState<number[]>([]);
   const [stages, setStages] = useState<EditableStage[]>([]);
@@ -126,18 +128,18 @@ export default function NewProject() {
   };
 
   const validateTotalAmount = (total: number, reference: number): string => {
-    if (total <= 0) return 'Total amount must be greater than $0';
+    if (total <= 0) return `Total amount must be greater than ${getCurrencySymbol(currency)}0`;
     if (!isCustomProject) {
       const diff = Math.abs(total - reference);
       if (diff > 100) {
-        return `Total differs from budget by $${diff.toLocaleString()} (must be within $100)`;
+        return `Total differs from budget by ${formatCurrency(diff, currency)} (must be within ${getCurrencySymbol(currency)}100)`;
       }
     }
     return '';
   };
 
   const validateStageAmount = (amount: number): string => {
-    if (amount <= 0) return 'Stage amount must be greater than $0';
+    if (amount <= 0) return `Stage amount must be greater than ${getCurrencySymbol(currency)}0`;
     return '';
   };
 
@@ -260,8 +262,8 @@ export default function NewProject() {
 
     if (projectTotal < 100) {
       console.error('[NewProject] ERROR: Project total too low:', projectTotal);
-      setError('Project total must be at least $100');
-      toast.error('Project total must be at least $100');
+      setError(`Project total must be at least ${getCurrencySymbol(currency)}100`);
+      toast.error(`Project total must be at least ${getCurrencySymbol(currency)}100`);
       return;
     }
 
@@ -270,8 +272,8 @@ export default function NewProject() {
       stages.forEach((s, i) => {
         if (s.amount <= 0) console.error(`[NewProject] Stage ${i + 1} amount:`, s.amount);
       });
-      setError('All stage amounts must be greater than $0');
-      toast.error('All stage amounts must be greater than $0');
+      setError(`All stage amounts must be greater than ${getCurrencySymbol(currency)}0`);
+      toast.error(`All stage amounts must be greater than ${getCurrencySymbol(currency)}0`);
       return;
     }
 
@@ -305,6 +307,7 @@ export default function NewProject() {
         total_amount: projectTotal,
         status: 'active',
         template_used: selectedTemplate?.id || 'custom',
+        currency: currency,
       };
 
       console.log('[NewProject] Project Insert Data:', JSON.stringify(projectInsertData, null, 2));
@@ -531,13 +534,34 @@ export default function NewProject() {
               )}
             </div>
 
+            <div>
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+                Currency <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+                className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base bg-white"
+              >
+                {Object.entries(CURRENCIES).map(([code, info]) => (
+                  <option key={code} value={code}>
+                    {info.symbol} {code} - {info.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select the currency you'll use for this project
+              </p>
+            </div>
+
             {!isCustomProject && (
               <div>
                 <label htmlFor="budgetReference" className="block text-sm font-medium text-gray-700 mb-2">
                   Budget Reference
                 </label>
                 <div className="stage-input-with-prefix">
-                  <span>$</span>
+                  <span>{getCurrencySymbol(currency)}</span>
                   <input
                     id="budgetReference"
                     type="number"
@@ -592,7 +616,7 @@ export default function NewProject() {
                         Amount
                       </label>
                       <div className="stage-input-with-prefix">
-                        <span>$</span>
+                        <span>{getCurrencySymbol(currency)}</span>
                         <input
                           id="downPaymentAmount"
                           type="number"
@@ -658,7 +682,7 @@ export default function NewProject() {
                         Amount
                       </label>
                       <div className="stage-input-with-prefix">
-                        <span>$</span>
+                        <span>{getCurrencySymbol(currency)}</span>
                         <input
                           id={`amount-${index}`}
                           type="number"
@@ -700,7 +724,7 @@ export default function NewProject() {
                         Extra Revision
                       </label>
                       <div className="stage-input-with-prefix">
-                        <span>$</span>
+                        <span>{getCurrencySymbol(currency)}</span>
                         <input
                           id={`extension-${index}`}
                           type="number"
@@ -736,8 +760,8 @@ export default function NewProject() {
                     <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
                       <Check className="w-5 h-5 flex-shrink-0" />
                       <div>
-                        <div className="font-medium">Budget: ${budgetReference.toLocaleString()}</div>
-                        <div className="text-sm">Total: ${projectTotal.toLocaleString()}</div>
+                        <div className="font-medium">Budget: {formatCurrency(budgetReference, currency)}</div>
+                        <div className="text-sm">Total: {formatCurrency(projectTotal, currency)}</div>
                       </div>
                     </div>
                   )}
@@ -745,10 +769,10 @@ export default function NewProject() {
                     <div className="flex items-center gap-2 text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
                       <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                       <div>
-                        <div className="font-medium">Budget: ${budgetReference.toLocaleString()}</div>
+                        <div className="font-medium">Budget: {formatCurrency(budgetReference, currency)}</div>
                         <div className="text-sm">
-                          Total: ${projectTotal.toLocaleString()} (
-                          {difference > 0 ? `$${difference} over` : `$${Math.abs(difference)} under`})
+                          Total: {formatCurrency(projectTotal, currency)} (
+                          {difference > 0 ? `${formatCurrency(difference, currency)} over` : `${formatCurrency(Math.abs(difference), currency)} under`})
                         </div>
                         <div className="text-xs mt-1">Close enough</div>
                       </div>
@@ -758,10 +782,10 @@ export default function NewProject() {
                     <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                       <X className="w-5 h-5 flex-shrink-0" />
                       <div>
-                        <div className="font-medium">Budget: ${budgetReference.toLocaleString()}</div>
+                        <div className="font-medium">Budget: {formatCurrency(budgetReference, currency)}</div>
                         <div className="text-sm">
-                          Total: ${projectTotal.toLocaleString()} (
-                          {difference > 0 ? `$${difference} over` : `$${Math.abs(difference)} under`})
+                          Total: {formatCurrency(projectTotal, currency)} (
+                          {difference > 0 ? `${formatCurrency(difference, currency)} over` : `${formatCurrency(Math.abs(difference), currency)} under`})
                         </div>
                         <div className="text-xs mt-1">Adjust stages</div>
                       </div>
@@ -779,7 +803,7 @@ export default function NewProject() {
                     <span className={`text-2xl font-bold ${
                       errors.totalAmount ? 'text-red-600' : 'text-primary'
                     }`}>
-                      ${projectTotal.toLocaleString()}
+                      {formatCurrency(projectTotal, currency)}
                     </span>
                   </div>
                   {errors.totalAmount && (
@@ -815,19 +839,19 @@ export default function NewProject() {
                     {projectTotal <= 0 && (
                       <li className="flex items-center gap-2">
                         <span className="text-yellow-600">•</span>
-                        Stage amounts must be greater than $0
+                        Stage amounts must be greater than {getCurrencySymbol(currency)}0
                       </li>
                     )}
                     {stages.some(s => s.amount <= 0) && (
                       <li className="flex items-center gap-2">
                         <span className="text-yellow-600">•</span>
-                        All stage amounts must be greater than $0
+                        All stage amounts must be greater than {getCurrencySymbol(currency)}0
                       </li>
                     )}
                     {!isCustomProject && matchStatus === 'far' && (
                       <li className="flex items-center gap-2">
                         <span className="text-yellow-600">•</span>
-                        Total must be within $100 of budget reference
+                        Total must be within {getCurrencySymbol(currency)}100 of budget reference
                       </li>
                     )}
                   </ul>

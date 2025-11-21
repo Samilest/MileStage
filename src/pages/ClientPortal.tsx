@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import StageList from '../components/StageList';
 import RealtimeStatus from '../components/RealtimeStatus';
 import PaymentInfoBox from '../components/PaymentInfoBox';
+import { formatCurrency, type CurrencyCode } from '../lib/currency';
 import toast from 'react-hot-toast';
 import logo from '../assets/milestage-logo.png';
 
@@ -17,6 +18,7 @@ interface ProjectData {
   status: string;
   share_code: string;
   created_at: string;
+  currency: CurrencyCode;
   payment_methods: {
     paypal?: string;
     venmo?: string;
@@ -267,12 +269,12 @@ export default function ClientPortal() {
           </div>
           <div className="text-right flex-shrink-0 hidden sm:block">
             <div className="text-xs sm:text-sm text-gray-600">Total Project Value</div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(projectData.total_amount, projectData.currency || 'USD')}</div>
           </div>
         </div>
         <div className="sm:hidden mt-3 text-center pt-3 border-t border-gray-200">
           <div className="text-xs text-gray-600">Total Project Value</div>
-          <div className="text-xl font-bold text-gray-900">${projectData.total_amount.toLocaleString()}</div>
+          <div className="text-xl font-bold text-gray-900">{formatCurrency(projectData.total_amount, projectData.currency || 'USD')}</div>
         </div>
       </div>
 
@@ -290,6 +292,7 @@ export default function ClientPortal() {
           projectId={projectData.id}
           shareCode={shareCode}
           paymentMethods={projectData.payment_methods || {}}
+          currency={projectData.currency || 'USD'}
         />
       </main>
     </div>

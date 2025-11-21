@@ -7,6 +7,7 @@ import NoteBox from '../components/NoteBox';
 import StageProgress from '../components/StageProgress';
 import ExtensionVerificationAlert from '../components/ExtensionVerificationAlert';
 import RealtimeStatus from '../components/RealtimeStatus';
+import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -54,6 +55,7 @@ interface Project {
   client_email: string;
   total_amount: number;
   status: string;
+  currency: CurrencyCode;
 }
 
 export default function ProjectDetail() {
@@ -1079,7 +1081,7 @@ export default function ProjectDetail() {
     <div className="text-right">
       <p className="text-sm text-gray-500">Total Project Value</p>
       <p className="text-2xl font-bold text-gray-900">
-        ${project.total_amount.toLocaleString()}
+        {formatCurrency(project.total_amount, project.currency || 'USD')}
       </p>
     </div>
   </div>
@@ -1116,7 +1118,7 @@ export default function ProjectDetail() {
                         Stage {stage.stage_number}: {stage.name}
                       </p>
                       <p className="text-2xl font-bold text-green-600 mt-1">
-                        ${payment.amount.toLocaleString()}
+                        {formatCurrency(payment.amount, project.currency || 'USD')}
                       </p>
                       <p className="text-sm text-gray-600 mt-2">
                         Reference: {payment.reference_code}
@@ -1189,14 +1191,14 @@ export default function ProjectDetail() {
                           </span>
                         </div>
                         <p className="text-xs sm:text-sm text-green-700 mt-1">
-                          Completed {formatDate(stage.payment_received_at)} • ${stage.amount.toLocaleString()} paid
+                          Completed {formatDate(stage.payment_received_at)} • {formatCurrency(stage.amount, project.currency || 'USD')} paid
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between sm:gap-4 flex-shrink-0">
                       <div className="bg-green-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-sm sm:text-base">
-                        ${stage.amount.toLocaleString()}
+                        {formatCurrency(stage.amount, project.currency || 'USD')}
                       </div>
 
                       <div className="text-green-600">
@@ -1214,7 +1216,7 @@ export default function ProjectDetail() {
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-gray-600">Amount</p>
-                          <p className="font-semibold text-gray-900">${stage.amount.toLocaleString()}</p>
+                          <p className="font-semibold text-gray-900">{formatCurrency(stage.amount, project.currency || 'USD')}</p>
                         </div>
                         {stage.stage_number !== 0 && (
                           <div>
@@ -1284,7 +1286,7 @@ export default function ProjectDetail() {
                         <div className="text-left sm:text-right">
                           <p className="text-sm text-gray-600">Amount</p>
                           <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                            ${stage.amount.toLocaleString()}
+                            {formatCurrency(stage.amount, project.currency || 'USD')}
                           </p>
                         </div>
 
@@ -1367,7 +1369,7 @@ export default function ProjectDetail() {
                     <div>
                       <p className="text-neutral-600 text-xs sm:text-sm">Amount</p>
                       <p className="text-xl sm:text-2xl font-bold text-black">
-                        ${stage.amount.toLocaleString()}
+                        {formatCurrency(stage.amount, project.currency || 'USD')}
                       </p>
                     </div>
                     {stage.stage_number !== 0 && (
@@ -1848,7 +1850,7 @@ export default function ProjectDetail() {
                   Stage {selectedStageForPayment.stage_number}: {selectedStageForPayment.name}
                 </p>
                 <p className="text-2xl font-bold text-green-600 mt-2">
-                  ${selectedStageForPayment.amount.toLocaleString()}
+                  {formatCurrency(selectedStageForPayment.amount, project.currency || 'USD')}
                 </p>
               </div>
               <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mt-4">
