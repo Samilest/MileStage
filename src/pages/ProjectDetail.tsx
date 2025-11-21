@@ -35,6 +35,7 @@ interface Stage {
   status: string;
   revisions_included: number;
   revisions_used: number;
+  extension_revisions_used: number;
   delivered_at: string | null;
   extension_enabled: boolean;
   extension_price: number;
@@ -800,25 +801,39 @@ export default function ProjectDetail() {
   };
 
   const handleMarkRevisionUsed = async (stageId: string, stage: Stage) => {
-    const revisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
+    const freeRevisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
+    const extensionRevisionsTotal = stage.extension_purchased ? 3 : 0;
+    const extensionRevisionsUsed = stage.extension_revisions_used || 0;
+    const extensionRevisionsRemaining = extensionRevisionsTotal - extensionRevisionsUsed;
     
-    if (revisionsRemaining <= 0) {
-      alert('No revisions remaining to mark as used.');
+    const totalRemaining = freeRevisionsRemaining + extensionRevisionsRemaining;
+    
+    if (totalRemaining <= 0) {
+      alert('No revisions remaining. Client needs to purchase an extension for more revisions.');
       return;
     }
 
-    if (!confirm(`Mark 1 revision as used? This will update the count from ${stage.revisions_used}/${stage.revisions_included} to ${stage.revisions_used + 1}/${stage.revisions_included}.`)) {
+    // Determine which type to use
+    const usingFreeRevision = freeRevisionsRemaining > 0;
+    const revisionType = usingFreeRevision ? 'included' : 'extension';
+    const remainingText = usingFreeRevision 
+      ? `${freeRevisionsRemaining - 1} free revision${freeRevisionsRemaining - 1 !== 1 ? 's' : ''}`
+      : `${extensionRevisionsRemaining - 1} extension revision${extensionRevisionsRemaining - 1 !== 1 ? 's' : ''}`;
+
+    if (!confirm(`Log 1 ${revisionType} revision as used?\n\n${remainingText} will remain after this.`)) {
       return;
     }
 
     setMarkingRevisionUsedStageId(stageId);
 
     try {
+      const updateData = usingFreeRevision
+        ? { revisions_used: (stage.revisions_used || 0) + 1 }
+        : { extension_revisions_used: extensionRevisionsUsed + 1 };
+
       const { error } = await supabase
         .from('stages')
-        .update({ 
-          revisions_used: (stage.revisions_used || 0) + 1 
-        })
+        .update(updateData)
         .eq('id', stageId);
 
       if (error) throw error;
@@ -826,7 +841,7 @@ export default function ProjectDetail() {
       // Refresh data
       await loadProjectData();
       
-      alert(`✓ Revision marked as used. ${revisionsRemaining - 1} remaining.`);
+      alert(`✓ ${revisionType.charAt(0).toUpperCase() + revisionType.slice(1)} revision logged. ${remainingText} remaining.`);
     } catch (error) {
       console.error('Error marking revision as used:', error);
       alert('Failed to mark revision as used. Please try again.');

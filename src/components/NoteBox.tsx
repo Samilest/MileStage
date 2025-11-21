@@ -19,6 +19,8 @@ interface NoteBoxProps {
   stage?: {
     revisions_included: number;
     revisions_used: number;
+    extension_purchased: boolean;
+    extension_revisions_used: number;
   };
   onMarkRevisionUsed?: (stageId: string, stage: any) => void;
   isMarkingRevisionUsed?: boolean;
@@ -265,8 +267,20 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
           </h3>
           
           {/* Log as Revision button - only for freelancers with revisions remaining */}
-          {authorType === 'freelancer' && stage && onMarkRevisionUsed && (
-            ((stage.revisions_included || 0) - (stage.revisions_used || 0) > 0) && (
+          {authorType === 'freelancer' && stage && onMarkRevisionUsed && (() => {
+            const freeRevisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
+            const extensionRevisionsTotal = stage.extension_purchased ? 3 : 0;
+            const extensionRevisionsUsed = stage.extension_revisions_used || 0;
+            const extensionRevisionsRemaining = extensionRevisionsTotal - extensionRevisionsUsed;
+            const totalRemaining = freeRevisionsRemaining + extensionRevisionsRemaining;
+            
+            if (totalRemaining <= 0) return null;
+            
+            const buttonText = freeRevisionsRemaining > 0 
+              ? 'Log as Revision'
+              : `Log as Revision (${extensionRevisionsRemaining} extra left)`;
+            
+            return (
               <button
                 onClick={() => onMarkRevisionUsed(stageId, stage)}
                 disabled={isMarkingRevisionUsed}
@@ -274,10 +288,10 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
                 title="Use this when you complete work requested in chat"
               >
                 <span className="text-base">✓</span>
-                {isMarkingRevisionUsed ? 'Logging...' : 'Log as Revision'}
+                {isMarkingRevisionUsed ? 'Logging...' : buttonText}
               </button>
-            )
-          )}
+            );
+          })()}
         </div>
       </div>
 
