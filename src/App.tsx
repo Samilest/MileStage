@@ -14,6 +14,8 @@ const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const ProjectOverview = lazy(() => import('./pages/ProjectOverview'));
 const ClientView = lazy(() => import('./pages/ClientView'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const Payment = lazy(() => import('./pages/Payment'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
 function LoadingFallback() {
   return (
@@ -90,7 +92,10 @@ function App() {
         <Routes>
           {/* Public routes MUST come first to avoid auth redirects */}
           <Route path="/portal/:shareCode" element={<ClientPortal />} />
+          <Route path="/project/:shareCode" element={<ClientPortal />} />
           <Route path="/projects/:shareCode/client" element={<ClientView />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route
