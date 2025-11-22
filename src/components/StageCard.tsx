@@ -633,6 +633,8 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                         stageId: stage.id,
                         amount: stage.amount,
                         stageName: stage.name,
+                        currency: currency,
+                        paymentMethods: paymentMethods || {},
                       }));
                       
                       window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;

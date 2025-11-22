@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, CreditCard, Wallet, Info } from 'lucide-react';
 import { formatCurrency } from '../lib/currency';
 import logo from '../assets/milestage-logo.png';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-function PaymentForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
+function StripePaymentForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -81,17 +81,150 @@ function PaymentForm({ clientSecret, onSuccess }: { clientSecret: string; onSucc
   );
 }
 
+function OfflinePaymentInstructions({ 
+  paymentMethods, 
+  amount, 
+  currency, 
+  onClose 
+}: { 
+  paymentMethods: any; 
+  amount: number; 
+  currency: string;
+  onClose: () => void;
+}) {
+  const hasAnyMethod = paymentMethods?.paypal || paymentMethods?.venmo || paymentMethods?.bank_transfer || paymentMethods?.other;
+
+  if (!hasAnyMethod) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-600 mb-4">No offline payment methods configured.</p>
+        <button
+          onClick={onClose}
+          className="text-green-600 hover:text-green-700 font-medium"
+        >
+          Try card payment instead
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
+        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-blue-900">
+          <p className="font-semibold mb-1">How offline payment works:</p>
+          <ol className="list-decimal list-inside space-y-1 text-blue-800">
+            <li>Send payment using one of the methods below</li>
+            <li>Your freelancer will confirm receipt</li>
+            <li>The next stage will unlock automatically</li>
+          </ol>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {paymentMethods.paypal && (
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-blue-100 p-2 rounded">
+                <Wallet className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">PayPal</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">Send payment to:</p>
+            <p className="font-mono text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200">
+              {paymentMethods.paypal}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
+            </p>
+          </div>
+        )}
+
+        {paymentMethods.venmo && (
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-blue-100 p-2 rounded">
+                <Wallet className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Venmo</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">Send payment to:</p>
+            <p className="font-mono text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200">
+              {paymentMethods.venmo}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
+            </p>
+          </div>
+        )}
+
+        {paymentMethods.bank_transfer && (
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-green-100 p-2 rounded">
+                <Wallet className="w-5 h-5 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Bank Transfer</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">Transfer to:</p>
+            <div className="font-mono text-sm text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200 whitespace-pre-wrap">
+              {paymentMethods.bank_transfer}
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
+            </p>
+          </div>
+        )}
+
+        {paymentMethods.other && (
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-gray-100 p-2 rounded">
+                <Wallet className="w-5 h-5 text-gray-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Other Payment Method</h3>
+            </div>
+            <div className="text-sm text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200 whitespace-pre-wrap">
+              {paymentMethods.other}
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+        <p className="text-sm text-green-900 font-medium mb-2">
+          ✓ That's it! You're done.
+        </p>
+        <p className="text-sm text-green-800">
+          Once your freelancer confirms receipt, the next stage will unlock automatically.
+        </p>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+      >
+        Back to Payment Options
+      </button>
+    </div>
+  );
+}
+
 export default function Payment() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'offline' | null>(null);
 
   const stageId = searchParams.get('stage');
   const shareCode = searchParams.get('share');
 
   useEffect(() => {
-    // Get payment info from sessionStorage
     const storedPayment = sessionStorage.getItem('pendingPayment');
     
     if (!storedPayment || !stageId || !shareCode) {
@@ -116,7 +249,11 @@ export default function Payment() {
   };
 
   const handleBack = () => {
-    navigate(`/project/${shareCode}`);
+    if (paymentMethod) {
+      setPaymentMethod(null);
+    } else {
+      navigate(`/project/${shareCode}`);
+    }
   };
 
   if (loading) {
@@ -136,7 +273,7 @@ export default function Payment() {
         <div className="text-center max-w-lg">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Not Found</h1>
           <button
-            onClick={handleBack}
+            onClick={() => navigate(`/project/${shareCode}`)}
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
           >
             Back to Project
@@ -146,7 +283,7 @@ export default function Payment() {
     );
   }
 
-  const options = {
+  const stripeOptions = {
     clientSecret: paymentInfo.clientSecret,
     appearance: {
       theme: 'stripe' as const,
@@ -158,7 +295,6 @@ export default function Payment() {
 
   return (
     <div className="min-h-screen bg-secondary-bg">
-      {/* Header */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -168,37 +304,93 @@ export default function Payment() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Project
+              {paymentMethod ? 'Back' : 'Back to Project'}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Payment Form */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Payment Header */}
           <div className="bg-green-50 border-b border-green-100 px-6 py-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Complete Payment</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {paymentMethod ? 'Complete Payment' : 'Choose Payment Method'}
+            </h1>
             <p className="text-gray-600 mb-4">{paymentInfo.stageName}</p>
             <div className="text-3xl font-bold text-green-600">
-              {formatCurrency(paymentInfo.amount, 'USD')}
+              {formatCurrency(paymentInfo.amount, paymentInfo.currency || 'USD')}
             </div>
           </div>
 
-          {/* Payment Form */}
           <div className="p-6">
-            <Elements stripe={stripePromise} options={options}>
-              <PaymentForm clientSecret={paymentInfo.clientSecret} onSuccess={handleSuccess} />
-            </Elements>
+            {!paymentMethod ? (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setPaymentMethod('stripe')}
+                  className="w-full bg-white border-2 border-gray-200 hover:border-green-500 rounded-xl p-6 text-left transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="bg-green-100 group-hover:bg-green-500 p-3 rounded-lg transition-colors">
+                      <CreditCard className="w-6 h-6 text-green-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                        Pay with Card
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Instant payment • Secure processing by Stripe
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Instant</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Secure</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setPaymentMethod('offline')}
+                  className="w-full bg-white border-2 border-gray-200 hover:border-green-500 rounded-xl p-6 text-left transition-all group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-100 group-hover:bg-green-500 p-3 rounded-lg transition-colors">
+                      <Wallet className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                        Pay Offline
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        PayPal, Venmo, Bank Transfer, or Other
+                      </p>
+                      <div className="mt-2">
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Manual confirmation</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            ) : paymentMethod === 'stripe' ? (
+              <Elements stripe={stripePromise} options={stripeOptions}>
+                <StripePaymentForm clientSecret={paymentInfo.clientSecret} onSuccess={handleSuccess} />
+              </Elements>
+            ) : (
+              <OfflinePaymentInstructions
+                paymentMethods={paymentInfo.paymentMethods || {}}
+                amount={paymentInfo.amount}
+                currency={paymentInfo.currency || 'USD'}
+                onClose={() => setPaymentMethod(null)}
+              />
+            )}
           </div>
         </div>
 
-        {/* Security Info */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>🔒 Your payment information is secure and encrypted</p>
-          <p className="mt-2">MileStage never stores your card details</p>
-        </div>
+        {!paymentMethod && (
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>🔒 Your payment information is secure and encrypted</p>
+            <p className="mt-2">MileStage never stores your card details</p>
+          </div>
+        )}
       </div>
     </div>
   );
