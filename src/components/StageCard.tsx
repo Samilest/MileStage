@@ -597,7 +597,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
                   setCreatingPayment(true);
                   try {
-                    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-link`;
+                    const apiUrl = '/api/stripe/create-payment-intent';
                     const response = await fetch(apiUrl, {
                       method: 'POST',
                       headers: {
@@ -609,23 +609,37 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                       }),
                     });
 
-                    const result = await response.json();
-
-                    if (result.setupRequired) {
-                      alert('Payment setup required. The freelancer needs to connect their Stripe account first.');
-                      return;
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || errorData.message || 'Failed to create payment');
                     }
+
+                    const result = await response.json();
 
                     if (result.error) {
                       throw new Error(result.error);
                     }
 
-                    if (result.url) {
-                      window.location.href = result.url;
+                    if (result.clientSecret) {
+                      // Redirect to Stripe checkout with the payment intent
+                      const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+                      if (!stripePublishableKey) {
+                        throw new Error('Stripe not configured');
+                      }
+                      
+                      // Store payment info and redirect to payment page
+                      sessionStorage.setItem('pendingPayment', JSON.stringify({
+                        clientSecret: result.clientSecret,
+                        stageId: stage.id,
+                        amount: stage.amount,
+                        stageName: stage.name,
+                      }));
+                      
+                      window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
                     }
                   } catch (error: any) {
                     console.error('Error creating payment:', error);
-                    alert('Failed to create payment link. Please try again.');
+                    alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
                   } finally {
                     setCreatingPayment(false);
                   }
