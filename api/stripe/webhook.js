@@ -1,13 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
-
+const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { buffer } = require('micro');
 
 const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -18,32 +18,38 @@ export default async function handler(req, res) {
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    const buf = await buffer(req);
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // Handle the event
-  switch (event.type) {
-    case 'account.updated':
-      await handleAccountUpdated(event.data.object);
-      break;
-    
-    case 'payment_intent.succeeded':
-      await handlePaymentSucceeded(event.data.object);
-      break;
-    
-    case 'payment_intent.payment_failed':
-      await handlePaymentFailed(event.data.object);
-      break;
+  try {
+    switch (event.type) {
+      case 'account.updated':
+        await handleAccountUpdated(event.data.object);
+        break;
+      
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object);
+        break;
+      
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event.data.object);
+        break;
 
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Error handling webhook:', error);
+    res.status(500).json({ error: 'Webhook handler failed' });
   }
-
-  res.json({ received: true });
-}
+};
 
 async function handleAccountUpdated(account) {
   try {
@@ -72,8 +78,7 @@ async function handleAccountUpdated(account) {
 
 async function handlePaymentSucceeded(paymentIntent) {
   try {
-    // Extract metadata
-    const { stage_id, project_id } = paymentIntent.metadata;
+    const { stage_id } = paymentIntent.metadata;
 
     if (!stage_id) {
       console.error('No stage_id in payment intent metadata');
@@ -111,15 +116,14 @@ async function handlePaymentFailed(paymentIntent) {
 
     if (!stage_id) return;
 
-    // You could log failed payments or notify the user
     console.log(`Payment failed for stage ${stage_id}`);
   } catch (error) {
     console.error('Error handling payment failure:', error);
   }
 }
 
-// Disable body parsing, need raw body for webhook verification
-export const config = {
+// Disable body parsing for webhook verification
+module.exports.config = {
   api: {
     bodyParser: false,
   },

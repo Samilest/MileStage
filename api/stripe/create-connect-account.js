@@ -1,15 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Stripe
+const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Initialize Supabase with service role key for admin operations
 const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -84,4 +82,4 @@ export default async function handler(req, res) {
       details: error.message 
     });
   }
-}
+};
