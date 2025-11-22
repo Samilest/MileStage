@@ -31,6 +31,10 @@ export default function NewProject() {
   const [includeDownPayment, setIncludeDownPayment] = useState(false);
   const [downPaymentName, setDownPaymentName] = useState('Down Payment');
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
+  const [paypalEmail, setPaypalEmail] = useState('');
+  const [venmoUsername, setVenmoUsername] = useState('');
+  const [bankTransferInfo, setBankTransferInfo] = useState('');
+  const [otherPaymentInfo, setOtherPaymentInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({
@@ -308,6 +312,12 @@ export default function NewProject() {
         status: 'active',
         template_used: selectedTemplate?.id || 'custom',
         currency: currency,
+        payment_methods: {
+          paypal: paypalEmail || null,
+          venmo: venmoUsername || null,
+          bank_transfer: bankTransferInfo || null,
+          other: otherPaymentInfo || null,
+        },
       };
 
       console.log('[NewProject] Project Insert Data:', JSON.stringify(projectInsertData, null, 2));
@@ -553,6 +563,72 @@ export default function NewProject() {
               <p className="mt-1 text-xs text-gray-500">
                 Select the currency you'll use for this project
               </p>
+            </div>
+
+            {/* Payment Methods Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment Methods (Optional)</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Add your payment details so clients can pay you directly. You can add one or more methods.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="paypalEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                    PayPal Email
+                  </label>
+                  <input
+                    id="paypalEmail"
+                    type="email"
+                    value={paypalEmail}
+                    onChange={(e) => setPaypalEmail(e.target.value)}
+                    className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base"
+                    placeholder="your@paypal.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="venmoUsername" className="block text-sm font-medium text-gray-700 mb-2">
+                    Venmo Username
+                  </label>
+                  <input
+                    id="venmoUsername"
+                    type="text"
+                    value={venmoUsername}
+                    onChange={(e) => setVenmoUsername(e.target.value)}
+                    className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base"
+                    placeholder="@yourvenmo"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="bankTransferInfo" className="block text-sm font-medium text-gray-700 mb-2">
+                    Bank Transfer Details
+                  </label>
+                  <textarea
+                    id="bankTransferInfo"
+                    value={bankTransferInfo}
+                    onChange={(e) => setBankTransferInfo(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base resize-none"
+                    placeholder="Bank name, account number, routing number, etc."
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="otherPaymentInfo" className="block text-sm font-medium text-gray-700 mb-2">
+                    Other Payment Method
+                  </label>
+                  <textarea
+                    id="otherPaymentInfo"
+                    value={otherPaymentInfo}
+                    onChange={(e) => setOtherPaymentInfo(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base resize-none"
+                    placeholder="Zelle, Cash App, or any other payment instructions"
+                  />
+                </div>
+              </div>
             </div>
 
             {!isCustomProject && (
