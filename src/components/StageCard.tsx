@@ -1285,7 +1285,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                   setValidationError('');
                 }}
                 rows={6}
-                maxLength={500}
+                maxLength={1000}
                 spellCheck={false}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                   validationError ? 'border-red-500' : 'border-gray-300'
@@ -1296,7 +1296,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 • 'Add shadow to header section'"
               />
               <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-gray-500">{revisionFeedback.length}/500 characters</p>
+                <p className="text-xs text-gray-500">{revisionFeedback.length}/1000 characters</p>
                 {revisionFeedback.trim().length > 0 && revisionFeedback.trim().length < 10 && (
                   <p className="text-xs text-orange-600">At least 10 characters needed</p>
                 )}
