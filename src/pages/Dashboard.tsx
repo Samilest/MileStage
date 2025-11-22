@@ -8,6 +8,8 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import RealtimeStatus from '../components/RealtimeStatus';
 import ProjectCard from '../components/ProjectCard';
+import StripeConnect from '../components/StripeConnect';
+import WelcomeModal from '../components/WelcomeModal';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const fetchingRef = useRef(false);
   const userId = user?.id;
 
@@ -334,6 +337,29 @@ export default function Dashboard() {
     checkStripeConnection();
   }, [userId]);
 
+  // Check if user should see welcome modal
+  useEffect(() => {
+    const checkWelcomeModal = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('welcome_modal_seen')
+          .eq('id', userId)
+          .single();
+
+        if (!data?.welcome_modal_seen) {
+          setShowWelcomeModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking welcome modal status:', error);
+      }
+    };
+
+    checkWelcomeModal();
+  }, [userId]);
+
   const handleConnectStripe = async () => {
     setConnectingStripe(true);
     try {
@@ -391,12 +417,23 @@ return (
   <div className="min-h-screen bg-gray-50">
     <Navigation />
     
+    {/* Welcome Modal for first-time users */}
+    {showWelcomeModal && (
+      <WelcomeModal 
+        userId={userId!} 
+        onClose={() => setShowWelcomeModal(false)} 
+      />
+    )}
+    
     {/* Fixed bottom-right container */}
     <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
       <RealtimeStatus />
     </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Stripe Connect Component */}
+        <StripeConnect userId={userId!} />
+
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
@@ -427,50 +464,6 @@ return (
             </Button>
           </div>
         </div>
-
-        {!stripeConnected && (
-          <Card className="bg-blue-50 border-2 border-blue-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <CreditCard className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900 mb-1">Connect Stripe to Accept Payments</h3>
-                  <p className="text-sm text-blue-700">
-                    Set up your Stripe account to receive payments from clients. It takes less than 2 minutes.
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={handleConnectStripe}
-                disabled={connectingStripe}
-                className="w-full sm:w-auto whitespace-nowrap !bg-black hover:!bg-gray-900"
-              >
-                {connectingStripe ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  'Connect Stripe'
-                )}
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {stripeConnected && (
-          <Card className="bg-green-50 border-2 border-green-200">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-semibold text-green-900">Stripe Connected</h3>
-                <p className="text-sm text-green-700">
-                  Your clients can now pay you directly through Stripe.
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
