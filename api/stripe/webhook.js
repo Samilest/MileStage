@@ -1,6 +1,6 @@
-// Vercel-compatible Stripe webhook handler
 const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const getRawBody = require('raw-body');
 
 const supabaseAdmin = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -24,13 +24,8 @@ module.exports = async (req, res) => {
   let event;
 
   try {
-    // Get raw body for Vercel
-    const chunks = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    const rawBody = Buffer.concat(chunks);
-    
+    // Get raw body using raw-body package
+    const rawBody = await getRawBody(req);
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
     console.log('[Webhook] Event constructed successfully:', event.type);
   } catch (err) {
