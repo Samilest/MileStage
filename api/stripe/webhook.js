@@ -1,3 +1,4 @@
+// Force rebuild - webhook no micro dependency v4
 const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
