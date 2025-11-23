@@ -1,6 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { buffer } = require('micro');
 
 const supabaseAdmin = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -18,7 +17,8 @@ module.exports = async (req, res) => {
   let event;
 
   try {
-    const buf = await buffer(req);
+    // Vercel provides rawBody directly
+    const buf = req.body;
     event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
