@@ -78,20 +78,7 @@ module.exports = async (req, res) => {
       description: `${stage.projects.project_name} - Stage ${stage.stage_number}: ${stage.name}`,
     });
 
-    // Create or update stage_payment record
-    const { error: paymentError } = await supabaseAdmin
-      .from('stage_payments')
-      .upsert({
-        stage_id: stage.id,
-        amount: stage.amount,
-        status: 'pending',
-        stripe_payment_intent_id: paymentIntent.id,
-        created_at: new Date().toISOString(),
-      });
-
-    if (paymentError) {
-      console.error('Error creating payment record:', paymentError);
-    }
+    console.log('[Payment Intent] Created successfully:', paymentIntent.id);
 
     return res.status(200).json({
       clientSecret: paymentIntent.client_secret,
