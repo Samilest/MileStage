@@ -92,9 +92,9 @@ function OfflinePaymentInstructions({
   currency: string;
   onClose: () => void;
 }) {
-  const hasAnyMethod = paymentMethods?.paypal || paymentMethods?.venmo || paymentMethods?.bank_transfer || paymentMethods?.other;
+  const offlineInstructions = paymentMethods?.offline_instructions;
 
-  if (!hasAnyMethod) {
+  if (!offlineInstructions || offlineInstructions.trim() === '') {
     return (
       <div className="text-center py-8">
         <p className="text-gray-600 mb-4">No offline payment methods configured.</p>
@@ -115,84 +115,35 @@ function OfflinePaymentInstructions({
         <div className="text-sm text-blue-900">
           <p className="font-semibold mb-1">How offline payment works:</p>
           <ol className="list-decimal list-inside space-y-1 text-blue-800">
-            <li>Send payment using one of the methods below</li>
+            <li>Send payment using the method(s) below</li>
             <li>Your freelancer will confirm receipt</li>
             <li>The next stage will unlock automatically</li>
           </ol>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {paymentMethods.paypal && (
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-blue-100 p-2 rounded">
-                <Wallet className="w-5 h-5 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900">PayPal</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-2">Send payment to:</p>
-            <p className="font-mono text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200">
-              {paymentMethods.paypal}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
-            </p>
+      {/* Payment Instructions Box */}
+      <div className="bg-white border-2 border-green-200 rounded-xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-green-100 p-2 rounded">
+            <Wallet className="w-5 h-5 text-green-600" />
           </div>
-        )}
+          <h3 className="font-semibold text-gray-900 text-lg">Payment Details</h3>
+        </div>
+        
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+          <p className="text-sm font-medium text-gray-700 mb-3">Send payment to:</p>
+          <div className="text-base text-gray-900 whitespace-pre-wrap font-mono leading-relaxed">
+            {offlineInstructions}
+          </div>
+        </div>
 
-        {paymentMethods.venmo && (
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-blue-100 p-2 rounded">
-                <Wallet className="w-5 h-5 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900">Venmo</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-2">Send payment to:</p>
-            <p className="font-mono text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200">
-              {paymentMethods.venmo}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
-            </p>
-          </div>
-        )}
-
-        {paymentMethods.bank_transfer && (
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-green-100 p-2 rounded">
-                <Wallet className="w-5 h-5 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900">Bank Transfer</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-2">Transfer to:</p>
-            <div className="font-mono text-sm text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200 whitespace-pre-wrap">
-              {paymentMethods.bank_transfer}
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
-            </p>
-          </div>
-        )}
-
-        {paymentMethods.other && (
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-gray-100 p-2 rounded">
-                <Wallet className="w-5 h-5 text-gray-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900">Other Payment Method</h3>
-            </div>
-            <div className="text-sm text-gray-900 bg-gray-50 px-4 py-3 rounded border border-gray-200 whitespace-pre-wrap">
-              {paymentMethods.other}
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Amount: <span className="font-semibold text-gray-900">{formatCurrency(amount, currency)}</span>
-            </p>
-          </div>
-        )}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-sm text-gray-700">
+            <span className="font-semibold text-green-900">Amount to send:</span>{' '}
+            <span className="text-2xl font-bold text-green-600">{formatCurrency(amount, currency)}</span>
+          </p>
+        </div>
       </div>
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
