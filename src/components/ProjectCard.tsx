@@ -53,7 +53,7 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
   return (
     <div
       className="bg-white rounded-xl p-5 sm:p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-      onClick={() => onNavigate(project.id)}
+      onClick={() => onNavigate(project.share_code)}
     >
       {/* Header: Project name + Status */}
       <div className="flex items-start justify-between mb-3 gap-3">
