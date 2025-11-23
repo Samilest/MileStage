@@ -543,7 +543,7 @@ export default function ProjectOverview() {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge()}`}>
                           {getStatusText()}
                         </span>
-                        {stage.status !== 'completed' && stage.status !== 'complete' && stage.payment_status !== 'paid' && stage.status !== 'locked' && (
+                        {stage.status !== 'completed' && stage.status !== 'complete' && stage.payment_status !== 'received' && stage.status !== 'locked' && (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                             Unpaid
                           </span>
