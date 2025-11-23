@@ -35,17 +35,44 @@ function StripePaymentForm({
     setErrorMessage('');
 
     try {
-      const { error } = await stripe.confirmPayment({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/payment-success?share=${shareCode}&stage=${stageId}`,
         },
+        redirect: 'if_required', // Don't redirect if payment succeeds without 3D Secure
       });
 
       if (error) {
         setErrorMessage(error.message || 'Payment failed. Please try again.');
-      } else {
-        onSuccess();
+        setProcessing(false);
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Payment succeeded! Call our confirmation API
+        console.log('[Payment] Payment succeeded, confirming with server...');
+        
+        try {
+          const response = await fetch('/api/stripe/confirm-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentIntentId: paymentIntent.id,
+              stageId: stageId,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to confirm payment');
+          }
+
+          console.log('[Payment] Payment confirmed! Redirecting...');
+          // Redirect to success page
+          window.location.href = `/payment-success?share=${shareCode}&stage=${stageId}`;
+        } catch (confirmError) {
+          console.error('[Payment] Confirmation error:', confirmError);
+          // Payment succeeded but confirmation failed - still redirect to success
+          // The webhook will eventually catch it
+          window.location.href = `/payment-success?share=${shareCode}&stage=${stageId}`;
+        }
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred.');
