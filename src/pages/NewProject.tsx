@@ -32,6 +32,8 @@ export default function NewProject() {
   const [downPaymentName, setDownPaymentName] = useState('Down Payment');
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [offlinePaymentInstructions, setOfflinePaymentInstructions] = useState('');
+  const [stripeAccountCurrency, setStripeAccountCurrency] = useState<string | null>(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({
@@ -56,7 +58,24 @@ export default function NewProject() {
 
     if (!user) {
       console.warn('[NewProject] WARNING: No user found in state');
+      return;
     }
+
+    // Fetch Stripe currency
+    const fetchStripeCurrency = async () => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('stripe_account_currency, stripe_charges_enabled')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        setStripeAccountCurrency(data.stripe_account_currency);
+        setStripeConnected(!!data.stripe_charges_enabled);
+      }
+    };
+
+    fetchStripeCurrency();
 
     if (templateId) {
       const template = TEMPLATES.find((t) => t.id === templateId);
@@ -554,34 +573,68 @@ export default function NewProject() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Select the currency you'll use for this project
-              </p>
+              {stripeConnected && stripeAccountCurrency && currency.toLowerCase() !== stripeAccountCurrency.toLowerCase() && (
+                <div className="mt-2 flex items-start gap-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p>
+                    <strong>Card payments unavailable for {currency} projects.</strong> Your Stripe account only accepts {stripeAccountCurrency.toUpperCase()}. Clients will use offline payments only.
+                  </p>
+                </div>
+              )}
+              {!stripeConnected && stripeAccountCurrency === null && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Select the currency you'll use for this project
+                </p>
+              )}
+              {stripeConnected && stripeAccountCurrency && currency.toLowerCase() === stripeAccountCurrency.toLowerCase() && (
+                <p className="mt-2 text-xs text-green-600">
+                  ✓ Card payments available via Stripe
+                </p>
+              )}
             </div>
 
-            {/* Accept Offline Payments Section */}
+            {/* Payment Options Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Accept Offline Payments</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Add payment details for PayPal, Venmo, Zelle, bank transfer, or other methods.
-              </p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment Options</h3>
+              
+              {/* Stripe Card Payments */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-2 rounded flex-shrink-0">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-green-900 mb-1">Card Payments (Stripe)</h4>
+                    <p className="text-sm text-green-800">
+                      {stripeConnected 
+                        ? `Enabled - Clients can pay with credit/debit cards${stripeAccountCurrency && currency.toLowerCase() === stripeAccountCurrency.toLowerCase() ? '' : ' (not available for this currency)'}` 
+                        : 'Available when you connect Stripe from your dashboard'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-              <textarea
-                id="offlinePaymentInstructions"
-                value={offlinePaymentInstructions}
-                onChange={(e) => setOfflinePaymentInstructions(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base resize-none"
-                placeholder="Example:
+              {/* Offline Payments */}
+              <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-2">+ Add Offline Payment Methods (Optional)</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  Add payment details for PayPal, Venmo, Zelle, bank transfer, or other methods.
+                </p>
+
+                <textarea
+                  id="offlinePaymentInstructions"
+                  value={offlinePaymentInstructions}
+                  onChange={(e) => setOfflinePaymentInstructions(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base resize-none"
+                  placeholder="Example:
 PayPal: your@email.com
 Venmo: @yourname
 Zelle: (555) 123-4567"
-              />
-              
-              <div className="mt-3 flex items-start gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <span className="text-blue-600">💳</span>
-                <p>
-                  <strong className="text-blue-900">Card payments are automatic.</strong> Clients can always pay via Stripe without any setup from you.
+                />
+                
+                <p className="mt-2 text-xs text-gray-500">
+                  Leave blank if you only want to accept card payments via Stripe
                 </p>
               </div>
             </div>
@@ -589,7 +642,7 @@ Zelle: (555) 123-4567"
             {!isCustomProject && (
               <div>
                 <label htmlFor="budgetReference" className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget Reference
+                  Project Budget
                 </label>
                 <div className="stage-input-with-prefix">
                   <span>{getCurrencySymbol(currency)}</span>
@@ -604,6 +657,9 @@ Zelle: (555) 123-4567"
                     placeholder="2500"
                   />
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  This is the total value of your project
+                </p>
               </div>
             )}
 

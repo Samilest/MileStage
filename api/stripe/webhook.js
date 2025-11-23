@@ -67,10 +67,11 @@ async function handleAccountUpdated(account) {
         stripe_onboarding_completed: account.details_submitted,
         stripe_charges_enabled: account.charges_enabled,
         stripe_payouts_enabled: account.payouts_enabled,
+        stripe_account_currency: account.default_currency || null,
       })
       .eq('id', profile.id);
 
-    console.log(`Updated Stripe status for user ${profile.id}`);
+    console.log(`Updated Stripe status for user ${profile.id}, currency: ${account.default_currency}`);
   } catch (error) {
     console.error('Error handling account update:', error);
   }
