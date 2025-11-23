@@ -317,6 +317,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
   const getPaymentStatusInfo = () => {
     switch (stage.payment_status) {
+      case 'received':
       case 'paid':
         return {
           label: '✅ Verified',
@@ -553,7 +554,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const isCompleted = stage.status === 'completed' || stage.status === 'complete';
 
   if (stage.stage_number === 0) {
-    const isPaid = actualPaymentStatus === 'paid' || stage.payment_status === 'paid';
+    const isPaid = actualPaymentStatus === 'received' || stage.payment_status === 'received';
     return (
       <div
         className={`bg-white border-2 ${
