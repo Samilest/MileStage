@@ -573,24 +573,9 @@ export default function NewProject() {
                   </option>
                 ))}
               </select>
-              {stripeConnected && stripeAccountCurrency && currency.toLowerCase() !== stripeAccountCurrency.toLowerCase() && (
-                <div className="mt-2 flex items-start gap-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <p>
-                    <strong>Card payments unavailable for {currency} projects.</strong> Your Stripe account only accepts {stripeAccountCurrency.toUpperCase()}. Clients will use offline payments only.
-                  </p>
-                </div>
-              )}
-              {!stripeConnected && stripeAccountCurrency === null && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Select the currency you'll use for this project
-                </p>
-              )}
-              {stripeConnected && stripeAccountCurrency && currency.toLowerCase() === stripeAccountCurrency.toLowerCase() && (
-                <p className="mt-2 text-xs text-green-600">
-                  ✓ Card payments available via Stripe
-                </p>
-              )}
+              <p className="mt-2 text-xs text-gray-500">
+                Select the currency for this project. Stripe handles currency conversion automatically.
+              </p>
             </div>
 
             {/* Payment Options Section */}
@@ -607,7 +592,7 @@ export default function NewProject() {
                     <h4 className="font-semibold text-green-900 mb-1">Card Payments (Stripe)</h4>
                     <p className="text-sm text-green-800">
                       {stripeConnected 
-                        ? `Enabled - Clients can pay with credit/debit cards${stripeAccountCurrency && currency.toLowerCase() === stripeAccountCurrency.toLowerCase() ? '' : ' (not available for this currency)'}` 
+                        ? 'Enabled - Clients can pay with credit/debit cards in any currency' 
                         : 'Available when you connect Stripe from your dashboard'}
                     </p>
                   </div>
@@ -625,11 +610,12 @@ export default function NewProject() {
                   id="offlinePaymentInstructions"
                   value={offlinePaymentInstructions}
                   onChange={(e) => setOfflinePaymentInstructions(e.target.value)}
-                  rows={4}
+                  rows={5}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base resize-none"
-                  placeholder="Example:
-PayPal: your@email.com
-Venmo: @yourname
+                  placeholder="Example (copy this format):
+PayPal: yourname@paypal.com
+Venmo: @yourhandle
+Bank Transfer: TD Bank, Account 12345, Transit 67890
 Zelle: (555) 123-4567"
                 />
                 

@@ -146,12 +146,15 @@ function OfflinePaymentInstructions({
         </div>
       </div>
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-        <p className="text-sm text-green-900 font-medium mb-2">
-          ✓ That's it! You're done.
-        </p>
-        <p className="text-sm text-green-800">
-          Once your freelancer confirms receipt, the next stage will unlock automatically.
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm font-semibold text-blue-900 mb-3">📌 Next Steps:</p>
+        <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+          <li>Send <span className="font-semibold">{formatCurrency(amount, currency)}</span> using the payment details above</li>
+          <li>Your freelancer will confirm receipt</li>
+          <li>The next stage unlocks automatically</li>
+        </ol>
+        <p className="text-xs text-blue-700 mt-3 italic">
+          No further action needed in MileStage!
         </p>
       </div>
 
