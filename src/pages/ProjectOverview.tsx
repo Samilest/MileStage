@@ -477,7 +477,7 @@ export default function ProjectOverview() {
                       {/* Button Section */}
                       <div className="pt-3 border-t border-green-200">
                         <Button
-                          onClick={() => navigate(`/project/${id}/detail`)}
+                          onClick={() => navigate(`/projects/${id}/detail`)}
                           variant="secondary"
                           className="w-full justify-center sm:w-auto group"
                         >
@@ -574,7 +574,7 @@ export default function ProjectOverview() {
                     {/* Button Section */}
                     <div className="pt-3 border-t border-gray-200">
                       <Button
-                        onClick={() => navigate(`/project/${id}/detail`)}
+                        onClick={() => navigate(`/projects/${id}/detail`)}
                         variant="secondary"
                         className="w-full justify-center sm:w-auto group"
                       >
