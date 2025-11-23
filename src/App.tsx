@@ -139,7 +139,7 @@ function App() {
             }
           />
           <Route
-            path="/project/:id"
+            path="/projects/:id/overview"
             element={
               <ProtectedRoute>
                 <ProjectOverview />
@@ -147,7 +147,7 @@ function App() {
             }
           />
           <Route
-            path="/project/:id/detail"
+            path="/projects/:id/detail"
             element={
               <ProtectedRoute>
                 <ProjectDetail />

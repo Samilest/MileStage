@@ -147,14 +147,14 @@ export default function DashboardNew() {
     fetchProjects();
   }, [fetchProjects]);
 
-  const handleNavigateToProject = useCallback((shareCode: string) => {
-    console.log('[Dashboard] Navigating to project with share code:', shareCode);
-    if (!shareCode || shareCode === 'undefined') {
-      console.error('[Dashboard] ERROR: share_code is undefined!');
-      toast.error('Cannot open project - invalid share code');
+  const handleNavigateToProject = useCallback((projectId: string) => {
+    console.log('[Dashboard] Navigating to freelancer view for project:', projectId);
+    if (!projectId || projectId === 'undefined') {
+      console.error('[Dashboard] ERROR: project ID is undefined!');
+      toast.error('Cannot open project - invalid project ID');
       return;
     }
-    navigate(`/project/${shareCode}`);
+    navigate(`/projects/${projectId}/overview`); // Freelancer view!
   }, [navigate]);
 
   const getStatusColor = (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => {
