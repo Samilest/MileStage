@@ -14,8 +14,9 @@ interface ProjectCardProps {
     has_unread_actions: boolean;
     primary_notification?: string;
     currency: CurrencyCode;
+    share_code: string;
   };
-  onNavigate: (id: string) => void;
+  onNavigate: (shareCode: string) => void;
   getStatusColor: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => string;
   getStatusLabel: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => string;
 }

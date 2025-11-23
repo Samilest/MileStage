@@ -27,6 +27,7 @@ interface Project {
   has_unread_actions: boolean;
   primary_notification?: string;
   currency: CurrencyCode;
+  share_code: string;
 }
 
 export default function Dashboard() {
@@ -72,6 +73,7 @@ export default function Dashboard() {
               total_amount,
               status,
               currency,
+              share_code,
               stages (
                 id,
                 stage_number,
@@ -382,9 +384,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleNavigateToProject = useCallback((projectId: string) => {
-    console.log('[Dashboard] Navigating to project:', projectId);
-    navigate(`/project/${projectId}`);
+  const handleNavigateToProject = useCallback((shareCode: string) => {
+    console.log('[Dashboard] Navigating to project with share code:', shareCode);
+    navigate(`/project/${shareCode}`);
   }, [navigate]);
 
   const getStatusColor = (status: string) => {
