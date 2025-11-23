@@ -79,35 +79,59 @@ async function handleAccountUpdated(account) {
 
 async function handlePaymentSucceeded(paymentIntent) {
   try {
+    console.log('[Webhook] Payment succeeded:', paymentIntent.id);
     const { stage_id } = paymentIntent.metadata;
 
     if (!stage_id) {
-      console.error('No stage_id in payment intent metadata');
+      console.error('[Webhook] No stage_id in payment intent metadata');
       return;
     }
 
-    // Update stage payment status
-    await supabaseAdmin
-      .from('stage_payments')
-      .update({
-        status: 'verified',
-        verified_at: new Date().toISOString(),
-        stripe_payment_intent_id: paymentIntent.id,
-      })
-      .eq('stripe_payment_intent_id', paymentIntent.id);
+    console.log('[Webhook] Updating stage:', stage_id);
 
-    // Update stage status
-    await supabaseAdmin
+    // Update stage payment status to 'received' (not 'paid')
+    const { data: updatedStage, error: stageError } = await supabaseAdmin
       .from('stages')
       .update({
-        payment_status: 'paid',
+        payment_status: 'received',  // Changed from 'paid' to 'received'
         payment_received_at: new Date().toISOString(),
       })
-      .eq('id', stage_id);
+      .eq('id', stage_id)
+      .select('project_id, stage_number')
+      .single();
 
-    console.log(`Payment succeeded for stage ${stage_id}`);
+    if (stageError) {
+      console.error('[Webhook] Error updating stage:', stageError);
+      return;
+    }
+
+    console.log('[Webhook] Stage updated successfully:', updatedStage);
+
+    // Get the project to find the next stage
+    const { data: stages } = await supabaseAdmin
+      .from('stages')
+      .select('id, stage_number, status')
+      .eq('project_id', updatedStage.project_id)
+      .order('stage_number', { ascending: true });
+
+    if (stages && stages.length > 0) {
+      // Find the next stage after the paid one
+      const nextStage = stages.find(s => s.stage_number === updatedStage.stage_number + 1);
+      
+      if (nextStage && nextStage.status === 'locked') {
+        // Unlock the next stage
+        await supabaseAdmin
+          .from('stages')
+          .update({ status: 'active' })
+          .eq('id', nextStage.id);
+        
+        console.log('[Webhook] Unlocked next stage:', nextStage.id);
+      }
+    }
+
+    console.log(`[Webhook] Payment processing complete for stage ${stage_id}`);
   } catch (error) {
-    console.error('Error handling payment success:', error);
+    console.error('[Webhook] Error handling payment success:', error);
   }
 }
 
