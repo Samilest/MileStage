@@ -1,3 +1,4 @@
+// Force rebuild v3 - ensure share_code is included in query
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
