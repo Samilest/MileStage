@@ -7,7 +7,7 @@ import PublicRoute from './components/PublicRoute';
 
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Dashboard = lazy(() => import('./pages/DashboardNew')); // USING NEW FILE!
 const TemplateSelection = lazy(() => import('./pages/TemplateSelection'));
 const NewProject = lazy(() => import('./pages/NewProject'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
