@@ -1,21 +1,23 @@
 const { createClient } = require('@supabase/supabase-js');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const getRawBody = require('raw-body');
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const supabaseAdmin = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Disable body parsing - we need raw body for Stripe
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', 'POST');
+    return res.status(405).end('Method Not Allowed');
   }
 
   const sig = req.headers['stripe-signature'];
@@ -24,12 +26,15 @@ module.exports = async (req, res) => {
   let event;
 
   try {
-    // Get raw body using raw-body package
-    const rawBody = await getRawBody(req);
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-    console.log('[Webhook] Event constructed successfully:', event.type);
+    // Read the raw body as buffer
+    const buf = await buffer(req);
+    
+    // Construct event with raw buffer
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    
+    console.log('[Webhook] ✅ Event verified:', event.type);
   } catch (err) {
-    console.error('[Webhook] Signature verification failed:', err.message);
+    console.error('[Webhook] ❌ Signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -49,15 +54,24 @@ module.exports = async (req, res) => {
         break;
 
       default:
-        console.log(`[Webhook] Unhandled event type ${event.type}`);
+        console.log(`[Webhook] Unhandled event type: ${event.type}`);
     }
 
-    res.json({ received: true });
+    return res.json({ received: true });
   } catch (error) {
-    console.error('[Webhook] Error handling webhook:', error);
-    res.status(500).json({ error: 'Webhook handler failed' });
+    console.error('[Webhook] Error handling event:', error);
+    return res.status(500).json({ error: 'Webhook handler failed', message: error.message });
   }
 };
+
+// Helper to read request body as buffer
+async function buffer(readable) {
+  const chunks = [];
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
 
 async function handleAccountUpdated(account) {
   try {
@@ -65,9 +79,12 @@ async function handleAccountUpdated(account) {
       .from('user_profiles')
       .select('id')
       .eq('stripe_account_id', account.id)
-      .single();
+      .maybeSingle();
 
-    if (!profile) return;
+    if (!profile) {
+      console.log('[Webhook] No profile found for account:', account.id);
+      return;
+    }
 
     await supabaseAdmin
       .from('user_profiles')
@@ -79,23 +96,25 @@ async function handleAccountUpdated(account) {
       })
       .eq('id', profile.id);
 
-    console.log(`[Webhook] Updated Stripe status for user ${profile.id}`);
+    console.log('[Webhook] ✅ Updated Stripe status for user:', profile.id);
   } catch (error) {
-    console.error('[Webhook] Error handling account update:', error);
+    console.error('[Webhook] ❌ Error handling account update:', error);
   }
 }
 
 async function handlePaymentSucceeded(paymentIntent) {
   try {
-    console.log('[Webhook] Payment succeeded:', paymentIntent.id);
+    console.log('[Webhook] 💰 Payment succeeded:', paymentIntent.id);
+    
     const { stage_id } = paymentIntent.metadata;
 
     if (!stage_id) {
-      console.error('[Webhook] No stage_id in payment intent metadata');
+      console.error('[Webhook] ❌ No stage_id in metadata!');
+      console.log('[Webhook] Metadata:', paymentIntent.metadata);
       return;
     }
 
-    console.log('[Webhook] Updating stage:', stage_id);
+    console.log('[Webhook] 🔄 Updating stage:', stage_id);
 
     // Update stage payment status
     const { data: updatedStage, error: stageError } = await supabaseAdmin
@@ -109,13 +128,13 @@ async function handlePaymentSucceeded(paymentIntent) {
       .single();
 
     if (stageError) {
-      console.error('[Webhook] Error updating stage:', stageError);
+      console.error('[Webhook] ❌ Error updating stage:', stageError);
       return;
     }
 
-    console.log('[Webhook] Stage updated successfully:', updatedStage);
+    console.log('[Webhook] ✅ Stage updated:', updatedStage);
 
-    // Get the project to find the next stage
+    // Unlock next stage
     const { data: stages } = await supabaseAdmin
       .from('stages')
       .select('id, stage_number, status')
@@ -131,22 +150,25 @@ async function handlePaymentSucceeded(paymentIntent) {
           .update({ status: 'active' })
           .eq('id', nextStage.id);
         
-        console.log('[Webhook] Unlocked next stage:', nextStage.id);
+        console.log('[Webhook] 🔓 Unlocked next stage:', nextStage.id);
       }
     }
 
-    console.log(`[Webhook] Payment processing complete for stage ${stage_id}`);
+    console.log('[Webhook] ✅ Payment processing complete!');
   } catch (error) {
-    console.error('[Webhook] Error handling payment success:', error);
+    console.error('[Webhook] ❌ Error handling payment:', error);
   }
 }
 
 async function handlePaymentFailed(paymentIntent) {
   try {
     const { stage_id } = paymentIntent.metadata;
-    if (!stage_id) return;
-    console.log(`[Webhook] Payment failed for stage ${stage_id}`);
+    if (stage_id) {
+      console.log(`[Webhook] ❌ Payment failed for stage:`, stage_id);
+    }
   } catch (error) {
     console.error('[Webhook] Error handling payment failure:', error);
   }
 }
+
+module.exports = handler;
