@@ -8,7 +8,17 @@ import logo from '../assets/milestage-logo.png';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-function StripePaymentForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
+function StripePaymentForm({ 
+  clientSecret, 
+  shareCode, 
+  stageId, 
+  onSuccess 
+}: { 
+  clientSecret: string; 
+  shareCode: string;
+  stageId: string;
+  onSuccess: () => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -28,7 +38,7 @@ function StripePaymentForm({ clientSecret, onSuccess }: { clientSecret: string; 
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-success`,
+          return_url: `${window.location.origin}/payment-success?share=${shareCode}&stage=${stageId}`,
         },
       });
 
@@ -314,7 +324,12 @@ export default function Payment() {
               </div>
             ) : paymentMethod === 'stripe' ? (
               <Elements stripe={stripePromise} options={stripeOptions}>
-                <StripePaymentForm clientSecret={paymentInfo.clientSecret} onSuccess={handleSuccess} />
+                <StripePaymentForm 
+                  clientSecret={paymentInfo.clientSecret} 
+                  shareCode={shareCode!}
+                  stageId={stageId!}
+                  onSuccess={handleSuccess} 
+                />
               </Elements>
             ) : (
               <OfflinePaymentInstructions

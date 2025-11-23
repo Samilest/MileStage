@@ -73,6 +73,7 @@ module.exports = async (req, res) => {
         project_id: stage.projects.id,
         stage_number: stage.stage_number,
         project_name: stage.projects.project_name,
+        share_code: shareCode,  // CRITICAL: Add share_code for return URL
       },
       description: `${stage.projects.project_name} - Stage ${stage.stage_number}: ${stage.name}`,
     });
