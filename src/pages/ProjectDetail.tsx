@@ -631,7 +631,7 @@ export default function ProjectDetail() {
         .from('stages')
         .update({
           status: 'completed',
-          payment_status: 'received',
+          payment_status: 'paid',
           payment_received_at: new Date().toISOString()
         })
         .eq('id', stageId);
@@ -735,7 +735,7 @@ export default function ProjectDetail() {
         .from('stages')
         .update({
           status: 'completed',
-          payment_status: 'received',
+          payment_status: 'paid',
           payment_received_at: new Date().toISOString()
         })
         .eq('id', selectedStageForPayment.id);
@@ -1259,7 +1259,7 @@ export default function ProjectDetail() {
 
             // STAGE 0 (DOWN PAYMENT) - Simplified payment gate
             if (stage.stage_number === 0) {
-              const isDownPaymentPaid = stage.status === 'completed' && stage.payment_received_at;
+              const isDownPaymentPaid = stage.status === 'completed' && stage.payment_status === 'received' && stage.payment_received_at;
 
               return (
                 <div
@@ -1400,7 +1400,7 @@ export default function ProjectDetail() {
                 />
 
                 {/* Payment Status Display with Mark as Paid Button */}
-                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
+                {stage.status === 'payment_pending' && stage.payment_status !== 'paid' && (
                   <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
@@ -1914,5 +1914,3 @@ export default function ProjectDetail() {
     </div>
   );
 }
-
-// Force rebuild 11/23/2025 22:51:33
