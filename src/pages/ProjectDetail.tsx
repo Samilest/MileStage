@@ -1914,3 +1914,5 @@ export default function ProjectDetail() {
     </div>
   );
 }
+
+// Force rebuild 11/23/2025 22:51:33
