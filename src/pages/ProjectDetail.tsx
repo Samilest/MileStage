@@ -1259,7 +1259,7 @@ export default function ProjectDetail() {
 
             // STAGE 0 (DOWN PAYMENT) - Simplified payment gate
             if (stage.stage_number === 0) {
-              const isDownPaymentPaid = stage.status === 'completed' && stage.payment_status === 'received' && stage.payment_received_at;
+              const isDownPaymentPaid = stage.payment_status === 'received' && stage.payment_received_at;
 
               return (
                 <div
