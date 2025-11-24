@@ -631,7 +631,7 @@ export default function ProjectDetail() {
         .from('stages')
         .update({
           status: 'completed',
-          payment_status: 'paid',
+          payment_status: 'received',
           payment_received_at: new Date().toISOString()
         })
         .eq('id', stageId);
@@ -735,7 +735,7 @@ export default function ProjectDetail() {
         .from('stages')
         .update({
           status: 'completed',
-          payment_status: 'paid',
+          payment_status: 'received',
           payment_received_at: new Date().toISOString()
         })
         .eq('id', selectedStageForPayment.id);
@@ -1400,7 +1400,7 @@ export default function ProjectDetail() {
                 />
 
                 {/* Payment Status Display with Mark as Paid Button */}
-                {stage.status === 'payment_pending' && stage.payment_status !== 'paid' && (
+                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
                   <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
