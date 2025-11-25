@@ -385,9 +385,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleNavigateToProject = useCallback((shareCode: string) => {
-    console.log('[Dashboard] Navigating to project with share code:', shareCode);
-    navigate(`/project/${shareCode}`);
+  const handleNavigateToProject = useCallback((projectId: string) => {
+    console.log('[Dashboard] Navigating to project overview:', projectId);
+    navigate(`/projects/${projectId}/overview`);
   }, [navigate]);
 
   const getStatusColor = (status: string) => {
