@@ -93,6 +93,7 @@ function App() {
           {/* Public routes MUST come first to avoid auth redirects */}
           <Route path="/portal/:shareCode" element={<ClientPortal />} />
           <Route path="/project/:shareCode" element={<ClientPortal />} />
+          <Route path="/client/:shareCode" element={<ClientPortal />} />
           <Route path="/projects/:shareCode/client" element={<ClientView />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />

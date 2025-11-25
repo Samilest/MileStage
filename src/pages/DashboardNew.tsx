@@ -1,6 +1,4 @@
-// NUCLEAR FIX: Create this as a NEW file to force Vercel rebuild
-// This is Dashboard.tsx renamed to DashboardNew.tsx
-
+// Force rebuild v3 - ensure share_code is included in query
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -30,10 +28,10 @@ interface Project {
   has_unread_actions: boolean;
   primary_notification?: string;
   currency: CurrencyCode;
-  share_code: string; // CRITICAL: Must be here!
+  share_code: string;
 }
 
-export default function DashboardNew() {
+export default function Dashboard() {
   const navigate = useNavigate();
   const user = useStore((state) => state.user);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -48,6 +46,7 @@ export default function DashboardNew() {
   const fetchProjects = useCallback(async (isRefresh = false) => {
     if (!userId) return;
 
+    // Prevent duplicate fetches
     if (fetchingRef.current) {
       console.log('[Dashboard] Already fetching, skipping duplicate request');
       return;
@@ -82,60 +81,121 @@ export default function DashboardNew() {
                 status,
                 amount,
                 payment_status,
-                revisions_used,
-                revisions_included,
-                deliverables (id),
-                revisions (id, status)
+                approved_at,
+                viewed_by_freelancer_at,
+                revisions!revisions_stage_id_fkey (
+                  id,
+                  viewed_by_freelancer_at,
+                  requested_at
+                ),
+                stage_payments!stage_payments_stage_id_fkey (
+                  id,
+                  status,
+                  marked_paid_at,
+                  viewed_by_freelancer_at
+                ),
+                stage_notes!stage_notes_stage_id_fkey (
+                  id,
+                  author_type,
+                  viewed_by_freelancer_at,
+                  created_at
+                )
               )
             `)
             .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .order('stage_number', { foreignTable: 'stages', ascending: true });
 
           if (error) throw error;
-          return data || [];
+          return data;
         },
         3,
-        1000
+        'fetch projects'
       );
 
-      const enriched = projectsData.map((proj: any) => {
-        const stages = proj.stages || [];
-        const completed = stages.filter((s: any) => s.status === 'completed').length;
-        const earned = stages
+      const projectsWithStats = projectsData?.map((project: any) => {
+        // Ensure stages are sorted by stage_number
+        const stages = (project.stages || []).sort((a: any, b: any) => a.stage_number - b.stage_number);
+        const completedStages = stages.filter((s: any) => s.payment_status === 'received').length;
+        const amountEarned = stages
           .filter((s: any) => s.payment_status === 'received')
           .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
 
-        const hasUnreadActions = stages.some((s: any) => {
-          const hasNewRevisions = (s.revisions || []).some((r: any) => r.status === 'pending');
-          const needsDeliverables = s.status === 'active' && (s.deliverables || []).length === 0;
-          return hasNewRevisions || needsDeliverables;
-        });
+        // Find the first stage with unread actions and get its primary notification
+        let primaryNotification = '';
+        let hasUnreadActions = false;
 
-        const primaryNotification = getPrimaryNotification(stages);
+        for (const stage of stages) {
+          // ✅ Skip completed/closed stages - they're locked and inaccessible
+          if (stage.status === 'complete' || stage.status === 'completed') {
+            continue;
+          }
+
+          const hasUnreadRevision = stage.revisions?.some((rev: any) =>
+            rev.requested_at && !rev.viewed_by_freelancer_at
+          ) || false;
+
+          const hasUnreadPayment = stage.stage_payments?.some((payment: any) =>
+            payment.status === 'marked_paid' &&
+            payment.marked_paid_at &&
+            !payment.viewed_by_freelancer_at
+          ) || false;
+
+          const hasUnreadApproval = stage.approved_at && !stage.viewed_by_freelancer_at;
+
+          const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
+            note.author_type === 'client' && !note.viewed_by_freelancer_at
+          ).length || 0;
+
+          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
+
+          if (stageHasUnread) {
+            hasUnreadActions = true;
+            if (!primaryNotification) {
+              console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
+              primaryNotification = getPrimaryNotification(
+                {
+                  hasUnviewedPayment: hasUnreadPayment,
+                  hasUnviewedRevision: hasUnreadRevision,
+                  hasUnviewedApproval: hasUnreadApproval,
+                  unreadMessageCount: unreadMessageCount
+                },
+                ''
+              );
+              console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
+            }
+          }
+        }
 
         return {
-          id: proj.id,
-          project_name: proj.project_name,
-          client_name: proj.client_name,
-          total_amount: proj.total_amount,
-          status: proj.status,
-          completed_stages: completed,
+          id: project.id,
+          project_name: project.project_name,
+          client_name: project.client_name,
+          total_amount: project.total_amount,
+          status: project.status,
+          completed_stages: completedStages,
           total_stages: stages.length,
-          amount_earned: earned,
+          amount_earned: amountEarned,
           has_unread_actions: hasUnreadActions,
           primary_notification: primaryNotification,
-          currency: proj.currency || 'USD',
-          share_code: proj.share_code, // CRITICAL: Pass through share_code!
+          currency: project.currency || 'USD',
         };
-      });
+      }) || [];
 
-      setProjects(enriched);
-      console.log('[Dashboard] Loaded', enriched.length, 'projects');
-      console.log('[Dashboard] First project share_code:', enriched[0]?.share_code); // DEBUG LOG
+      console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
+      setProjects(projectsWithStats);
 
+      if (isRefresh) {
+        toast.success('Refreshed!');
+      }
     } catch (error: any) {
-      console.error('[Dashboard] Failed to fetch projects:', error);
-      toast.error('Failed to load projects. Please refresh.');
+      console.error('[Dashboard] Error:', error);
+
+      if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
+        toast.error('Connection lost. Retrying...');
+      } else {
+        toast.error('Could not load Projects');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -143,124 +203,401 @@ export default function DashboardNew() {
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchProjects();
+  const handleRefresh = useCallback(() => {
+    fetchProjects(true);
   }, [fetchProjects]);
 
-  const handleNavigateToProject = useCallback((projectId: string) => {
-    console.log('[Dashboard] Navigating to freelancer view for project:', projectId);
-    if (!projectId || projectId === 'undefined') {
-      console.error('[Dashboard] ERROR: project ID is undefined!');
-      toast.error('Cannot open project - invalid project ID');
-      return;
+  useEffect(() => {
+    console.log('[Dashboard] Component mounted, fetching projects');
+    fetchProjects();
+    
+    // Also fetch when component becomes visible again (user navigates back)
+    return () => {
+      console.log('[Dashboard] Component unmounting');
+    };
+  }, [fetchProjects]);
+
+  // Refetch data when user comes back to this tab/window
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('[Dashboard] Tab became visible, refreshing data...');
+        fetchProjects(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    console.log('[Dashboard] Setting up realtime subscription');
+
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          console.log('[Dashboard] Project change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stages',
+        },
+        () => {
+          console.log('[Dashboard] Stage change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stage_notes',
+        },
+        () => {
+          console.log('[Dashboard] New note detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_payments',
+        },
+        () => {
+          console.log('[Dashboard] Payment change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'revisions',
+        },
+        () => {
+          console.log('[Dashboard] Revision change detected, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stage_notes',
+        },
+        () => {
+          console.log('[Dashboard] Message viewed, refreshing...');
+          fetchProjects(true);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Dashboard] Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('[Dashboard] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchProjects]);
+
+  useEffect(() => {
+    const checkStripeConnection = async () => {
+      if (!userId) return;
+
+      try {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('stripe_account_id')
+          .eq('user_id', userId)
+          .single();
+
+        setStripeConnected(!!data?.stripe_account_id);
+      } catch (error) {
+        console.error('[Dashboard] Error checking Stripe connection:', error);
+      }
+    };
+
+    checkStripeConnection();
+  }, [userId]);
+
+  // Check if user should see welcome modal
+  useEffect(() => {
+    const checkWelcomeModal = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('welcome_modal_seen')
+          .eq('id', userId)
+          .single();
+
+        if (!data?.welcome_modal_seen) {
+          setShowWelcomeModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking welcome modal status:', error);
+      }
+    };
+
+    checkWelcomeModal();
+  }, [userId]);
+
+  const handleConnectStripe = async () => {
+    setConnectingStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-stripe-connect-account', {
+        body: { userId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error('Could not generate Stripe connection link');
+      }
+    } catch (error: any) {
+      console.error('[Dashboard] Stripe connection error:', error);
+      toast.error('Could not connect to Stripe. Please try again.');
+    } finally {
+      setConnectingStripe(false);
     }
-    navigate(`/projects/${projectId}/overview`); // Freelancer view!
+  };
+
+  const handleNavigateToProject = useCallback((shareCode: string) => {
+    console.log('[Dashboard] Navigating to project with share code:', shareCode);
+    navigate(`/project/${shareCode}`);
   }, [navigate]);
 
-  const getStatusColor = (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => {
-    if (completedStages === totalStages && totalStages > 0) {
-      return 'bg-green-100 text-green-800 border-green-200';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-    if (hasUnreadActions) {
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    }
-    return 'bg-blue-100 text-blue-800 border-blue-200';
   };
 
-  const getStatusLabel = (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => {
-    if (completedStages === totalStages && totalStages > 0) {
-      return 'Complete';
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
     }
-    if (hasUnreadActions) {
-      return 'Action Needed';
-    }
-    if (completedStages > 0) {
-      return 'In Progress';
-    }
-    return 'Active';
   };
 
-  const activeProjects = projects.filter((p) => p.completed_stages < p.total_stages);
-  const completedProjects = projects.filter((p) => p.completed_stages === p.total_stages && p.total_stages > 0);
+return (
+  <div className="min-h-screen bg-gray-50">
+    <Navigation />
+    
+    {/* Welcome Modal for first-time users */}
+    {showWelcomeModal && (
+      <WelcomeModal 
+        userId={userId!} 
+        onClose={() => setShowWelcomeModal(false)} 
+      />
+    )}
+    
+    {/* Fixed bottom-right container */}
+    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+      <RealtimeStatus />
+    </div>
 
-  return (
-    <div className="min-h-screen bg-secondary-bg">
-      <Navigation />
-      
-      <div className="fixed bottom-6 right-6 z-50">
-        <RealtimeStatus />
-      </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Stripe Connect Component */}
+        <StripeConnect userId={userId!} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Your Projects</h1>
-            <p className="text-gray-600 mt-1">
-              {activeProjects.length} active • {completedProjects.length} completed
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+              Dashboard
+            </h1>
+            <p className="text-base sm:text-lg text-gray-600 mt-2">
+              Manage your projects and track payments
             </p>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => fetchProjects(true)}
+            <Button
+              onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              variant="secondary"
+              className="flex-shrink-0"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <Button onClick={() => navigate('/templates')}>
-              + New Project
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+              <span className="sm:hidden">↻</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/templates')}
+              variant="primary"
+              className="flex-1 sm:flex-initial whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">Create Project</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent mb-4"></div>
+            <p className="text-gray-600">Loading projects...</p>
           </div>
         ) : projects.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <p className="text-gray-600 mb-4">No projects yet</p>
-              <Button onClick={() => navigate('/templates')}>Create Your First Project</Button>
+          <Card className="text-center py-12 sm:py-16 px-4">
+            <div className="max-w-2xl mx-auto">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-10 h-10 sm:w-12 sm:h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                Ready to track your first project?
+              </h3>
+              <p className="text-base sm:text-lg text-gray-600 mb-8 sm:mb-10">
+                Create a project in 30 seconds with our templates. Get paid faster with clear milestones.
+              </p>
+              <Button
+                onClick={() => navigate('/templates')}
+                className="w-full sm:w-auto px-8 py-4 text-base sm:text-lg min-h-[44px]"
+              >
+                Create Your First Project
+              </Button>
+
+              <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-gray-200">
+                <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
+                  Quick Start Guide
+                </h4>
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-3 text-left">
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-2 sm:mb-3">1</div>
+                    <h5 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Choose a Template</h5>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Select from pre-built Project templates or create a custom workflow
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-2 sm:mb-3">2</div>
+                    <h5 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Set Up Stages</h5>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Define Stages with payment amounts, revision limits, and deliverables
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-2 sm:mb-3">3</div>
+                    <h5 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Share with Client</h5>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Send the unique portal link to your Client for progress tracking and payments
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
         ) : (
           <>
-            {activeProjects.length > 0 && (
-              <div className="mb-8">
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {activeProjects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onNavigate={handleNavigateToProject}
-                      getStatusColor={getStatusColor}
-                      getStatusLabel={getStatusLabel}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {(() => {
+              const activeProjects = projects.filter(p => {
+                const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                return !isComplete;
+              }).sort((a, b) => {
+                // First: Sort by notification status (needs attention first)
+                if (a.has_unread_actions && !b.has_unread_actions) return -1;
+                if (!a.has_unread_actions && b.has_unread_actions) return 1;
 
-            {completedProjects.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  Completed Projects ({completedProjects.length})
-                </h2>
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
-                  {completedProjects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onNavigate={handleNavigateToProject}
-                      getStatusColor={getStatusColor}
-                      getStatusLabel={getStatusLabel}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+                // Then: Keep existing order (already sorted by created_at DESC from query)
+                return 0;
+              });
+
+              const completedProjects = projects.filter(p => {
+                const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                return isComplete;
+              });
+
+              return (
+                <>
+                  {/* Active Projects Section */}
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                      Active Projects ({activeProjects.length})
+                    </h2>
+                    {activeProjects.length === 0 ? (
+                      <Card className="text-center py-12 px-4">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-600 mb-2">All caught up!</p>
+                        <p className="text-sm text-gray-500">Your active projects will appear here</p>
+                      </Card>
+                    ) : (
+                      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                        {activeProjects.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onNavigate={handleNavigateToProject}
+                            getStatusColor={getStatusColor}
+                            getStatusLabel={getStatusLabel}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Completed Projects Section */}
+                  {completedProjects.length > 0 && (
+                    <div className="mt-12">
+                      <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                        Completed Projects ({completedProjects.length})
+                      </h2>
+                      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
+                        {completedProjects.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onNavigate={handleNavigateToProject}
+                            getStatusColor={getStatusColor}
+                            getStatusLabel={getStatusLabel}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
       </main>

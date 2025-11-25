@@ -7,13 +7,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Disable body parsing - we need raw body for Stripe
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 const handler = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -172,3 +165,8 @@ async function handlePaymentFailed(paymentIntent) {
 }
 
 module.exports = handler;
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
+};
