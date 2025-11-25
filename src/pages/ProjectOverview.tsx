@@ -258,10 +258,10 @@ export default function ProjectOverview() {
   const projectStats = useMemo(() => {
     if (!project) return null;
 
-    const completedStages = project.stages.filter(s => s.status === 'complete' || s.status === 'completed').length;
+    const completedStages = project.stages.filter(s => s.payment_status === 'received').length;
     const totalStages = project.stages.length;
     const paidAmount = project.stages
-      .filter(s => s.status === 'complete' || s.status === 'completed')
+      .filter(s => s.payment_status === 'received')
       .reduce((sum, s) => sum + s.amount, 0);
     const progressPercentage = totalStages > 0
       ? Math.round((completedStages / totalStages) * 100)

@@ -1047,7 +1047,7 @@ export default function ProjectDetail() {
       </div>
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-8">
         <Link
-          to={`/project/${id}`}
+          to={`/projects/${id}/overview`}
           className="inline-flex items-center text-neutral-600 hover:text-black mb-8 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
