@@ -495,12 +495,16 @@ export default function ProjectOverview() {
 
               // ACTIVE/LOCKED STAGES - Regular white card
               const getBorderColor = () => {
+                if (stage.payment_status === 'received') return 'border-green-500';
                 if (stage.status === 'active' || stage.status === 'in_progress') return 'border-yellow-400';
                 if (stage.status === 'locked') return 'border-gray-300';
                 return 'border-gray-300';
               };
 
               const getStatusBadge = () => {
+                if (stage.payment_status === 'received') {
+                  return 'bg-green-100 text-green-700';
+                }
                 if (needsAttention) {
                   return 'bg-red-100 text-red-700';
                 }
@@ -520,6 +524,7 @@ export default function ProjectOverview() {
               };
 
               const getStatusText = () => {
+                if (stage.payment_status === 'received') return 'PAID';
                 if (needsAttention) return 'NEEDS ATTENTION';
                 if (stage.status === 'active' || stage.status === 'in_progress') return 'ACTIVE';
                 if (stage.status === 'payment_pending') return 'PAYMENT PENDING';
