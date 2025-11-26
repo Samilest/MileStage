@@ -21,6 +21,8 @@ interface UnpaidStage {
   days_since_action: number;
   status_text: string;
   reminder_type: 'review' | 'payment';
+  reminder_count: number;
+  last_sent_at: string | null;
 }
 
 interface PaymentTrackerProps {
@@ -58,7 +60,12 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
             status,
             payment_status,
             approved_at,
-            delivered_at
+            delivered_at,
+            stage_reminders (
+              reminder_count,
+              last_sent_at,
+              reminder_type
+            )
           )
         `)
         .eq('user_id', userId);
@@ -111,6 +118,11 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
               ? `Approved ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`
               : `Delivered ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`;
 
+            // Get reminder tracking data
+            const reminderData = stage.stage_reminders?.[0] || null;
+            const reminderCount = reminderData?.reminder_count || 0;
+            const lastSentAt = reminderData?.last_sent_at || null;
+
             unpaid.push({
               id: stage.id,
               stage_number: stage.stage_number,
@@ -126,6 +138,8 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
               days_since_action: daysSince,
               status_text: statusText,
               reminder_type: reminderType,
+              reminder_count: reminderCount,
+              last_sent_at: lastSentAt,
             });
           }
         });
@@ -144,6 +158,22 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
 
   const handleRemindClient = async (stage: UnpaidStage) => {
     try {
+      // Check if limit reached
+      if (stage.reminder_count >= 3) {
+        toast.error('Reminder limit reached (3/3). Please contact client directly.');
+        return;
+      }
+
+      // Check 48 hour cooldown
+      if (stage.last_sent_at) {
+        const hoursSinceLastSend = (new Date().getTime() - new Date(stage.last_sent_at).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastSend < 48) {
+          const hoursRemaining = Math.ceil(48 - hoursSinceLastSend);
+          toast.error(`Please wait ${hoursRemaining} hours before sending another reminder.`);
+          return;
+        }
+      }
+
       setSendingReminder(stage.id);
 
       // Call the appropriate function based on reminder type
@@ -166,7 +196,25 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
 
       if (error) throw error;
 
-      toast.success(`Reminder sent to ${stage.client_name}`);
+      // Update or insert reminder tracking
+      const newCount = stage.reminder_count + 1;
+      const { error: trackError } = await supabase
+        .from('stage_reminders')
+        .upsert({
+          stage_id: stage.id,
+          reminder_count: newCount,
+          last_sent_at: new Date().toISOString(),
+          reminder_type: stage.reminder_type,
+        }, {
+          onConflict: 'stage_id'
+        });
+
+      if (trackError) {
+        console.error('Error tracking reminder:', trackError);
+        // Don't fail the whole operation if tracking fails
+      }
+
+      toast.success(`Reminder sent to ${stage.client_name} (${newCount}/3 used)`);
       
       // Refresh the list
       fetchUnpaidStages();
@@ -217,6 +265,14 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
       {isExpanded && (
         <div className="space-y-3 mt-4">
         {unpaidStages.map((stage) => {
+          // Check if can send reminder
+          const limitReached = stage.reminder_count >= 3;
+          const hoursRemaining = stage.last_sent_at 
+            ? Math.ceil(48 - (new Date().getTime() - new Date(stage.last_sent_at).getTime()) / (1000 * 60 * 60))
+            : 0;
+          const onCooldown = hoursRemaining > 0;
+          const canSend = !limitReached && !onCooldown;
+          
           return (
             <div
               key={stage.id}
@@ -239,18 +295,37 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
                       {stage.reminder_type === 'review' ? 'Waiting for review' : 'Payment pending'}
                     </span>
                   </div>
+                  
+                  {/* Reminder status */}
+                  <div className="mt-2 text-xs">
+                    {limitReached ? (
+                      <span className="text-red-600 font-medium">
+                        All reminders used (3/3) • Contact client directly
+                      </span>
+                    ) : onCooldown ? (
+                      <span className="text-gray-500">
+                        Reminder sent • Next available in {hoursRemaining}h
+                      </span>
+                    ) : stage.reminder_count > 0 ? (
+                      <span className="text-gray-600">
+                        {stage.reminder_count}/3 reminders used
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => handleRemindClient(stage)}
-                  disabled={sendingReminder === stage.id}
-                  className="whitespace-nowrap"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {sendingReminder === stage.id ? 'Sending...' : 'Remind Client'}
-                </Button>
+                {!limitReached && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleRemindClient(stage)}
+                    disabled={sendingReminder === stage.id || !canSend}
+                    className="whitespace-nowrap"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    {sendingReminder === stage.id ? 'Sending...' : `Remind Client ${stage.reminder_count > 0 ? `(${stage.reminder_count}/3)` : ''}`}
+                  </Button>
+                )}
               </div>
             </div>
           );
