@@ -47,9 +47,6 @@ export default function PaymentReminders({ userId }: PaymentRemindersProps) {
           client_name,
           client_email,
           currency,
-          user_profiles!projects_user_id_fkey (
-            full_name
-          ),
           stages!stages_project_id_fkey (
             id,
             stage_number,
@@ -97,7 +94,7 @@ export default function PaymentReminders({ userId }: PaymentRemindersProps) {
               client_name: project.client_name,
               client_email: project.client_email,
               currency: project.currency || 'USD',
-              freelancer_name: project.user_profiles?.full_name || 'Freelancer',
+              freelancer_name: 'Freelancer', // We'll get this from user state instead
               days_since_approved: daysSince,
             });
           }
