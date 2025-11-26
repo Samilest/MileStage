@@ -9,6 +9,7 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import RealtimeStatus from '../components/RealtimeStatus';
 import ProjectCard from '../components/ProjectCard';
+import PaymentReminders from '../components/PaymentReminders';
 import StripeConnect from '../components/StripeConnect';
 import WelcomeModal from '../components/WelcomeModal';
 import { retryOperation } from '../lib/errorHandling';
@@ -436,6 +437,9 @@ return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Stripe Connect Component */}
         <StripeConnect userId={userId!} />
+
+        {/* Payment Reminders Section */}
+        <PaymentReminders userId={userId!} />
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
