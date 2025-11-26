@@ -57,7 +57,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
             status,
             payment_status,
             approved_at,
-            updated_at
+            delivered_at
           )
         `)
         .eq('user_id', userId);
@@ -91,10 +91,15 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
             const hasApproved = !!stage.approved_at;
             const reminderType = hasApproved ? 'payment' : 'review';
             
-            // Calculate days since action (either approved or updated)
+            // Calculate days since action (either approved or delivered)
+            // Use delivered_at if available, otherwise skip this stage
+            if (!stage.delivered_at && !hasApproved) {
+              return; // Skip stages with no delivery date
+            }
+            
             const referenceDate = hasApproved 
               ? new Date(stage.approved_at) 
-              : new Date(stage.updated_at);
+              : new Date(stage.delivered_at);
             
             const daysSince = Math.floor(
               (new Date().getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -110,7 +115,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
               stage_number: stage.stage_number,
               name: stage.name,
               amount: stage.amount,
-              delivered_at: stage.updated_at,
+              delivered_at: stage.delivered_at,
               approved_at: stage.approved_at,
               project_id: project.id,
               project_name: project.project_name,
