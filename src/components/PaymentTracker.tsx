@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Card from './Card';
 import Button from './Button';
-import { Mail, Clock } from 'lucide-react';
+import { Mail, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
 import toast from 'react-hot-toast';
 
@@ -31,6 +31,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   const [unpaidStages, setUnpaidStages] = useState<UnpaidStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     fetchUnpaidStages();
@@ -187,12 +188,15 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
 
   return (
     <Card className="border-2 border-orange-200 bg-orange-50">
-      <div className="flex items-center justify-between mb-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between hover:bg-orange-100 transition-colors rounded-lg p-1 -m-1"
+      >
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
             <Mail className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="text-left">
             <h2 className="text-xl font-bold text-gray-900">
               Payment Tracker
             </h2>
@@ -201,9 +205,17 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
             </p>
           </div>
         </div>
-      </div>
+        <div className="text-gray-600">
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5" />
+          ) : (
+            <ChevronDown className="w-5 h-5" />
+          )}
+        </div>
+      </button>
 
-      <div className="space-y-3">
+      {isExpanded && (
+        <div className="space-y-3 mt-4">
         {unpaidStages.map((stage) => {
           return (
             <div
@@ -244,6 +256,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
           );
         })}
       </div>
+      )}
     </Card>
   );
 }
