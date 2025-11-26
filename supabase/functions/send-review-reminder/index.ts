@@ -22,8 +22,7 @@ serve(async (req) => {
       amount,
       currency,
       freelancer_name,
-      days_overdue,
-      payment_link
+      days_overdue
     } = await req.json()
 
     // Validate required fields
@@ -56,8 +55,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: `${freelancer_name} via MileStage <notifications@milestage.com>`,
         to: [to_email],
-        reply_to: to_email, // This should be freelancer's email - we'll add it in next iteration
-        subject: `Payment reminder - ${project_name}`,
+        subject: `Work ready for review - ${project_name}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -79,7 +77,7 @@ serve(async (req) => {
                   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 }
                 .header {
-                  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
                   color: white;
                   padding: 30px;
                   text-align: center;
@@ -93,15 +91,15 @@ serve(async (req) => {
                   padding: 30px;
                 }
                 .project-details {
-                  background: #f9fafb;
-                  border-left: 4px solid #10b981;
+                  background: #eff6ff;
+                  border-left: 4px solid #3b82f6;
                   padding: 20px;
                   margin: 20px 0;
                   border-radius: 4px;
                 }
                 .project-details h3 {
                   margin: 0 0 10px 0;
-                  color: #10b981;
+                  color: #1e40af;
                   font-size: 14px;
                   text-transform: uppercase;
                   letter-spacing: 0.5px;
@@ -111,14 +109,14 @@ serve(async (req) => {
                   font-size: 16px;
                 }
                 .amount {
-                  font-size: 32px;
+                  font-size: 28px;
                   font-weight: bold;
-                  color: #10b981;
+                  color: #1e40af;
                   margin: 10px 0;
                 }
                 .button {
                   display: inline-block;
-                  background: #10b981;
+                  background: #3b82f6;
                   color: white;
                   text-decoration: none;
                   padding: 14px 32px;
@@ -128,7 +126,7 @@ serve(async (req) => {
                   text-align: center;
                 }
                 .button:hover {
-                  background: #059669;
+                  background: #2563eb;
                 }
                 .footer {
                   text-align: center;
@@ -139,7 +137,7 @@ serve(async (req) => {
                   border-top: 1px solid #e5e7eb;
                 }
                 .footer a {
-                  color: #10b981;
+                  color: #3b82f6;
                   text-decoration: none;
                 }
               </style>
@@ -147,39 +145,44 @@ serve(async (req) => {
             <body>
               <div class="container">
                 <div class="header">
-                  <h1>💳 Payment Reminder</h1>
+                  <h1>📋 Work Ready for Review</h1>
                 </div>
                 
                 <div class="content">
                   <p>Hi ${client_name},</p>
                   
-                  <p>I hope this message finds you well!</p>
+                  <p>I hope you're doing well!</p>
                   
-                  <p>This is a friendly reminder that payment for <strong>${stage_name}</strong> on the <strong>${project_name}</strong> project is due.</p>
+                  <p>I've completed and delivered the work for <strong>${stage_name}</strong> on the <strong>${project_name}</strong> project.</p>
+
+                  <p><strong>Please review the deliverables when you have a chance.</strong></p>
 
                   <div class="project-details">
-                    <h3>Payment Details</h3>
+                    <h3>Project Details</h3>
                     <p><strong>Project:</strong> ${project_name}</p>
                     <p><strong>Stage:</strong> ${stage_name}</p>
-                    <p><strong>Amount Due:</strong></p>
+                    <p><strong>Stage Amount:</strong></p>
                     <div class="amount">${formattedAmount}</div>
                   </div>
 
-                  ${payment_link ? `
-                    <div style="text-align: center;">
-                      <a href="${payment_link}" class="button">
-                        Pay ${formattedAmount} Now →
-                      </a>
-                    </div>
-                  ` : ''}
+                  <div style="text-align: center; margin: 30px 0;">
+                    <p style="color: #6b7280; font-size: 14px; margin-bottom: 10px;">
+                      Log in to your project portal to review the work:
+                    </p>
+                    <a href="https://milestage.com" class="button">
+                      Review Work →
+                    </a>
+                  </div>
 
-                  <p style="margin-top: 30px;">If you've already sent payment, please disregard this message. If you have any questions or concerns, please don't hesitate to reach out.</p>
-
-                  <p style="margin-top: 20px;">
-                    Thank you for your business!
+                  <p style="margin-top: 30px; font-size: 14px; color: #6b7280;">
+                    Once you approve the work, you'll be able to proceed with payment and unlock the next stage.
                   </p>
 
                   <p style="margin-top: 30px;">
+                    Looking forward to your feedback!
+                  </p>
+
+                  <p style="margin-top: 20px;">
                     Best regards,<br>
                     <strong>${freelancer_name}</strong>
                   </p>
@@ -188,7 +191,7 @@ serve(async (req) => {
                 <div class="footer">
                   <p>Sent via <a href="https://milestage.com">MileStage</a></p>
                   <p style="margin-top: 10px; font-size: 12px;">
-                    This is an automated payment reminder. Please do not reply to this email.
+                    This is an automated reminder. Please reply directly to ${freelancer_name} if you have questions.
                   </p>
                 </div>
               </div>
@@ -212,7 +215,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Payment reminder error:', error)
+    console.error('Review reminder error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
