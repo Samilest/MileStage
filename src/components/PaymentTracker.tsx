@@ -23,6 +23,7 @@ interface UnpaidStage {
   reminder_type: 'review' | 'payment';
   reminder_count: number;
   last_sent_at: string | null;
+  share_code: string;
 }
 
 interface PaymentTrackerProps {
@@ -52,6 +53,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
           client_name,
           client_email,
           currency,
+          share_code,
           stages!stages_project_id_fkey (
             id,
             stage_number,
@@ -171,6 +173,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
               reminder_type: reminderType,
               reminder_count: reminderCount,
               last_sent_at: lastSentAt,
+              share_code: project.share_code,
             });
           }
         });
@@ -222,6 +225,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
           currency: stage.currency,
           freelancer_name: 'Freelancer', // We'll enhance this later
           days_overdue: stage.days_since_action,
+          share_code: stage.share_code,
         },
       });
 
