@@ -4,9 +4,10 @@ interface StageProgressProps {
   status: string;
   isLocked: boolean;
   deliverablesCount?: number;
+  payment_status?: string;
 }
 
-export default function StageProgress({ status, isLocked }: StageProgressProps) {
+export default function StageProgress({ status, isLocked, payment_status }: StageProgressProps) {
   if (isLocked) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
@@ -21,7 +22,9 @@ export default function StageProgress({ status, isLocked }: StageProgressProps) 
   const isStarted = status !== 'locked';
   const isInProgress = ['active', 'in_progress', 'delivered', 'payment_pending', 'completed', 'complete'].includes(status);
   const isDelivered = ['delivered', 'payment_pending', 'completed', 'complete'].includes(status);
-  const isPaid = ['completed', 'complete'].includes(status);
+  
+  // FIX: Check payment_status instead of status
+  const isPaid = payment_status === 'received' || payment_status === 'paid' || ['completed', 'complete'].includes(status);
   const isAwaitingPayment = status === 'payment_pending';
 
   const getStepColor = (step: 'started' | 'progress' | 'delivered' | 'payment'): string => {

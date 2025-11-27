@@ -898,6 +898,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           status={stage.status}
           isLocked={stage.status === 'locked'}
           deliverablesCount={stage.deliverables.length}
+          payment_status={actualPaymentStatus}
         />
 
         {/* DELIVERABLES SECTION - Prioritized at top for client review */}
