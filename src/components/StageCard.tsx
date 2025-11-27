@@ -112,7 +112,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   }>>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
-  const [actualPaymentStatus, setActualPaymentStatus] = useState<string>(stage.payment_status || 'unpaid');
+  const [actualPaymentStatus, setActualPaymentStatus] = useState<string>(
+  stage.payment_status === 'received' ? 'paid' : (stage.payment_status || 'unpaid')
+);
 
   useEffect(() => {
     let isMounted = true;
