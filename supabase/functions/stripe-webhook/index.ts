@@ -81,7 +81,8 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             payment_status: 'received',
-            payment_received_at: new Date().toISOString()
+            payment_received_at: new Date().toISOString(),
+            status: 'completed'
           })
         })
 
