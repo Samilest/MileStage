@@ -60,17 +60,48 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
             status,
             payment_status,
             approved_at,
-            delivered_at,
-            stage_reminders (
-              reminder_count,
-              last_sent_at,
-              reminder_type
-            )
+            delivered_at
           )
         `)
         .eq('user_id', userId);
 
       if (error) throw error;
+
+      // Get all stage IDs that need reminders
+      const stageIds: string[] = [];
+      projects?.forEach((project: any) => {
+        project.stages?.forEach((stage: any) => {
+          const isDelivered = stage.status === 'delivered' || 
+                            stage.status === 'payment_pending' ||
+                            stage.status === 'awaiting_review';
+          const isNotPaid = stage.payment_status !== 'received';
+          const isNotComplete = stage.status !== 'locked' && 
+                               stage.status !== 'complete' && 
+                               stage.status !== 'completed';
+          
+          if (isDelivered && isNotPaid && isNotComplete) {
+            stageIds.push(stage.id);
+          }
+        });
+      });
+
+      // Fetch reminder data for these stages
+      let reminderDataMap: { [key: string]: any } = {};
+      if (stageIds.length > 0) {
+        const { data: reminderData, error: reminderError } = await supabase
+          .from('stage_reminders')
+          .select('*')
+          .in('stage_id', stageIds);
+
+        if (reminderError) {
+          console.error('Error fetching reminder data:', reminderError);
+          // Continue without reminder data
+        } else if (reminderData) {
+          reminderData.forEach(reminder => {
+            reminderDataMap[reminder.stage_id] = reminder;
+          });
+        }
+      }
 
       // Filter and flatten stages that need attention
       const unpaid: UnpaidStage[] = [];
@@ -118,8 +149,8 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
               ? `Approved ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`
               : `Delivered ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`;
 
-            // Get reminder tracking data
-            const reminderData = stage.stage_reminders?.[0] || null;
+            // Get reminder tracking data from the map
+            const reminderData = reminderDataMap[stage.id] || null;
             const reminderCount = reminderData?.reminder_count || 0;
             const lastSentAt = reminderData?.last_sent_at || null;
 
