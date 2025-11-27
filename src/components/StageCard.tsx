@@ -131,6 +131,12 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     };
   }, [stage.id]);
 
+  useEffect(() => {
+    // Update actualPaymentStatus when stage.payment_status changes
+    if (stage.payment_status === 'received') {
+      setActualPaymentStatus('paid');
+    }
+  }, [stage.payment_status]);
   const checkExtensionStatus = async (isMounted: boolean) => {
     try {
       const { data: pending, error: pendingError } = await supabase
