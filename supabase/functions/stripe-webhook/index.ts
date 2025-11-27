@@ -1,209 +1,165 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import Stripe from 'npm:stripe@14.11.0';
-import { createClient } from 'npm:@supabase/supabase-js@2.39.7';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, stripe-signature',
-};
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+}
 
-Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  const sig = req.headers.get('stripe-signature')
+  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!webhookSecret || !stripeSecretKey || !sig) {
+    return new Response(
+      JSON.stringify({ error: 'Missing configuration or signature' }),
+      { status: 400, headers: corsHeaders }
+    )
   }
 
   try {
-    // Get environment variables
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const body = await req.text()
     
-    if (!stripeSecretKey || !webhookSecret) {
-      console.error('Missing required environment variables');
-      return new Response(
-        JSON.stringify({ error: 'Configuration error' }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    // Get the signature
-    const signature = req.headers.get('stripe-signature');
+    // Verify signature using Web Crypto API (Deno native)
+    const timestamp = sig.split(',')[0].split('=')[1]
+    const signatures = sig.split(',').slice(1).map(s => s.split('=')[1])
     
-    if (!signature) {
-      console.error('No stripe-signature header found');
+    const payload = `${timestamp}.${body}`
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(webhookSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(payload)
+    )
+    const expectedSig = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    
+    if (!signatures.includes(expectedSig)) {
+      console.error('[Webhook] ❌ Signature verification failed')
       return new Response(
-        JSON.stringify({ error: 'Missing stripe-signature header' }),
+        JSON.stringify({ error: 'Invalid signature' }),
         { status: 400, headers: corsHeaders }
-      );
+      )
     }
 
-    // Read body as text - CRITICAL: must be raw, unmodified body
-    const body = await req.text();
+    console.log('[Webhook] ✅ Signature verified')
     
-    console.log('Webhook received:', {
-      signature: signature.substring(0, 20) + '...',
-      bodyLength: body.length,
-      webhookSecretSet: !!webhookSecret
-    });
-
-    // Initialize Stripe - DON'T specify apiVersion to use default
-    const stripe = new Stripe(stripeSecretKey, {
-      // No apiVersion - let it use whatever Stripe sent
-    });
-
-    // Verify the webhook signature
-    let event: Stripe.Event;
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      console.log('✅ Signature verified successfully for event:', event.type);
-    } catch (err) {
-      console.error('❌ Signature verification failed:', {
-        error: err.message,
-        name: err.name,
-        signature: signature.substring(0, 30),
-      });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Webhook signature verification failed',
-          details: err.message 
-        }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
-
-    console.log('Processing event:', event.type);
+    const event = JSON.parse(body)
+    console.log('[Webhook] Event type:', event.type)
 
     // Handle payment_intent.succeeded
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      const stageId = paymentIntent.metadata?.stage_id;
-      const projectId = paymentIntent.metadata?.project_id;
+      const paymentIntent = event.data.object
+      const stageId = paymentIntent.metadata?.stage_id
+      const projectId = paymentIntent.metadata?.project_id
 
-      console.log('Payment succeeded:', {
-        paymentIntentId: paymentIntent.id,
-        amount: paymentIntent.amount,
-        stageId,
-        projectId
-      });
+      console.log('[Webhook] 💰 Payment succeeded:', { stageId, projectId })
 
       if (stageId && projectId) {
-        const { error } = await supabase
-          .from('stages')
-          .update({
+        // Update stage using fetch (no Supabase client library)
+        const updateRes = await fetch(`${supabaseUrl}/rest/v1/stages?id=eq.${stageId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
             payment_status: 'received',
-            payment_received_at: new Date().toISOString(),
+            payment_received_at: new Date().toISOString()
           })
-          .eq('id', stageId);
+        })
 
-        if (error) {
-          console.error('Error updating stage:', error);
-          throw error;
+        if (!updateRes.ok) {
+          console.error('[Webhook] ❌ Update failed:', await updateRes.text())
+          throw new Error('Failed to update stage')
         }
 
-        console.log('✅ Stage marked as paid:', stageId);
+        const updated = await updateRes.json()
+        console.log('[Webhook] ✅ Stage updated:', updated)
 
-        // Check and unlock next stage
-        const { data: stages } = await supabase
-          .from('stages')
-          .select('id, stage_number, status')
-          .eq('project_id', projectId)
-          .order('stage_number', { ascending: true });
+        // Get stages to unlock next
+        const stagesRes = await fetch(
+          `${supabaseUrl}/rest/v1/stages?project_id=eq.${projectId}&order=stage_number.asc&select=id,stage_number,status`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          }
+        )
 
-        if (stages) {
-          const currentStageData = stages.find((s: any) => s.id === stageId);
+        if (stagesRes.ok) {
+          const stages = await stagesRes.json()
+          const currentStage = stages.find((s: any) => s.id === stageId)
           const nextStage = stages.find((s: any) => 
-            s.stage_number === (currentStageData?.stage_number || 0) + 1
-          );
-          
+            s.stage_number === (currentStage?.stage_number || 0) + 1
+          )
+
           if (nextStage && nextStage.status === 'locked') {
-            await supabase
-              .from('stages')
-              .update({ status: 'active' })
-              .eq('id', nextStage.id);
-            
-            console.log('✅ Unlocked next stage:', nextStage.id);
+            await fetch(`${supabaseUrl}/rest/v1/stages?id=eq.${nextStage.id}`, {
+              method: 'PATCH',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ status: 'active' })
+            })
+            console.log('[Webhook] 🔓 Unlocked next stage')
           }
         }
       }
     }
 
-    // Handle checkout.session.completed
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const stageId = session.metadata?.stage_id;
-      const projectId = session.metadata?.project_id;
-
-      console.log('Checkout completed:', { stageId, projectId });
-
-      if (stageId && projectId) {
-        const { error } = await supabase
-          .from('stages')
-          .update({
-            payment_status: 'received',
-            payment_received_at: new Date().toISOString(),
-          })
-          .eq('id', stageId);
-
-        if (error) {
-          console.error('Error updating stage:', error);
-          throw error;
-        }
-
-        console.log('✅ Stage marked as paid:', stageId);
-      }
-    }
-
     // Handle account.updated
     if (event.type === 'account.updated') {
-      const account = event.data.object as Stripe.Account;
-      const userId = account.metadata?.user_id;
+      const account = event.data.object
+      const userId = account.metadata?.user_id
 
       if (userId) {
-        await supabase
-          .from('user_profiles')
-          .update({
+        await fetch(`${supabaseUrl}/rest/v1/user_profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             stripe_charges_enabled: account.charges_enabled || false,
             stripe_payouts_enabled: account.payouts_enabled || false,
             stripe_onboarding_completed: account.details_submitted || false,
-            stripe_connected_at: account.details_submitted ? new Date().toISOString() : null,
+            stripe_connected_at: account.details_submitted ? new Date().toISOString() : null
           })
-          .eq('id', userId);
-
-        console.log('✅ Updated user Stripe status:', userId);
+        })
+        console.log('[Webhook] ✅ Updated user')
       }
     }
 
     return new Response(
-      JSON.stringify({ received: true, event_type: event.type }),
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-  } catch (error) {
-    console.error('❌ Webhook error:', error);
+      JSON.stringify({ received: true }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error: any) {
+    console.error('[Webhook] ❌ Error:', error.message)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

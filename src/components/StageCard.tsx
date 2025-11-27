@@ -942,7 +942,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           )}
 
           {/* CLIENT ACTION BUTTONS - Directly below deliverables */}
-          {readOnly && stage.status === 'delivered' && (
+          {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && (
             <>
               <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4 mb-4 flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
