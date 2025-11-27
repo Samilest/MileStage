@@ -7,6 +7,15 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Helper to read request body as buffer
+async function buffer(readable) {
+  const chunks = [];
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 const handler = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -57,15 +66,6 @@ const handler = async (req, res) => {
   }
 };
 
-// Helper to read request body as buffer
-async function buffer(readable) {
-  const chunks = [];
-  for await (const chunk of readable) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
 async function handleAccountUpdated(account) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -107,7 +107,7 @@ async function handlePaymentSucceeded(paymentIntent) {
       return;
     }
 
-    console.log('[Webhook] 🔄 Updating stage:', stage_id);
+    console.log('[Webhook] 📝 Updating stage:', stage_id);
 
     // Update stage payment status
     const { data: updatedStage, error: stageError } = await supabaseAdmin
@@ -164,8 +164,10 @@ async function handlePaymentFailed(paymentIntent) {
   }
 }
 
-module.exports = handler;
-module.exports.config = {
+// IMPORTANT: Use 'export' syntax for Next.js config
+export { handler as default };
+
+export const config = {
   api: {
     bodyParser: false,
   },
