@@ -11,7 +11,23 @@ export default function PaymentSuccess() {
   useEffect(() => {
     // Clear any stored payment info
     sessionStorage.removeItem('pendingPayment');
-  }, []);
+
+    // Confirm payment with backend
+    const paymentIntentId = searchParams.get('payment_intent');
+    
+    if (stageId && paymentIntentId) {
+      console.log('[PaymentSuccess] Confirming payment:', { paymentIntentId, stageId });
+      
+      fetch('/api/stripe/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentIntentId, stageId }),
+      })
+        .then(res => res.json())
+        .then(data => console.log('[PaymentSuccess] Payment confirmed:', data))
+        .catch(err => console.error('[PaymentSuccess] Confirmation error:', err));
+    }
+  }, [searchParams, stageId]);
 
   return (
     <div className="min-h-screen bg-secondary-bg">
