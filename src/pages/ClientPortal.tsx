@@ -146,7 +146,57 @@ export default function ClientPortal() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+
+    // Handle Stripe payment redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentIntent = urlParams.get('payment_intent');
+    const redirectStatus = urlParams.get('redirect_status');
+    
+    if (paymentIntent && redirectStatus === 'succeeded') {
+      console.log('[ClientPortal] Payment succeeded, confirming...');
+      
+      // Get stageId from sessionStorage
+      const pendingPayment = sessionStorage.getItem('pendingPayment');
+      let stageId = null;
+      
+      if (pendingPayment) {
+        try {
+          const paymentData = JSON.parse(pendingPayment);
+          stageId = paymentData.stageId;
+        } catch (e) {
+          console.error('[ClientPortal] Error parsing pending payment:', e);
+        }
+      }
+      
+      if (stageId) {
+        fetch('/api/stripe/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentIntentId: paymentIntent, stageId }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log('[ClientPortal] Payment confirmed:', data);
+            // Clean URL parameters
+            window.history.replaceState({}, '', `/client/${shareCode}`);
+            // Clear session storage
+            sessionStorage.removeItem('pendingPayment');
+            // Show success message
+            toast.success('Payment confirmed! Stage updated.');
+            // Refresh project data to show updated stage
+            setTimeout(() => loadData(true), 1000);
+          })
+          .catch(err => {
+            console.error('[ClientPortal] Confirmation error:', err);
+            toast.error('Payment confirmation failed. Please refresh the page.');
+          });
+      } else {
+        console.error('[ClientPortal] No stageId found in session storage');
+        // Clean URL anyway
+        window.history.replaceState({}, '', `/client/${shareCode}`);
+      }
+    }
+  }, [loadData, shareCode]);
 
   useEffect(() => {
     const handleScroll = () => {
