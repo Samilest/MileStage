@@ -33,12 +33,13 @@ module.exports = async (req, res) => {
 
     console.log('[Confirm Payment] Payment verified! Updating stage:', stageId);
 
-    // 2. Update stage payment status
+    // 2. Update stage payment status AND mark as completed
     const { data: updatedStage, error: stageError } = await supabaseAdmin
       .from('stages')
       .update({
         payment_status: 'received',
         payment_received_at: new Date().toISOString(),
+        status: 'completed'
       })
       .eq('id', stageId)
       .select('project_id, stage_number')
