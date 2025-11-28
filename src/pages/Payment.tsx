@@ -38,7 +38,7 @@ function StripePaymentForm({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-success?share=${shareCode}&stage=${stageId}`,
+          return_url: `${window.location.origin}/client/${shareCode}?stage=${stageId}`,
         },
         redirect: 'if_required', // Don't redirect if payment succeeds without 3D Secure
       });

@@ -155,16 +155,18 @@ export default function ClientPortal() {
     if (paymentIntent && redirectStatus === 'succeeded') {
       console.log('[ClientPortal] Payment succeeded, confirming...');
       
-      // Get stageId from sessionStorage
-      const pendingPayment = sessionStorage.getItem('pendingPayment');
-      let stageId = null;
+      // FIXED: Get stageId from URL parameter first, fallback to sessionStorage
+      let stageId = urlParams.get('stage');
       
-      if (pendingPayment) {
-        try {
-          const paymentData = JSON.parse(pendingPayment);
-          stageId = paymentData.stageId;
-        } catch (e) {
-          console.error('[ClientPortal] Error parsing pending payment:', e);
+      if (!stageId) {
+        const pendingPayment = sessionStorage.getItem('pendingPayment');
+        if (pendingPayment) {
+          try {
+            const paymentData = JSON.parse(pendingPayment);
+            stageId = paymentData.stageId;
+          } catch (e) {
+            console.error('[ClientPortal] Error parsing pending payment:', e);
+          }
         }
       }
       
@@ -191,7 +193,7 @@ export default function ClientPortal() {
             toast.error('Payment confirmation failed. Please refresh the page.');
           });
       } else {
-        console.error('[ClientPortal] No stageId found in session storage');
+        console.error('[ClientPortal] No stageId found in URL or session storage');
         // Clean URL anyway
         window.history.replaceState({}, '', `/client/${shareCode}`);
       }
