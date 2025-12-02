@@ -40,14 +40,13 @@ function StripePaymentForm({
         confirmParams: {
           return_url: `${window.location.origin}/client/${shareCode}?stage=${stageId}`,
         },
-        redirect: 'if_required', // Don't redirect if payment succeeds without 3D Secure
+        redirect: 'if_required',
       });
 
       if (error) {
         setErrorMessage(error.message || 'Payment failed. Please try again.');
         setProcessing(false);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment succeeded! Call our confirmation API
         console.log('[Payment] Payment succeeded, confirming with server...');
         
         try {
@@ -65,12 +64,9 @@ function StripePaymentForm({
           }
 
           console.log('[Payment] Payment confirmed! Redirecting...');
-          // Redirect to success page
           window.location.href = `/payment-success?share=${shareCode}&stage=${stageId}`;
         } catch (confirmError) {
           console.error('[Payment] Confirmation error:', confirmError);
-          // Payment succeeded but confirmation failed - still redirect to success
-          // The webhook will eventually catch it
           window.location.href = `/payment-success?share=${shareCode}&stage=${stageId}`;
         }
       }
@@ -147,7 +143,6 @@ function OfflinePaymentInstructions({
 
   return (
     <div className="space-y-6">
-      {/* Payment Instructions Box */}
       <div className="bg-white border-2 border-green-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="bg-green-100 p-2 rounded">
