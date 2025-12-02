@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Payment Notice</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #10B981; padding: 32px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td width="180" style="vertical-align: middle;">
+                                        <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" style="height: 40px; display: block;" />
+                                    </td>
+                                    <td align="right" style="vertical-align: middle;">
+                                        <div style="font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                                            ⚠️ Final Notice
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 48px 40px;">
+                            
+                            <!-- Greeting -->
+                            <div style="font-size: 18px; color: #111827; margin-bottom: 24px; line-height: 1.6;">
+                                Hi <strong>{{client_name}}</strong>,
+                            </div>
+
+                            <!-- Main Message -->
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
+                                This is a final reminder that payment for <strong>{{stage_name}}</strong> is now significantly overdue.
+                            </div>
+
+                            <!-- Overdue Alert Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 8px; margin-bottom: 40px;">
+                                <tr>
+                                    <td style="padding: 24px 32px;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #92400E; margin-bottom: 12px;">
+                                            ⚠️ Payment Significantly Overdue
+                                        </div>
+                                        <div style="font-size: 14px; color: #B45309; line-height: 1.6; margin-bottom: 12px;">
+                                            Original due date: <strong>{{due_date}}</strong>
+                                        </div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #92400E;">
+                                            {{days_overdue}} days overdue
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Project Details Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 40px;">
+                                <tr>
+                                    <td style="padding: 28px 32px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: #10B981; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">
+                                            Outstanding Payment
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Project</div>
+                                            <div style="font-size: 18px; font-weight: 600; color: #111827;">{{project_name}}</div>
+                                        </div>
+
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Stage</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #374151;">{{stage_name}}</div>
+                                        </div>
+
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Original Due Date</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #374151;">{{due_date}}</div>
+                                        </div>
+
+                                        <div style="border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Amount Due</div>
+                                            <div style="font-size: 28px; font-weight: 700; color: #10B981;">{{amount}}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0 32px 0;">
+                                        <a href="{{portal_url}}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px; transition: background-color 0.2s;">
+                                            Make Payment Now →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Important Notice -->
+                            <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; border-radius: 8px; padding: 24px 32px; margin-bottom: 32px;">
+                                <div style="font-size: 15px; font-weight: 600; color: #991B1B; margin-bottom: 12px;">
+                                    📌 Important Notice
+                                </div>
+                                <div style="font-size: 14px; color: #7F1D1D; line-height: 1.7;">
+                                    This is the final automated reminder. If payment is not received soon, I'll need to reach out directly to discuss next steps. Please contact me if there are any issues preventing payment.
+                                </div>
+                            </div>
+
+                            <!-- Contact Section -->
+                            <div style="font-size: 14px; color: #374151; line-height: 1.7; margin-bottom: 16px;">
+                                <strong>If you've already sent payment</strong> or if there's an issue I should know about, please reply to this email immediately so we can resolve it.
+                            </div>
+
+                            <div style="font-size: 14px; color: #6B7280; line-height: 1.7; text-align: center;">
+                                I appreciate your prompt attention to this matter.
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb;">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 14px; color: #374151; margin-bottom: 8px;">
+                                    <strong>{{freelancer_name}}</strong> (via MileStage)
+                                </div>
+                                <div style="font-size: 13px; color: #6B7280;">
+                                    {{freelancer_email}}
+                                </div>
+                                {{#if freelancer_phone}}
+                                <div style="font-size: 13px; color: #6B7280; margin-top: 4px;">
+                                    {{freelancer_phone}}
+                                </div>
+                                {{/if}}
+                            </div>
+                            
+                            <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                                This email was sent by {{freelancer_name}} through MileStage, a milestone payment tracker for freelancers.
+                                <br/>
+                                <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Learn more about MileStage</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
