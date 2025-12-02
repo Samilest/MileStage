@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
@@ -16,7 +16,15 @@ interface StripePaymentButtonProps {
   onSuccess?: () => void;
 }
 
-function PaymentForm({ stageId, amount, currency, shareCode, onSuccess }: Omit<StripePaymentButtonProps, 'stageName' | 'stageNumber'>) {
+interface PaymentFormProps {
+  stageId: string;
+  amount: number;
+  currency: CurrencyCode;
+  shareCode: string;
+  onSuccess?: () => void;
+}
+
+function PaymentForm({ stageId, amount, currency, shareCode, onSuccess }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -33,23 +41,84 @@ function PaymentForm({ stageId, amount, currency, shareCode, onSuccess }: Omit<S
     setErrorMessage('');
 
     try {
-      const { error } = await stripe.confirmPayment({
+      console.log('[StripePaymentButton] Starting payment...');
+      console.log('[StripePaymentButton] StageId:', stageId);
+      console.log('[StripePaymentButton] ShareCode:', shareCode);
+
+      // CRITICAL FIX: Store stageId in sessionStorage BEFORE payment
+      // This ensures we can recover it even if Stripe strips URL params
+      sessionStorage.setItem('pendingPaymentStageId', stageId);
+      sessionStorage.setItem('pendingPaymentShareCode', shareCode);
+
+      // CRITICAL FIX: Include stageId in the return URL
+      const returnUrl = `${window.location.origin}/client/${shareCode}?stage=${stageId}`;
+      console.log('[StripePaymentButton] Return URL:', returnUrl);
+
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/client/${shareCode}?payment_success=true`,
+          return_url: returnUrl,
         },
+        redirect: 'if_required', // Don't redirect if not needed (non-3DS cards)
       });
 
       if (error) {
+        // Payment failed - clear stored data
+        sessionStorage.removeItem('pendingPaymentStageId');
+        sessionStorage.removeItem('pendingPaymentShareCode');
         setErrorMessage(error.message || 'Payment failed');
-      } else {
-        // Payment succeeded, webhook will handle the rest
-        onSuccess?.();
+        setProcessing(false);
+        return;
       }
+
+      // Payment succeeded without redirect (non-3DS card)
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        console.log('[StripePaymentButton] Payment succeeded without redirect');
+        console.log('[StripePaymentButton] PaymentIntent ID:', paymentIntent.id);
+
+        // Confirm payment with server
+        try {
+          const response = await fetch('/api/stripe/confirm-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentIntentId: paymentIntent.id,
+              stageId: stageId,
+            }),
+          });
+
+          const data = await response.json();
+          console.log('[StripePaymentButton] Server confirmation:', data);
+
+          if (!response.ok) {
+            console.error('[StripePaymentButton] Server error:', data);
+          }
+        } catch (confirmError) {
+          console.error('[StripePaymentButton] Confirmation error:', confirmError);
+          // Continue anyway - payment succeeded in Stripe
+        }
+
+        // Clear stored data
+        sessionStorage.removeItem('pendingPaymentStageId');
+        sessionStorage.removeItem('pendingPaymentShareCode');
+
+        // Call success callback or reload
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Redirect to client portal with confirmation flag
+          window.location.href = `/client/${shareCode}?payment_confirmed=true`;
+        }
+      }
+      
+      // If we get here without paymentIntent, Stripe is handling the redirect
+      // The return_url will be used, and ClientPortal will handle confirmation
+      
     } catch (err) {
+      sessionStorage.removeItem('pendingPaymentStageId');
+      sessionStorage.removeItem('pendingPaymentShareCode');
       setErrorMessage('An unexpected error occurred');
-      console.error('Payment error:', err);
-    } finally {
+      console.error('[StripePaymentButton] Payment error:', err);
       setProcessing(false);
     }
   };
@@ -104,6 +173,8 @@ export default function StripePaymentButton({
     setError('');
 
     try {
+      console.log('[StripePaymentButton] Creating payment intent for stage:', stageId);
+
       // Call API to create payment intent
       const response = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
@@ -122,10 +193,12 @@ export default function StripePaymentButton({
       }
 
       const { clientSecret: secret } = await response.json();
+      console.log('[StripePaymentButton] Payment intent created');
+      
       setClientSecret(secret);
       setShowPaymentForm(true);
     } catch (err: any) {
-      console.error('Error creating payment intent:', err);
+      console.error('[StripePaymentButton] Error creating payment intent:', err);
       setError(err.message || 'Failed to initialize payment. Please try again.');
     } finally {
       setLoading(false);

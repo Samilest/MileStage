@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowUp, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import StageList from '../components/StageList';
@@ -67,12 +67,14 @@ interface ProjectData {
 
 export default function ClientPortal() {
   const { shareCode } = useParams<{ shareCode: string }>();
+  const [searchParams] = useSearchParams();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const paymentProcessedRef = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (!shareCode) {
@@ -144,33 +146,76 @@ export default function ClientPortal() {
     }
   }, [shareCode]);
 
+  // Handle payment confirmation from Stripe redirect
   useEffect(() => {
-    loadData();
+    // Prevent double-processing
+    if (paymentProcessedRef.current) return;
 
-    // Handle Stripe payment redirect
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentIntent = urlParams.get('payment_intent');
-    const redirectStatus = urlParams.get('redirect_status');
-    
-    if (paymentIntent && redirectStatus === 'succeeded') {
-      console.log('[ClientPortal] Payment succeeded, confirming...');
-      
-      // FIXED: Get stageId from URL parameter first, fallback to sessionStorage
-      let stageId = urlParams.get('stage');
-      
+    const paymentIntent = searchParams.get('payment_intent');
+    const redirectStatus = searchParams.get('redirect_status');
+    const paymentConfirmed = searchParams.get('payment_confirmed');
+    const paymentSuccess = searchParams.get('payment_success'); // Legacy param
+
+    console.log('[ClientPortal] URL params:', {
+      paymentIntent: paymentIntent?.slice(0, 20),
+      redirectStatus,
+      paymentConfirmed,
+      paymentSuccess,
+      stage: searchParams.get('stage'),
+    });
+
+    // Case 1: Payment was already confirmed by StripePaymentButton (no redirect scenario)
+    if (paymentConfirmed === 'true') {
+      paymentProcessedRef.current = true;
+      console.log('[ClientPortal] Payment was confirmed inline (no redirect)');
+      toast.success('Payment confirmed! Stage updated.');
+      // Clean URL
+      window.history.replaceState({}, '', `/client/${shareCode}`);
+      // Clear any stored payment data
+      sessionStorage.removeItem('pendingPayment');
+      sessionStorage.removeItem('pendingPaymentStageId');
+      sessionStorage.removeItem('pendingPaymentShareCode');
+      // Refresh data to show updated stage
+      setTimeout(() => loadData(true), 500);
+      return;
+    }
+
+    // Case 2: Stripe redirected back after payment (3DS or always-redirect scenario)
+    const isPaymentRedirect = 
+      (paymentIntent && redirectStatus === 'succeeded') || 
+      paymentSuccess === 'true';
+
+    if (isPaymentRedirect) {
+      paymentProcessedRef.current = true;
+      console.log('[ClientPortal] Payment redirect detected, confirming...');
+
+      // Try to get stageId from multiple sources (in order of reliability)
+      let stageId = searchParams.get('stage');
+      console.log('[ClientPortal] StageId from URL:', stageId);
+
+      // Fallback 1: Check dedicated sessionStorage key
+      if (!stageId) {
+        stageId = sessionStorage.getItem('pendingPaymentStageId');
+        console.log('[ClientPortal] StageId from pendingPaymentStageId:', stageId);
+      }
+
+      // Fallback 2: Check pendingPayment object
       if (!stageId) {
         const pendingPayment = sessionStorage.getItem('pendingPayment');
         if (pendingPayment) {
           try {
             const paymentData = JSON.parse(pendingPayment);
             stageId = paymentData.stageId;
+            console.log('[ClientPortal] StageId from pendingPayment:', stageId);
           } catch (e) {
             console.error('[ClientPortal] Error parsing pending payment:', e);
           }
         }
       }
-      
-      if (stageId) {
+
+      if (stageId && paymentIntent) {
+        console.log('[ClientPortal] Confirming payment with stageId:', stageId);
+
         fetch('/api/stripe/confirm-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -179,26 +224,57 @@ export default function ClientPortal() {
           .then(res => res.json())
           .then(data => {
             console.log('[ClientPortal] Payment confirmed:', data);
-            // Clean URL parameters
-            window.history.replaceState({}, '', `/client/${shareCode}`);
-            // Clear session storage
-            sessionStorage.removeItem('pendingPayment');
-            // Show success message
-            toast.success('Payment confirmed! Stage updated.');
-            // Refresh project data to show updated stage
-            setTimeout(() => loadData(true), 1000);
+            if (data.success) {
+              toast.success('Payment confirmed! Stage updated.');
+            } else {
+              // Payment might have already been processed
+              console.log('[ClientPortal] Server response:', data);
+              toast.success('Payment received!');
+            }
           })
           .catch(err => {
             console.error('[ClientPortal] Confirmation error:', err);
-            toast.error('Payment confirmation failed. Please refresh the page.');
+            toast.error('Could not confirm payment status. Please refresh.');
+          })
+          .finally(() => {
+            // Clean URL parameters
+            window.history.replaceState({}, '', `/client/${shareCode}`);
+            // Clear all session storage
+            sessionStorage.removeItem('pendingPayment');
+            sessionStorage.removeItem('pendingPaymentStageId');
+            sessionStorage.removeItem('pendingPaymentShareCode');
+            // Refresh project data
+            setTimeout(() => loadData(true), 500);
           });
-      } else {
-        console.error('[ClientPortal] No stageId found in URL or session storage');
-        // Clean URL anyway
+      } else if (stageId && !paymentIntent) {
+        // Legacy: payment_success=true without payment_intent
+        console.log('[ClientPortal] Legacy payment success detected');
+        toast.success('Payment received! Updating...');
         window.history.replaceState({}, '', `/client/${shareCode}`);
+        sessionStorage.removeItem('pendingPaymentStageId');
+        sessionStorage.removeItem('pendingPaymentShareCode');
+        setTimeout(() => loadData(true), 1000);
+      } else {
+        // No stageId found - payment succeeded but we can't confirm which stage
+        console.error('[ClientPortal] No stageId found in URL or session storage');
+        console.log('[ClientPortal] Available URL params:', Object.fromEntries(searchParams.entries()));
+
+        // Show success anyway - the webhook should handle it
+        toast.success('Payment received! Your stage will update shortly.');
+        window.history.replaceState({}, '', `/client/${shareCode}`);
+        sessionStorage.removeItem('pendingPayment');
+        sessionStorage.removeItem('pendingPaymentStageId');
+        sessionStorage.removeItem('pendingPaymentShareCode');
+        // Refresh after a longer delay to give webhook time
+        setTimeout(() => loadData(true), 2000);
       }
     }
-  }, [loadData, shareCode]);
+  }, [searchParams, shareCode, loadData]);
+
+  // Load initial data
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     const handleScroll = () => {
