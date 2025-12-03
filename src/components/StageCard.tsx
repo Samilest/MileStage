@@ -904,7 +904,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
         {/* DELIVERABLES SECTION - Prioritized at top for client review */}
         <div>
           {/* Status Badge for Client - Work in Progress */}
-          {readOnly && stage.status !== 'delivered' && stage.deliverables.length > 0 && (
+          {readOnly && stage.status !== 'delivered' && stage.status !== 'locked' && (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
@@ -923,7 +923,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           )}
 
           {/* Status Badge for Freelancer - Work in Progress */}
-          {!readOnly && stage.status === 'in_progress' && stage.deliverables.length > 0 && (
+          {!readOnly && stage.deliverables.length > 0 && stage.status !== 'delivered' && stage.status !== 'locked' && (
             <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
@@ -934,7 +934,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 <div className="flex-1">
                   <p className="font-semibold text-blue-900 mb-1">💡 Track Your Work</p>
                   <p className="text-sm text-blue-800 leading-relaxed">
-                    If the client requests substantial changes via notes, click "Use 1 Revision" to track it. This protects you from scope creep.
+                    If the client requests substantial changes via notes, click "Use 1 Revision" below to track it. This protects you from scope creep.
                   </p>
                 </div>
               </div>
