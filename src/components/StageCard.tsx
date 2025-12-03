@@ -758,7 +758,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                       className="mt-2 text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Mark 1 revision as used"
                     >
-                      {isMarkingRevisionUsed ? 'Updating...' : `Use 1 Revision (${revisionsRemaining} left)`}
+                      {isMarkingRevisionUsed ? 'Updating...' : 'Use Revision'}
                     </button>
                   )}
                 </div>
@@ -883,7 +883,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                       className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Mark 1 revision as used"
                     >
-                      {isMarkingRevisionUsed ? '...' : `Use (${revisionsRemaining})`}
+                      {isMarkingRevisionUsed ? '...' : 'Use'}
                     </button>
                   )}
                 </div>
@@ -903,50 +903,12 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
         {/* DELIVERABLES SECTION - Prioritized at top for client review */}
         <div>
-          {/* Status Badge for Client - Work in Progress */}
-          {readOnly && stage.status !== 'delivered' && stage.status !== 'locked' && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-yellow-900 mb-1">📝 Work in Progress</p>
-                  <p className="text-sm text-yellow-800 leading-relaxed">
-                    You can give feedback via the notes section below. The freelancer will click "Submit for Review" when ready for your formal approval.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Status Badge for Freelancer - Work in Progress */}
-          {!readOnly && stage.deliverables.length > 0 && stage.status !== 'delivered' && stage.status !== 'locked' && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-blue-900 mb-1">💡 Track Your Work</p>
-                  <p className="text-sm text-blue-800 leading-relaxed">
-                    If the client requests substantial changes via notes, click "Use 1 Revision" below to track it. This protects you from scope creep.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
             <FileText className="w-5 h-5" />
             Deliverables ({stage.deliverables.length})
           </h4>
 
-          {stage.deliverables.length > 0 && (readOnly ? stage.status === 'delivered' : true) ? (
+          {stage.deliverables.length > 0 ? (
             <div className="space-y-3 mb-4">
               {stage.deliverables.map((deliverable) => (
                 <div
