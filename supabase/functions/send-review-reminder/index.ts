@@ -22,7 +22,7 @@ serve(async (req) => {
       amount,
       currency,
       freelancer_name,
-      days_overdue,
+      freelancer_email,
       share_code
     } = await req.json()
 
@@ -47,7 +47,7 @@ serve(async (req) => {
     const formattedAmount = formatAmount(amount, currency || 'USD')
     const portalLink = `https://milestage.com/client/${share_code}`
 
-    // Send email via Resend
+    // Send email via Resend using NEW TEMPLATE
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -55,66 +55,130 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: `${freelancer_name} via MileStage <notifications@milestage.com>`,
+        from: `${freelancer_name} (via MileStage) <notifications@milestage.com>`,
         to: [to_email],
-        subject: `Work ready for review - ${project_name}`,
+        reply_to: freelancer_email || undefined,
+        subject: `Work Ready for Review - ${project_name}`,
         html: `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif;line-height:1.6;color:#1f2937;max-width:600px;margin:0 auto;padding:0;background-color:#f9fafb}
-.container{background:white;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-.header{background:#10b981;padding:24px;display:flex;align-items:center;justify-content:space-between}
-.header-title{color:white;font-size:20px;font-weight:600;margin:0;flex:1}
-.header-logo{height:32px;width:auto}
-.content{padding:32px 24px}
-.project-box{background:#f0fdf4;border-left:4px solid #10b981;padding:20px;margin:24px 0;border-radius:4px}
-.project-box h3{margin:0 0 12px 0;color:#065f46;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
-.project-box p{margin:6px 0;font-size:15px;color:#1f2937}
-.amount{font-size:28px;font-weight:700;color:#10b981;margin:12px 0 0 0}
-.button-container{text-align:center;margin:32px 0}
-.button{display:inline-block;background:#10b981;color:white;text-decoration:none;padding:14px 32px;border-radius:6px;font-weight:600;font-size:16px}
-.footer{text-align:center;padding:24px;background:#f9fafb;color:#6b7280;font-size:13px;border-top:1px solid #e5e7eb}
-.footer a{color:#10b981;text-decoration:none}
-@media only screen and (max-width:600px){
-.content{padding:24px 16px}
-.header{padding:20px 16px}
-.header-title{font-size:18px}
-.header-logo{height:28px}
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Ready for Review</title>
 </head>
-<body>
-<div class="container">
-<div class="header">
-<h1 class="header-title">📋 Work Ready for Review</h1>
-<img src="https://milestage.com/logo.png" alt="MileStage" class="header-logo">
-</div>
-<div class="content">
-<p>Hi ${client_name},</p>
-<p>I hope you're doing well!</p>
-<p>I've completed and delivered the work for <strong>${stage_name}</strong> on the <strong>${project_name}</strong> project.</p>
-<p><strong>Please review the deliverables when you have a chance.</strong></p>
-<div class="project-box">
-<h3>Project Details</h3>
-<p><strong>Project:</strong> ${project_name}</p>
-<p><strong>Stage:</strong> ${stage_name}</p>
-<p><strong>Stage Amount:</strong></p>
-<div class="amount">${formattedAmount}</div>
-</div>
-<div class="button-container">
-<a href="${portalLink}" class="button">Review Work →</a>
-</div>
-<p style="margin-top:32px;font-size:14px;color:#6b7280">Once you approve the work, you'll be able to proceed with payment and unlock the next stage.</p>
-<p style="margin-top:32px">Looking forward to your feedback!</p>
-<p style="margin-top:24px">Best regards,<br><strong>${freelancer_name}</strong></p>
-</div>
-<div class="footer">
-<p>Sent via <a href="https://milestage.com">MileStage</a></p>
-<p style="margin-top:8px;font-size:12px">This is an automated reminder. Please reply directly to ${freelancer_name} if you have questions.</p>
-</div>
-</div>
+<body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #10B981; padding: 32px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td width="180" style="vertical-align: middle;">
+                                        <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" style="height: 40px; display: block;" />
+                                    </td>
+                                    <td align="right" style="vertical-align: middle;">
+                                        <div style="font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                                            📋 Work Ready for Review
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 48px 40px;">
+                            
+                            <!-- Greeting -->
+                            <div style="font-size: 18px; color: #111827; margin-bottom: 24px; line-height: 1.6;">
+                                Hi <strong>${client_name}</strong>,
+                            </div>
+
+                            <!-- Main Message -->
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
+                                Great news! I've completed and delivered the work for <strong>${stage_name}</strong> on the <strong>${project_name}</strong> project.
+                            </div>
+
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 40px; line-height: 1.7;">
+                                Please review the deliverables when you have a moment.
+                            </div>
+
+                            <!-- Project Details Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 40px;">
+                                <tr>
+                                    <td style="padding: 28px 32px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: #10B981; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">
+                                            Project Details
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Project</div>
+                                            <div style="font-size: 18px; font-weight: 600; color: #111827;">${project_name}</div>
+                                        </div>
+
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Stage</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #374151;">${stage_name}</div>
+                                        </div>
+
+                                        <div>
+                                            <div style="font-size: 14px; color: #6B7280; margin-bottom: 4px;">Stage Amount</div>
+                                            <div style="font-size: 28px; font-weight: 700; color: #10B981;">${formattedAmount}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0 32px 0;">
+                                        <a href="${portalLink}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                            Review Work →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Additional Info -->
+                            <div style="font-size: 14px; color: #6B7280; line-height: 1.6; text-align: center;">
+                                Once you approve the work, you can proceed with payment for this stage.
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb;">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 14px; color: #374151; margin-bottom: 8px;">
+                                    <strong>${freelancer_name}</strong> (via MileStage)
+                                </div>
+                                ${freelancer_email ? `
+                                <div style="font-size: 13px; color: #6B7280;">
+                                    ${freelancer_email}
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                                This email was sent by ${freelancer_name} through MileStage, a milestone payment tracker for freelancers.
+                                <br/>
+                                <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Learn more about MileStage</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>`,
       }),

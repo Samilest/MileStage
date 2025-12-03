@@ -31,73 +31,115 @@ serve(async (req) => {
         from: 'MileStage <notifications@milestage.com>',
         to: [to_email],
         subject: '✅ Test Email from MileStage',
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                  line-height: 1.6;
-                  color: #333;
-                  max-width: 600px;
-                  margin: 0 auto;
-                  padding: 20px;
-                }
-                .header {
-                  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                  color: white;
-                  padding: 30px;
-                  border-radius: 10px;
-                  text-align: center;
-                  margin-bottom: 30px;
-                }
-                .content {
-                  background: #f9fafb;
-                  padding: 30px;
-                  border-radius: 10px;
-                  margin-bottom: 20px;
-                }
-                .success {
-                  font-size: 48px;
-                  margin: 0 0 10px 0;
-                }
-                .footer {
-                  text-align: center;
-                  color: #6b7280;
-                  font-size: 14px;
-                  padding-top: 20px;
-                  border-top: 1px solid #e5e7eb;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="header">
-                <div class="success">✅</div>
-                <h1 style="margin: 0; font-size: 28px;">Email System Working!</h1>
-              </div>
-              
-              <div class="content">
-                <h2 style="color: #10b981; margin-top: 0;">Congratulations!</h2>
-                <p>Your MileStage email system is configured correctly and ready to send emails.</p>
-                
-                <p><strong>What's working:</strong></p>
-                <ul>
-                  <li>✅ Resend API connected</li>
-                  <li>✅ Domain verified (milestage.com)</li>
-                  <li>✅ Supabase Edge Function working</li>
-                  <li>✅ Emails delivering successfully</li>
-                </ul>
-                
-                <p>You're now ready to implement the payment reminder system!</p>
-              </div>
-              
-              <div class="footer">
-                <p>Sent via MileStage • www.milestage.com</p>
-              </div>
-            </body>
-          </html>
-        `,
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #10B981; padding: 48px 40px; text-align: center;">
+                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                            <div style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                                Email System Working!
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 48px 40px;">
+                            
+                            <div style="font-size: 24px; font-weight: 600; color: #10B981; margin-bottom: 24px;">
+                                Congratulations! 🎉
+                            </div>
+
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
+                                Your MileStage email system is configured correctly and ready to send emails.
+                            </div>
+
+                            <!-- Success Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ECFDF5; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 32px;">
+                                <tr>
+                                    <td style="padding: 28px 32px;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #065F46; margin-bottom: 16px;">
+                                            What's Working:
+                                        </div>
+                                        <table width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="font-size: 15px; color: #047857; line-height: 2; padding: 4px 0;">
+                                                    ✓ Resend API connected
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #047857; line-height: 2; padding: 4px 0;">
+                                                    ✓ Domain verified (milestage.com)
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #047857; line-height: 2; padding: 4px 0;">
+                                                    ✓ Supabase Edge Function working
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #047857; line-height: 2; padding: 4px 0;">
+                                                    ✓ Emails delivering successfully
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 15px; color: #047857; line-height: 2; padding: 4px 0;">
+                                                    ✓ New email templates deployed
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="font-size: 16px; color: #374151; line-height: 1.7; text-align: center; margin-bottom: 32px;">
+                                You're now ready to send beautiful, professional emails to your clients!
+                            </div>
+
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0;">
+                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                            Go to Dashboard →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb;">
+                            <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                                This is a test email from MileStage.
+                                <br/>
+                                <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Visit MileStage</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`,
       }),
     })
 
