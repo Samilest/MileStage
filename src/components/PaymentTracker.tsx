@@ -35,6 +35,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   const [loading, setLoading] = useState(true);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [freelancerName, setFreelancerName] = useState<string>('Freelancer');
 
   useEffect(() => {
     fetchUnpaidStages();
@@ -43,6 +44,20 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   const fetchUnpaidStages = async () => {
     try {
       setLoading(true);
+
+      // Get freelancer name first
+      const { data: userProfile, error: userError } = await supabase
+        .from('user_profiles')
+        .select('name')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user profile:', userError);
+      }
+
+      const fetchedFreelancerName = userProfile?.name || 'Freelancer';
+      setFreelancerName(fetchedFreelancerName);
 
       // Query projects with stages that need attention
       const { data: projects, error } = await supabase
@@ -223,7 +238,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
           stage_name: stage.name,
           amount: stage.amount,
           currency: stage.currency,
-          freelancer_name: 'Freelancer', // We'll enhance this later
+          freelancer_name: freelancerName,
           days_overdue: stage.days_since_action,
           share_code: stage.share_code,
         },
