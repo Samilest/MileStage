@@ -92,6 +92,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const [validationError, setValidationError] = useState('');
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
   const [pendingExtensions, setPendingExtensions] = useState<Extension[]>([]);
+  const [paidExtensions, setPaidExtensions] = useState<Extension[]>([]);
   const [rejectedExtensions, setRejectedExtensions] = useState<Extension[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isMarkingPayment, setIsMarkingPayment] = useState(false);
@@ -158,6 +159,17 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
         .limit(1);
 
       if (verifiedError) throw verifiedError;
+
+      // Also check for Stripe-paid extensions (status = 'paid')
+      const { data: paid, error: paidError } = await supabase
+        .from('extensions')
+        .select('*')
+        .eq('stage_id', stage.id)
+        .eq('status', 'paid');
+
+      if (paidError) throw paidError;
+      if (!isMounted) return;
+      setPaidExtensions(paid || []);
 
       const { data: rejected, error: rejectedError } = await supabase
         .from('extensions')
@@ -530,7 +542,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       return;
     }
 
-    if (!confirm(`Mark 1 revision as used? This will update the count from ${stage.revisions_used}/${stage.revisions_included} to ${stage.revisions_used + 1}/${stage.revisions_included}.`)) {
+    if (!confirm(`Mark 1 revision as used? This will update the count from ${stage.revisions_used}/${totalRevisions} to ${stage.revisions_used + 1}/${totalRevisions}.`)) {
       return;
     }
 
@@ -558,7 +570,10 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     }
   };
 
-  const revisionsRemaining = (stage.revisions_included || 2) - (stage.revisions_used || 0);
+  // Calculate additional revisions from paid/verified extensions
+  const additionalRevisions = paidExtensions.reduce((sum, ext) => sum + (ext.additional_revisions || 0), 0);
+  const totalRevisions = (stage.revisions_included || 2) + additionalRevisions;
+  const revisionsRemaining = totalRevisions - (stage.revisions_used || 0);
   const canRequestRevision = revisionsRemaining > 0;
   const isCompleted = stage.status === 'completed' || stage.status === 'complete';
 
@@ -749,7 +764,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 <div>
                   <p className="text-gray-600">Revisions Used:</p>
                   <p className="font-semibold text-gray-900">
-                    {stage.revisions_used || 0}/{stage.revisions_included || 2}
+                    {stage.revisions_used || 0}/{totalRevisions}
                   </p>
                   {!readOnly && revisionsRemaining > 0 && (
                     <button
@@ -872,9 +887,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               {stage.stage_number !== 0 && (
                 <div className="flex items-center justify-end gap-2">
                   <div className="text-sm font-semibold" style={{
-                    color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used === stage.revisions_included ? '#ef4444' : '#f59e0b'
+                    color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used >= totalRevisions ? '#ef4444' : '#f59e0b'
                   }}>
-                    Revisions: {stage.revisions_used}/{stage.revisions_included}
+                    Revisions: {stage.revisions_used}/{totalRevisions}
                   </div>
                   {!readOnly && revisionsRemaining > 0 && (
                     <button
@@ -981,7 +996,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               </div>
 
               <p className="text-center text-sm text-gray-600 mb-4">
-                Revisions remaining: <strong className={revisionsRemaining === 0 ? 'text-red-600' : revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining}/{stage.revisions_included}</strong>
+                Revisions remaining: <strong className={revisionsRemaining === 0 ? 'text-red-600' : revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining}/{totalRevisions}</strong>
               </p>
             </>
           )}
@@ -996,7 +1011,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
               <div className="bg-orange-50 border border-orange-300 rounded-lg p-4 text-center">
                 <p className="text-orange-800 font-semibold mb-2">
-                  All included revisions used ({stage.revisions_used}/{stage.revisions_included})
+                  All included revisions used ({stage.revisions_used}/{totalRevisions})
                 </p>
                 <p className="text-orange-700 text-sm mb-3">
                   Need more changes? Purchase an extra revision to get one additional revision beyond what's included.
@@ -1298,7 +1313,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </div>
 
             <p className="text-gray-600 mb-4">
-              You have <strong className={revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining} of {stage.revisions_included}</strong> revisions remaining for this stage.
+              You have <strong className={revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining} of {totalRevisions}</strong> revisions remaining for this stage.
             </p>
 
             <div className="mb-6">
