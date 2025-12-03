@@ -1,9 +1,9 @@
 // api/stripe/create-extension-payment.js
-import Stripe from 'stripe';
+const Stripe = require('stripe');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -64,8 +64,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Freelancer has not connected Stripe' });
     }
 
-    // Create Stripe payment link for extension
-    const paymentLink = await stripe.paymentLinks.create({
+    // Create Stripe Checkout Session for extension
+    // This properly transfers metadata to the Payment Intent
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
       line_items: [{
         price_data: {
           currency: project.currency?.toLowerCase() || 'usd',
@@ -77,28 +79,34 @@ export default async function handler(req, res) {
         },
         quantity: 1,
       }],
-      application_fee_amount: 0, // Zero fees
-      on_behalf_of: freelancer.stripe_account_id,
-      transfer_data: {
-        destination: freelancer.stripe_account_id,
-      },
+      // CRITICAL: This metadata goes to the Checkout Session
       metadata: {
         type: 'extension',
         stage_id: stageId,
         project_id: project.id,
         amount: amount.toString(),
       },
-      after_completion: {
-        type: 'redirect',
-        redirect: {
-          url: `${process.env.VITE_APP_URL}/client/${project.share_code}?payment=success`,
+      // CRITICAL: This metadata goes to the Payment Intent!
+      payment_intent_data: {
+        application_fee_amount: 0, // Zero fees
+        on_behalf_of: freelancer.stripe_account_id,
+        transfer_data: {
+          destination: freelancer.stripe_account_id,
+        },
+        metadata: {
+          type: 'extension',
+          stage_id: stageId,
+          project_id: project.id,
+          amount: amount.toString(),
         },
       },
+      success_url: `${process.env.VITE_APP_URL}/client/${project.share_code}?extension_payment=success&stage=${stageId}`,
+      cancel_url: `${process.env.VITE_APP_URL}/client/${project.share_code}?extension_payment=cancelled`,
     });
 
     return res.status(200).json({
-      paymentUrl: paymentLink.url,
-      paymentLinkId: paymentLink.id,
+      paymentUrl: session.url,
+      sessionId: session.id,
     });
 
   } catch (error) {
@@ -108,3 +116,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+module.exports = handler;
