@@ -6,13 +6,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Disable body parsing, need raw body for webhook signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Helper to get raw body
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -27,7 +20,8 @@ async function getRawBody(req) {
   });
 }
 
-module.exports = async (req, res) => {
+// Main handler
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -36,6 +30,7 @@ module.exports = async (req, res) => {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!sig || !webhookSecret) {
+    console.error('[Webhook] Missing signature or webhook secret');
     return res.status(400).json({ error: 'Missing signature or webhook secret' });
   }
 
@@ -51,7 +46,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
-    console.log('[Webhook] Signature verified. Event type:', event.type);
+    console.log('[Webhook] ✅ Signature verified. Event type:', event.type);
 
     // Handle payment_intent.succeeded
     if (event.type === 'payment_intent.succeeded') {
@@ -60,14 +55,19 @@ module.exports = async (req, res) => {
       const projectId = paymentIntent.metadata?.project_id;
       const paymentType = paymentIntent.metadata?.type;
 
-      console.log('[Webhook] Payment succeeded:', { stageId, projectId, type: paymentType });
+      console.log('[Webhook] Payment succeeded:', { 
+        stageId, 
+        projectId, 
+        type: paymentType,
+        amount: paymentIntent.amount / 100
+      });
 
       // Handle extension payment
       if (paymentType === 'extension' && stageId) {
         console.log('[Webhook] Processing extension payment...');
         
         // Create extension record
-        const { error: extensionError } = await supabaseAdmin
+        const { data: extensionData, error: extensionError } = await supabaseAdmin
           .from('extensions')
           .insert({
             stage_id: stageId,
@@ -76,25 +76,31 @@ module.exports = async (req, res) => {
             payment_received_at: new Date().toISOString(),
             additional_revisions: 1,
             stripe_payment_intent_id: paymentIntent.id,
-          });
+          })
+          .select()
+          .single();
 
         if (extensionError) {
           console.error('[Webhook] Extension insert failed:', extensionError);
           return res.status(500).json({ error: 'Failed to create extension record' });
         }
 
-        console.log('[Webhook] Extension payment recorded');
+        console.log('[Webhook] ✅ Extension payment recorded:', extensionData?.id);
 
         // Get stage and project info for notification
-        const { data: stage } = await supabaseAdmin
+        const { data: stage, error: stageError } = await supabaseAdmin
           .from('stages')
           .select('name, stage_number, projects(id, user_id, project_name, client_name)')
           .eq('id', stageId)
           .single();
 
+        if (stageError) {
+          console.error('[Webhook] Error fetching stage:', stageError);
+        }
+
         if (stage && stage.projects) {
           // Create notification for freelancer
-          await supabaseAdmin
+          const { error: notifError } = await supabaseAdmin
             .from('notifications')
             .insert({
               project_id: stage.projects.id,
@@ -104,14 +110,20 @@ module.exports = async (req, res) => {
               is_read: false,
             });
 
-          console.log('[Webhook] Notification created for extension purchase');
+          if (notifError) {
+            console.error('[Webhook] Notification insert failed:', notifError);
+          } else {
+            console.log('[Webhook] ✅ Notification created for extension purchase');
+          }
         }
 
-        return res.status(200).json({ received: true });
+        return res.status(200).json({ received: true, type: 'extension' });
       }
 
       // Handle stage payment
       if (stageId && projectId && !paymentType) {
+        console.log('[Webhook] Processing stage payment...');
+
         // Update stage to completed
         const { data: updatedStage, error: updateError } = await supabaseAdmin
           .from('stages')
@@ -129,11 +141,11 @@ module.exports = async (req, res) => {
           return res.status(500).json({ error: 'Failed to update stage' });
         }
 
-        console.log('[Webhook] Stage updated to completed');
+        console.log('[Webhook] ✅ Stage updated to completed');
 
         // Create notification for stage payment
         if (updatedStage && updatedStage.projects) {
-          await supabaseAdmin
+          const { error: notifError } = await supabaseAdmin
             .from('notifications')
             .insert({
               project_id: projectId,
@@ -143,7 +155,11 @@ module.exports = async (req, res) => {
               is_read: false,
             });
 
-          console.log('[Webhook] Notification created for stage payment');
+          if (notifError) {
+            console.error('[Webhook] Notification insert failed:', notifError);
+          } else {
+            console.log('[Webhook] ✅ Notification created for stage payment');
+          }
         }
 
         // Get all stages to unlock next one
@@ -164,9 +180,11 @@ module.exports = async (req, res) => {
               .update({ status: 'active' })
               .eq('id', nextStage.id);
             
-            console.log('[Webhook] Unlocked next stage');
+            console.log('[Webhook] ✅ Unlocked next stage:', nextStage.id);
           }
         }
+
+        return res.status(200).json({ received: true, type: 'stage_payment' });
       }
     }
 
@@ -186,7 +204,7 @@ module.exports = async (req, res) => {
           })
           .eq('id', userId);
         
-        console.log('[Webhook] Updated user profile');
+        console.log('[Webhook] ✅ Updated user profile for Stripe Connect');
       }
     }
 
@@ -197,4 +215,12 @@ module.exports = async (req, res) => {
       error: error.message 
     });
   }
+}
+
+// Vercel serverless config (CommonJS style)
+module.exports = handler;
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
 };
