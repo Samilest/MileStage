@@ -23,6 +23,7 @@ export default function ExtensionPurchaseModal({
   onClose,
 }: ExtensionPurchaseModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [creatingStripePayment, setCreatingStripePayment] = useState(false);
   const [referenceCode] = useState(() => {
     const timestamp = Date.now().toString(36).toUpperCase();
     return `EXT-${stageId.slice(0, 8).toUpperCase()}-${timestamp}`;
@@ -49,6 +50,44 @@ export default function ExtensionPurchaseModal({
       alert('Failed to mark payment: ' + (error?.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleStripePayment = async () => {
+    setCreatingStripePayment(true);
+    try {
+      // Create Stripe payment intent for extension
+      const response = await fetch('/api/stripe/create-extension-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stageId: stageId,
+          amount: extensionPrice,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment');
+      }
+
+      const result = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (result.paymentUrl) {
+        // Redirect to Stripe payment page
+        window.location.href = result.paymentUrl;
+      }
+    } catch (error: any) {
+      console.error('Error creating Stripe payment:', error);
+      alert(`Failed to create payment: ${error.message || 'Please try again'}`);
+    } finally {
+      setCreatingStripePayment(false);
     }
   };
 
@@ -129,19 +168,31 @@ export default function ExtensionPurchaseModal({
         </div>
 
         <div className="space-y-3">
-          <p className="text-sm text-gray-600">
-            After paying the freelancer, click below to notify them:
-          </p>
+          <button
+            onClick={handleStripePayment}
+            disabled={creatingStripePayment || isSubmitting}
+            className="w-full bg-green-500 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {creatingStripePayment ? (
+              'Creating Payment...'
+            ) : (
+              <>
+                💳 Pay ${extensionPrice} with Card
+              </>
+            )}
+          </button>
+          
           <button
             onClick={handleMarkExtensionPaid}
-            disabled={isSubmitting}
-            className="w-full bg-green-500 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isSubmitting || creatingStripePayment}
+            className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Processing...' : "✅ I've Paid - Mark Extra Revision Payment Sent"}
+            {isSubmitting ? 'Processing...' : "Pay Offline Instead"}
           </button>
+          
           <button
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || creatingStripePayment}
             className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
           >
             Cancel
