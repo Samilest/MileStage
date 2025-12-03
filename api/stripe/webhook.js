@@ -51,17 +51,67 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
-    console.log('[Webhook] ✅ Signature verified. Event type:', event.type);
+    console.log('[Webhook] Signature verified. Event type:', event.type);
 
     // Handle payment_intent.succeeded
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;
       const stageId = paymentIntent.metadata?.stage_id;
       const projectId = paymentIntent.metadata?.project_id;
+      const paymentType = paymentIntent.metadata?.type;
 
-      console.log('[Webhook] 💰 Payment succeeded:', { stageId, projectId });
+      console.log('[Webhook] Payment succeeded:', { stageId, projectId, type: paymentType });
 
-      if (stageId && projectId) {
+      // Handle extension payment
+      if (paymentType === 'extension' && stageId) {
+        console.log('[Webhook] Processing extension payment...');
+        
+        // Create extension record
+        const { error: extensionError } = await supabaseAdmin
+          .from('extensions')
+          .insert({
+            stage_id: stageId,
+            amount: paymentIntent.amount / 100,
+            status: 'paid',
+            payment_received_at: new Date().toISOString(),
+            additional_revisions: 1,
+            stripe_payment_intent_id: paymentIntent.id,
+          });
+
+        if (extensionError) {
+          console.error('[Webhook] Extension insert failed:', extensionError);
+          return res.status(500).json({ error: 'Failed to create extension record' });
+        }
+
+        console.log('[Webhook] Extension payment recorded');
+
+        // Get stage and project info for notification
+        const { data: stage } = await supabaseAdmin
+          .from('stages')
+          .select('name, stage_number, projects(id, user_id, project_name, client_name)')
+          .eq('id', stageId)
+          .single();
+
+        if (stage && stage.projects) {
+          // Create notification for freelancer
+          await supabaseAdmin
+            .from('notifications')
+            .insert({
+              project_id: stage.projects.id,
+              stage_id: stageId,
+              type: 'extension_purchased',
+              message: `${stage.projects.client_name} purchased an extra revision for ${stage.name}`,
+              is_read: false,
+            });
+
+          console.log('[Webhook] Notification created for extension purchase');
+        }
+
+        return res.status(200).json({ received: true });
+      }
+
+      // Handle stage payment
+      if (stageId && projectId && !paymentType) {
         // Update stage to completed
         const { data: updatedStage, error: updateError } = await supabaseAdmin
           .from('stages')
@@ -71,15 +121,30 @@ module.exports = async (req, res) => {
             status: 'completed'
           })
           .eq('id', stageId)
-          .select('stage_number')
+          .select('stage_number, name, projects(project_name, client_name)')
           .single();
 
         if (updateError) {
-          console.error('[Webhook] ❌ Update failed:', updateError);
+          console.error('[Webhook] Update failed:', updateError);
           return res.status(500).json({ error: 'Failed to update stage' });
         }
 
-        console.log('[Webhook] ✅ Stage updated to completed');
+        console.log('[Webhook] Stage updated to completed');
+
+        // Create notification for stage payment
+        if (updatedStage && updatedStage.projects) {
+          await supabaseAdmin
+            .from('notifications')
+            .insert({
+              project_id: projectId,
+              stage_id: stageId,
+              type: 'payment_received',
+              message: `${updatedStage.projects.client_name} paid for ${updatedStage.name}`,
+              is_read: false,
+            });
+
+          console.log('[Webhook] Notification created for stage payment');
+        }
 
         // Get all stages to unlock next one
         const { data: stages } = await supabaseAdmin
@@ -99,7 +164,7 @@ module.exports = async (req, res) => {
               .update({ status: 'active' })
               .eq('id', nextStage.id);
             
-            console.log('[Webhook] 🔓 Unlocked next stage');
+            console.log('[Webhook] Unlocked next stage');
           }
         }
       }
@@ -121,13 +186,13 @@ module.exports = async (req, res) => {
           })
           .eq('id', userId);
         
-        console.log('[Webhook] ✅ Updated user profile');
+        console.log('[Webhook] Updated user profile');
       }
     }
 
     return res.status(200).json({ received: true });
   } catch (error) {
-    console.error('[Webhook] ❌ Error:', error);
+    console.error('[Webhook] Error:', error);
     return res.status(500).json({ 
       error: error.message 
     });
