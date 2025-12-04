@@ -18,6 +18,15 @@ export default function ResetPassword() {
   useEffect(() => {
     const hash = window.location.hash;
     
+    // Check for error in URL first
+    if (hash.includes('error=')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const errorDesc = params.get('error_description');
+      setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
+      setInitializing(false);
+      return;
+    }
+    
     // Check if we have recovery tokens in hash
     if (hash.includes('access_token') && hash.includes('type=recovery')) {
       const params = new URLSearchParams(hash.substring(1));
@@ -25,28 +34,29 @@ export default function ResetPassword() {
       const refreshToken = params.get('refresh_token');
 
       if (accessToken && refreshToken) {
-        // Set the session with recovery tokens
         supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(({ data: { session }, error: sessionError }) => {
+          .then(({ data, error: sessionError }) => {
             if (sessionError) {
-              console.error('[ResetPassword] Session error:', sessionError);
               setError('Invalid or expired reset link.');
-            } else if (session) {
-              // Clear hash from URL
+            } else if (data.session) {
               window.history.replaceState(null, '', window.location.pathname);
               setIsReady(true);
             } else {
               setError('Invalid or expired reset link.');
             }
             setInitializing(false);
+          })
+          .catch(() => {
+            setError('Invalid or expired reset link.');
+            setInitializing(false);
           });
         return;
       }
     }
 
-    // No tokens in URL - check if already have session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // No tokens - check existing session
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
         setIsReady(true);
       } else {
         setError('Invalid or expired reset link.');
@@ -73,13 +83,11 @@ export default function ResetPassword() {
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
-
       if (updateError) throw updateError;
 
       await supabase.auth.signOut();
       setIsSuccess(true);
     } catch (err: any) {
-      console.error('[ResetPassword] Error:', err);
       setError(err.message || 'Failed to update password');
     } finally {
       setIsLoading(false);
@@ -106,7 +114,7 @@ export default function ResetPassword() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
-          <h1 className="text-2xl font-bold text-black mb-4">Invalid Reset Link</h1>
+          <h1 className="text-2xl font-bold text-black mb-4">Link Expired</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/forgot-password')}
@@ -205,7 +213,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50"
           >
             {isLoading ? 'Updating...' : 'Update Password'}
           </button>
