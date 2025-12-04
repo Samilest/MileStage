@@ -36,55 +36,51 @@ function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Load session on app start
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-        });
-      }
-      setReady(true);
-    });
-
-    // Listen for auth changes
+    // Use onAuthStateChange - it fires INITIAL_SESSION immediately with cached session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[App] Auth event:', event);
+        
+        if (session?.user) {
           const { id, email, user_metadata } = session.user;
-
-          // Ensure user profile exists
-          const { data: existing } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', id)
-            .maybeSingle();
-
-          if (!existing) {
-            await supabase.from('user_profiles').insert({
-              id,
-              email: email || '',
-              name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
-              subscription_tier: 'free',
-            });
-          }
-
+          
           setUser({
             id,
             email: email || '',
             name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
           });
+
+          // Create profile if needed (only on SIGNED_IN, not INITIAL_SESSION)
+          if (event === 'SIGNED_IN') {
+            const { data: existing } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('id', id)
+              .maybeSingle();
+
+            if (!existing) {
+              await supabase.from('user_profiles').insert({
+                id,
+                email: email || '',
+                name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
+                subscription_tier: 'free',
+              });
+            }
+          }
         } else if (event === 'SIGNED_OUT') {
           clearUser();
+        }
+        
+        // Ready after first event (INITIAL_SESSION)
+        if (!ready) {
+          setReady(true);
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [setUser, clearUser]);
+  }, []);
 
-  // Don't render routes until we've checked session
   if (!ready) {
     return <LoadingFallback />;
   }
@@ -93,7 +89,6 @@ function App() {
     <BrowserRouter>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {/* Public routes - no auth required */}
           <Route path="/portal/:shareCode" element={<ClientPortal />} />
           <Route path="/project/:shareCode" element={<ClientPortal />} />
           <Route path="/client/:shareCode" element={<ClientPortal />} />
@@ -103,12 +98,10 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Auth routes */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
 
-          {/* Protected routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><TemplateSelection /></ProtectedRoute>} />
           <Route path="/new-project" element={<ProtectedRoute><NewProject /></ProtectedRoute>} />
