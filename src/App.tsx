@@ -33,10 +33,12 @@ function LoadingFallback() {
 function App() {
   const setUser = useStore((state) => state.setUser);
   const clearUser = useStore((state) => state.clearUser);
+  const user = useStore((state) => state.user);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Use onAuthStateChange - it fires INITIAL_SESSION immediately with cached session
+    let handled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('[App] Auth event:', event);
@@ -50,7 +52,6 @@ function App() {
             name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
           });
 
-          // Create profile if needed (only on SIGNED_IN, not INITIAL_SESSION)
           if (event === 'SIGNED_IN') {
             const { data: existing } = await supabase
               .from('user_profiles')
@@ -71,14 +72,26 @@ function App() {
           clearUser();
         }
         
-        // Ready after first event (INITIAL_SESSION)
-        if (!ready) {
+        if (!handled) {
+          handled = true;
           setReady(true);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Fallback: if no auth event fires within 2 seconds, set ready anyway
+    const timeout = setTimeout(() => {
+      if (!handled) {
+        handled = true;
+        console.log('[App] Timeout - setting ready');
+        setReady(true);
+      }
+    }, 2000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   if (!ready) {
