@@ -30,136 +30,100 @@ function LoadingFallback() {
   );
 }
 
-// Auth callback handler component
-function AuthCallback() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const setUser = useStore((state) => state.setUser);
-  const [isProcessing, setIsProcessing] = useState(true);
-
-  useEffect(() => {
-    const handleAuthCallback = async () => {
-      console.log('[AuthCallback] Processing auth callback...');
-      console.log('[AuthCallback] Hash:', location.hash);
-      console.log('[AuthCallback] Search:', location.search);
-
-      try {
-        // Check for recovery token (password reset)
-        const hashParams = new URLSearchParams(location.hash.substring(1));
-        const type = hashParams.get('type');
-        
-        if (type === 'recovery') {
-          console.log('[AuthCallback] Recovery token detected, redirecting to reset-password');
-          // Keep the hash fragment for the reset password page
-          navigate('/reset-password' + location.hash, { replace: true });
-          return;
-        }
-
-        // For OAuth callbacks, get the session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[AuthCallback] Error getting session:', error);
-          navigate('/login', { replace: true });
-          return;
-        }
-
-        if (session?.user) {
-          console.log('[AuthCallback] Session found, user:', session.user.email);
-          
-          // Ensure user profile exists
-          const userId = session.user.id;
-          const userEmail = session.user.email || '';
-          const userName = session.user.user_metadata?.name || 
-                          session.user.user_metadata?.full_name || 
-                          session.user.email?.split('@')[0] || 'User';
-
-          // Check/create user profile
-          const { data: existingProfile } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (!existingProfile) {
-            await supabase
-              .from('user_profiles')
-              .insert({
-                id: userId,
-                email: userEmail,
-                name: userName,
-                subscription_tier: 'free',
-              });
-          }
-
-          // Set user in store
-          setUser({
-            id: userId,
-            email: userEmail,
-            name: userName,
-          });
-
-          console.log('[AuthCallback] Redirecting to dashboard...');
-          navigate('/dashboard', { replace: true });
-        } else {
-          console.log('[AuthCallback] No session found');
-          navigate('/login', { replace: true });
-        }
-      } catch (err) {
-        console.error('[AuthCallback] Error:', err);
-        navigate('/login', { replace: true });
-      } finally {
-        setIsProcessing(false);
-      }
-    };
-
-    handleAuthCallback();
-  }, [location, navigate, setUser]);
-
-  if (isProcessing) {
-    return <LoadingFallback />;
-  }
-
-  return null;
-}
-
 function AppRoutes() {
   const setUser = useStore((state) => state.setUser);
   const clearUser = useStore((state) => state.clearUser);
-  const user = useStore((state) => state.user);
   const [isInitialized, setIsInitialized] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeAuth = async () => {
       console.log('[App] Initializing auth...');
       console.log('[App] Current path:', location.pathname);
       console.log('[App] Hash:', location.hash);
 
-      // Check for recovery token in hash (password reset link)
-      if (location.hash.includes('type=recovery')) {
-        console.log('[App] Recovery token detected in hash');
-        navigate('/reset-password' + location.hash, { replace: true });
-        setIsInitialized(true);
-        return;
-      }
-
-      // Check for access_token in hash (OAuth callback)
-      if (location.hash.includes('access_token')) {
-        console.log('[App] Access token detected in hash, processing OAuth callback...');
-        
-        // Let Supabase process the hash
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[App] OAuth callback error:', error);
-          setIsInitialized(true);
+      try {
+        // Check for recovery token in hash (password reset link)
+        if (location.hash.includes('type=recovery')) {
+          console.log('[App] Recovery token detected, redirecting to reset-password');
+          if (isMounted) {
+            setIsInitialized(true);
+            navigate('/reset-password' + location.hash, { replace: true });
+          }
           return;
         }
 
+        // Check for access_token in hash (OAuth callback)
+        if (location.hash.includes('access_token')) {
+          console.log('[App] Access token detected, processing OAuth...');
+          
+          // Give Supabase a moment to process the hash
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error('[App] OAuth error:', error);
+            if (isMounted) setIsInitialized(true);
+            return;
+          }
+
+          if (session?.user) {
+            console.log('[App] OAuth session found:', session.user.email);
+            
+            const userId = session.user.id;
+            const userEmail = session.user.email || '';
+            const userName = session.user.user_metadata?.name || 
+                            session.user.user_metadata?.full_name || 
+                            session.user.email?.split('@')[0] || 'User';
+
+            // Ensure user profile exists
+            try {
+              const { data: existingProfile } = await supabase
+                .from('user_profiles')
+                .select('id')
+                .eq('id', userId)
+                .maybeSingle();
+
+              if (!existingProfile) {
+                await supabase
+                  .from('user_profiles')
+                  .insert({
+                    id: userId,
+                    email: userEmail,
+                    name: userName,
+                    subscription_tier: 'free',
+                  });
+              }
+            } catch (profileError) {
+              console.error('[App] Profile error:', profileError);
+            }
+
+            if (isMounted) {
+              setUser({
+                id: userId,
+                email: userEmail,
+                name: userName,
+              });
+
+              // Clear hash and redirect
+              window.history.replaceState(null, '', '/dashboard');
+              navigate('/dashboard', { replace: true });
+            }
+          }
+          
+          if (isMounted) setIsInitialized(true);
+          return;
+        }
+
+        // Normal session check
+        const { data: { session } } = await supabase.auth.getSession();
+        
         if (session?.user) {
-          console.log('[App] OAuth session found:', session.user.email);
+          console.log('[App] Existing session found:', session.user.email);
           
           const userId = session.user.id;
           const userEmail = session.user.email || '';
@@ -167,60 +131,26 @@ function AppRoutes() {
                           session.user.user_metadata?.full_name || 
                           session.user.email?.split('@')[0] || 'User';
 
-          // Ensure user profile exists
-          const { data: existingProfile } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (!existingProfile) {
-            await supabase
-              .from('user_profiles')
-              .insert({
-                id: userId,
-                email: userEmail,
-                name: userName,
-                subscription_tier: 'free',
-              });
+          if (isMounted) {
+            setUser({
+              id: userId,
+              email: userEmail,
+              name: userName,
+            });
           }
+        } else {
+          console.log('[App] No existing session');
+        }
 
-          setUser({
-            id: userId,
-            email: userEmail,
-            name: userName,
-          });
-
-          // Clear the hash and redirect to dashboard
-          window.history.replaceState(null, '', location.pathname);
-          navigate('/dashboard', { replace: true });
+      } catch (error) {
+        console.error('[App] Init error:', error);
+      } finally {
+        // ALWAYS set initialized to true
+        if (isMounted) {
+          console.log('[App] Setting initialized to true');
           setIsInitialized(true);
-          return;
         }
       }
-
-      // Normal session check
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        console.log('[App] Existing session found:', session.user.email);
-        
-        const userId = session.user.id;
-        const userEmail = session.user.email || '';
-        const userName = session.user.user_metadata?.name || 
-                        session.user.user_metadata?.full_name || 
-                        session.user.email?.split('@')[0] || 'User';
-
-        setUser({
-          id: userId,
-          email: userEmail,
-          name: userName,
-        });
-      } else {
-        console.log('[App] No existing session');
-      }
-
-      setIsInitialized(true);
     };
 
     initializeAuth();
@@ -238,50 +168,60 @@ function AppRoutes() {
                           session.user.email?.split('@')[0] || 'User';
 
           // Ensure user profile exists
-          const { data: existingProfile } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (!existingProfile) {
-            await supabase
+          try {
+            const { data: existingProfile } = await supabase
               .from('user_profiles')
-              .insert({
-                id: userId,
-                email: userEmail,
-                name: userName,
-                subscription_tier: 'free',
-              });
+              .select('id')
+              .eq('id', userId)
+              .maybeSingle();
+
+            if (!existingProfile) {
+              await supabase
+                .from('user_profiles')
+                .insert({
+                  id: userId,
+                  email: userEmail,
+                  name: userName,
+                  subscription_tier: 'free',
+                });
+            }
+          } catch (err) {
+            console.error('[App] Profile creation error:', err);
           }
 
-          setUser({
-            id: userId,
-            email: userEmail,
-            name: userName,
-          });
+          if (isMounted) {
+            setUser({
+              id: userId,
+              email: userEmail,
+              name: userName,
+            });
+          }
         } else if (event === 'SIGNED_OUT') {
-          // Don't clear user if we're on reset-password page (password recovery flow)
-          if (!window.location.pathname.includes('reset-password')) {
+          // Don't clear user if on reset-password page
+          const isOnResetPage = window.location.pathname.includes('reset-password');
+          if (!isOnResetPage && isMounted) {
             clearUser();
           }
         } else if (event === 'PASSWORD_RECOVERY') {
-          console.log('[App] Password recovery event - user is resetting password');
-          // Don't redirect - user should already be on /reset-password
-          // Just log for debugging
+          console.log('[App] Password recovery event');
+          // Don't navigate - user handles this on ResetPassword page
         }
       }
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array - run once on mount
 
   // Show loading while initializing auth
   if (!isInitialized) {
+    console.log('[App] Not initialized yet, showing loading...');
     return <LoadingFallback />;
   }
+
+  console.log('[App] Rendering routes');
 
   return (
     <Suspense fallback={<LoadingFallback />}>
@@ -293,9 +233,6 @@ function AppRoutes() {
         <Route path="/projects/:shareCode/client" element={<ClientView />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
-
-        {/* Auth callback route */}
-        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Password reset routes - accessible without login */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
