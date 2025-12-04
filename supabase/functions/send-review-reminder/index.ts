@@ -47,7 +47,7 @@ serve(async (req) => {
     const formattedAmount = formatAmount(amount, currency || 'USD')
     const portalLink = `https://milestage.com/client/${share_code}`
 
-    // Send email via Resend using NEW TEMPLATE
+    // Send email via Resend
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -65,6 +65,26 @@ serve(async (req) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Work Ready for Review</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .desktop-header {
+                display: none !important;
+            }
+            .mobile-header {
+                display: block !important;
+            }
+            .mobile-logo {
+                height: 32px !important;
+                margin-bottom: 16px !important;
+            }
+            .mobile-title {
+                font-size: 20px !important;
+            }
+        }
+        .mobile-header {
+            display: none;
+        }
+    </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
@@ -75,18 +95,27 @@ serve(async (req) => {
                     <!-- Header -->
                     <tr>
                         <td style="background-color: #10B981; padding: 32px 40px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
+                            <!-- Desktop Layout -->
+                            <table width="100%" cellpadding="0" cellspacing="0" class="desktop-header">
                                 <tr>
                                     <td width="180" style="vertical-align: middle;">
                                         <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" style="height: 40px; display: block;" />
                                     </td>
                                     <td align="right" style="vertical-align: middle;">
                                         <div style="font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1.2;">
-                                            📋 Work Ready for Review
+                                            Work Ready for Review
                                         </div>
                                     </td>
                                 </tr>
                             </table>
+                            
+                            <!-- Mobile Layout -->
+                            <div class="mobile-header" style="text-align: center;">
+                                <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 32px; display: block; margin: 0 auto 16px auto;" />
+                                <div class="mobile-title" style="font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1.3;">
+                                    Work Ready for Review
+                                </div>
+                            </div>
                         </td>
                     </tr>
 
@@ -139,7 +168,7 @@ serve(async (req) => {
                                 <tr>
                                     <td align="center" style="padding: 8px 0 32px 0;">
                                         <a href="${portalLink}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
-                                            Review Work →
+                                            Review Work
                                         </a>
                                     </td>
                                 </tr>
@@ -168,7 +197,7 @@ serve(async (req) => {
                             </div>
                             
                             <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
-                                This email was sent by ${freelancer_name} through MileStage, a milestone payment tracker for freelancers.
+                                This email was sent by ${freelancer_name} through MileStage.
                                 <br/>
                                 <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Learn more about MileStage</a>
                             </div>

@@ -1,40 +1,28 @@
-import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useStore } from '../store/useStore';
 
 interface PublicRouteProps {
   children: React.ReactNode;
 }
 
 export default function PublicRoute({ children }: PublicRouteProps) {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const user = useStore((state) => state.user);
+  const location = useLocation();
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  // Don't redirect if there's an OAuth callback in progress (hash contains tokens)
+  const hasAuthTokens = location.hash.includes('access_token') || 
+                        location.hash.includes('type=recovery') ||
+                        location.hash.includes('error=');
 
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session?.user);
-    } catch (error) {
-      console.error('Auth check error:', error);
-      setAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-secondary-bg flex items-center justify-center">
-        <div className="text-text-secondary">Loading...</div>
-      </div>
-    );
+  if (hasAuthTokens) {
+    console.log('[PublicRoute] Auth tokens detected in hash, allowing access');
+    // Return children and let App.tsx handle the token
+    return <>{children}</>;
   }
 
-  if (authenticated) {
+  // If user is logged in and no auth tokens, redirect to dashboard
+  if (user) {
+    console.log('[PublicRoute] User logged in, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
