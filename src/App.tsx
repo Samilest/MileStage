@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
@@ -33,9 +33,10 @@ function LoadingFallback() {
 function App() {
   const setUser = useStore((state) => state.setUser);
   const clearUser = useStore((state) => state.clearUser);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Check existing session on mount
+    // Load session on app start
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -44,6 +45,7 @@ function App() {
           name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
         });
       }
+      setReady(true);
     });
 
     // Listen for auth changes
@@ -81,6 +83,11 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, [setUser, clearUser]);
+
+  // Don't render routes until we've checked session
+  if (!ready) {
+    return <LoadingFallback />;
+  }
 
   return (
     <BrowserRouter>
