@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import Button from '../components/Button';
-import { retryOperation } from '../lib/errorHandling';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -28,7 +27,8 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          // Redirect back to /login - App.tsx AuthHandler will process the token and redirect to dashboard
+          redirectTo: `${window.location.origin}/login`,
         },
       });
       if (error) throw error;
@@ -45,25 +45,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await retryOperation(
-        async () => {
-          const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-          if (signInError) throw signInError;
-          return data;
-        },
-        3,
-        'login'
-      );
+      if (signInError) throw signInError;
 
-      if (result?.user) {
+      if (data?.user) {
         setUser({
-          id: result.user.id,
-          email: result.user.email || '',
-          name: result.user.user_metadata?.name || result.user.email?.split('@')[0] || 'User',
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
         });
         toast.success('Welcome back!');
         navigate('/dashboard');
@@ -73,7 +66,6 @@ export default function Login() {
         setError('Invalid email or password');
       } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
         setError('Connection error. Please check your internet and try again.');
-        toast.error('Connection lost. Please try again.');
       } else {
         setError('Unable to sign in. Please try again.');
         console.error('Login error:', err);
