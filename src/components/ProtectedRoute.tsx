@@ -1,10 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const user = useStore((state) => state.user);
 
-  // App.tsx already loaded the session, just check the store
   if (!user) {
     return <Navigate to="/login" replace />;
   }
