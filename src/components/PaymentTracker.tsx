@@ -36,6 +36,7 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [freelancerName, setFreelancerName] = useState<string>('Freelancer');
+  const [confirmStage, setConfirmStage] = useState<UnpaidStage | null>(null);
 
   useEffect(() => {
     fetchUnpaidStages();
@@ -206,55 +207,62 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   };
 
   const handleRemindClient = async (stage: UnpaidStage) => {
-    try {
-      // Check if limit reached
-      if (stage.reminder_count >= 3) {
-        toast.error('Reminder limit reached (3/3). Please contact client directly.');
+    // Check if limit reached
+    if (stage.reminder_count >= 3) {
+      toast.error('Reminder limit reached (3/3). Please contact client directly.');
+      return;
+    }
+
+    // Check 48 hour cooldown
+    if (stage.last_sent_at) {
+      const hoursSinceLastSend = (new Date().getTime() - new Date(stage.last_sent_at).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastSend < 48) {
+        const hoursRemaining = Math.ceil(48 - hoursSinceLastSend);
+        toast.error(`Please wait ${hoursRemaining} hours before sending another reminder.`);
         return;
       }
+    }
 
-      // Check 48 hour cooldown
-      if (stage.last_sent_at) {
-        const hoursSinceLastSend = (new Date().getTime() - new Date(stage.last_sent_at).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLastSend < 48) {
-          const hoursRemaining = Math.ceil(48 - hoursSinceLastSend);
-          toast.error(`Please wait ${hoursRemaining} hours before sending another reminder.`);
-          return;
-        }
-      }
+    // Open confirmation modal
+    setConfirmStage(stage);
+  };
 
-      setSendingReminder(stage.id);
+  const confirmSendReminder = async () => {
+    if (!confirmStage) return;
+
+    try {
+      setSendingReminder(confirmStage.id);
 
       // Call the appropriate function based on reminder type
-      const functionName = stage.reminder_type === 'review' 
+      const functionName = confirmStage.reminder_type === 'review' 
         ? 'send-review-reminder' 
         : 'send-payment-reminder';
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
-          to_email: stage.client_email,
-          client_name: stage.client_name,
-          project_name: stage.project_name,
-          stage_name: stage.name,
-          amount: stage.amount,
-          currency: stage.currency,
+          to_email: confirmStage.client_email,
+          client_name: confirmStage.client_name,
+          project_name: confirmStage.project_name,
+          stage_name: confirmStage.name,
+          amount: confirmStage.amount,
+          currency: confirmStage.currency,
           freelancer_name: freelancerName,
-          days_overdue: stage.days_since_action,
-          share_code: stage.share_code,
+          days_overdue: confirmStage.days_since_action,
+          share_code: confirmStage.share_code,
         },
       });
 
       if (error) throw error;
 
       // Update or insert reminder tracking
-      const newCount = stage.reminder_count + 1;
+      const newCount = confirmStage.reminder_count + 1;
       const { error: trackError } = await supabase
         .from('stage_reminders')
         .upsert({
-          stage_id: stage.id,
+          stage_id: confirmStage.id,
           reminder_count: newCount,
           last_sent_at: new Date().toISOString(),
-          reminder_type: stage.reminder_type,
+          reminder_type: confirmStage.reminder_type,
         }, {
           onConflict: 'stage_id'
         });
@@ -264,9 +272,10 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
         // Don't fail the whole operation if tracking fails
       }
 
-      toast.success(`Reminder sent to ${stage.client_name} (${newCount}/3 used)`);
+      toast.success(`Reminder sent to ${confirmStage.client_name} (${newCount}/3 used)`);
       
-      // Refresh the list
+      // Close modal and refresh
+      setConfirmStage(null);
       fetchUnpaidStages();
     } catch (error: any) {
       console.error('Error sending reminder:', error);
@@ -285,7 +294,8 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
   }
 
   return (
-    <Card className="border-2 border-orange-200 bg-orange-50">
+    <>
+      <Card className="border-2 border-orange-200 bg-orange-50">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between hover:bg-orange-100 transition-colors rounded-lg p-1 -m-1"
@@ -383,5 +393,87 @@ export default function PaymentTracker({ userId }: PaymentTrackerProps) {
       </div>
       )}
     </Card>
+
+    {/* Confirmation Modal */}
+    {confirmStage && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <Mail className="w-5 h-5 text-orange-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Send Reminder?</h3>
+          </div>
+
+          <div className="space-y-3 bg-gray-50 rounded-lg p-4">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-500">To:</span>
+              <div className="text-right">
+                <div className="font-medium text-gray-900">{confirmStage.client_name}</div>
+                <div className="text-sm text-gray-600">{confirmStage.client_email}</div>
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-500">Project:</span>
+              <div className="font-medium text-gray-900 text-right">{confirmStage.project_name}</div>
+            </div>
+            
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-500">Stage:</span>
+              <div className="font-medium text-gray-900 text-right">
+                Stage {confirmStage.stage_number}: {confirmStage.name}
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-500">Amount:</span>
+              <div className="text-lg font-bold text-gray-900">
+                {formatCurrency(confirmStage.amount, confirmStage.currency)}
+              </div>
+            </div>
+            
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-gray-500">Status:</span>
+              <div className="text-sm font-medium text-orange-600 text-right">
+                {confirmStage.status_text}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            This will send a {confirmStage.reminder_type === 'review' ? 'review' : 'payment'} reminder email to your client.
+          </p>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setConfirmStage(null)}
+              disabled={!!sendingReminder}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmSendReminder}
+              disabled={!!sendingReminder}
+              className="flex-1 px-4 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {sendingReminder ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Send Reminder
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
