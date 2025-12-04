@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -30,6 +30,56 @@ function LoadingFallback() {
   );
 }
 
+function AuthHandler() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setUser = useStore((state) => state.setUser);
+
+  useEffect(() => {
+    // Handle OAuth callback - check for access_token in hash
+    if (location.hash.includes('access_token') && !location.hash.includes('type=recovery')) {
+      console.log('[AuthHandler] OAuth callback detected');
+      
+      // Supabase automatically processes the hash, just get the session
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+          console.log('[AuthHandler] OAuth session found:', session.user.email);
+          
+          const userId = session.user.id;
+          const userEmail = session.user.email || '';
+          const userName = session.user.user_metadata?.name || 
+                          session.user.user_metadata?.full_name || 
+                          session.user.email?.split('@')[0] || 'User';
+
+          // Ensure user profile exists
+          const { data: existing } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from('user_profiles').insert({
+              id: userId,
+              email: userEmail,
+              name: userName,
+              subscription_tier: 'free',
+            });
+          }
+
+          setUser({ id: userId, email: userEmail, name: userName });
+          
+          // Clear hash and go to dashboard
+          window.history.replaceState(null, '', '/dashboard');
+          navigate('/dashboard', { replace: true });
+        }
+      });
+    }
+  }, [location.hash]);
+
+  return null;
+}
+
 function App() {
   const setUser = useStore((state) => state.setUser);
   const clearUser = useStore((state) => state.clearUser);
@@ -49,6 +99,8 @@ function App() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[App] Auth event:', event);
+        
         if (event === 'SIGNED_IN' && session?.user) {
           const userId = session.user.id;
           const userEmail = session.user.email || '';
@@ -82,6 +134,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AuthHandler />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/portal/:shareCode" element={<ClientPortal />} />

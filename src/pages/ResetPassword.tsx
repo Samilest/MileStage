@@ -16,21 +16,25 @@ export default function ResetPassword() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Check if we have a recovery token in the hash
-    const hash = location.hash;
-    if (hash.includes('type=recovery') && hash.includes('access_token')) {
-      // Token exists, user can reset password
-      setIsReady(true);
-    } else {
-      // No token, check if there's an active session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          setIsReady(true);
-        } else {
-          setError('Invalid or expired reset link.');
-        }
-      });
-    }
+    // Listen for PASSWORD_RECOVERY event from Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[ResetPassword] Auth event:', event);
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setIsReady(true);
+      }
+    });
+
+    // Also check if we already have a session (user clicked link and Supabase processed it)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsReady(true);
+      } else if (!location.hash.includes('access_token')) {
+        // No session and no token in URL
+        setError('Invalid or expired reset link.');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,20 +54,21 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await supabase.auth.updateUser({ password });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
+      // Sign out and show success
       await supabase.auth.signOut();
       setIsSuccess(true);
     } catch (err: any) {
+      console.error('[ResetPassword] Error:', err);
       setError(err.message || 'Failed to update password');
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Error state
+  // Error state (only show if not ready and has error)
   if (error && !isReady) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -100,6 +105,18 @@ export default function ResetPassword() {
           >
             Go to Login
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state while waiting for session
+  if (!isReady && location.hash.includes('access_token')) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+          <p className="text-gray-600">Verifying reset link...</p>
         </div>
       </div>
     );
@@ -170,7 +187,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isLoading || !isReady}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50"
+            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Updating...' : 'Update Password'}
           </button>
