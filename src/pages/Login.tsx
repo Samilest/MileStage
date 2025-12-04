@@ -27,8 +27,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Redirect back to /login - App.tsx AuthHandler will process the token and redirect to dashboard
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
       if (error) throw error;

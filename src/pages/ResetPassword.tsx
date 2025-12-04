@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,28 +13,47 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isReady, setIsReady] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event from Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[ResetPassword] Auth event:', event);
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-        setIsReady(true);
-      }
-    });
+    const hash = window.location.hash;
+    
+    // Check if we have recovery tokens in hash
+    if (hash.includes('access_token') && hash.includes('type=recovery')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
 
-    // Also check if we already have a session (user clicked link and Supabase processed it)
+      if (accessToken && refreshToken) {
+        // Set the session with recovery tokens
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ data: { session }, error: sessionError }) => {
+            if (sessionError) {
+              console.error('[ResetPassword] Session error:', sessionError);
+              setError('Invalid or expired reset link.');
+            } else if (session) {
+              // Clear hash from URL
+              window.history.replaceState(null, '', window.location.pathname);
+              setIsReady(true);
+            } else {
+              setError('Invalid or expired reset link.');
+            }
+            setInitializing(false);
+          });
+        return;
+      }
+    }
+
+    // No tokens in URL - check if already have session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsReady(true);
-      } else if (!location.hash.includes('access_token')) {
-        // No session and no token in URL
+      } else {
         setError('Invalid or expired reset link.');
       }
+      setInitializing(false);
     });
-
-    return () => subscription.unsubscribe();
-  }, [location]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,17 +76,29 @@ export default function ResetPassword() {
 
       if (updateError) throw updateError;
 
-      // Sign out and show success
       await supabase.auth.signOut();
       setIsSuccess(true);
     } catch (err: any) {
       console.error('[ResetPassword] Error:', err);
       setError(err.message || 'Failed to update password');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  // Error state (only show if not ready and has error)
+  // Initializing
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+          <p className="text-gray-600">Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
   if (error && !isReady) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -105,18 +135,6 @@ export default function ResetPassword() {
           >
             Go to Login
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state while waiting for session
-  if (!isReady && location.hash.includes('access_token')) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Verifying reset link...</p>
         </div>
       </div>
     );
@@ -186,7 +204,7 @@ export default function ResetPassword() {
 
           <button
             type="submit"
-            disabled={isLoading || !isReady}
+            disabled={isLoading}
             className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Updating...' : 'Update Password'}
