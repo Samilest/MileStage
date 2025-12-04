@@ -6,63 +6,30 @@ import { supabase } from '../lib/supabase';
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const user = useStore((state) => state.user);
   const setUser = useStore((state) => state.setUser);
-  const [checking, setChecking] = useState(!user);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      setChecking(false);
-      return;
+    // Clear hash if empty
+    if (window.location.hash === '#') {
+      window.history.replaceState(null, '', window.location.pathname);
     }
 
-    // Always check session first - Supabase may have already processed the hash
-    supabase.auth.getSession()
-      .then(({ data }) => {
-        if (data.session?.user) {
-          const { id, email, user_metadata } = data.session.user;
-          setUser({
-            id,
-            email: email || '',
-            name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
-          });
-          // Clear any hash
-          if (window.location.hash) {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-          setChecking(false);
-          return;
+    // Get session - Supabase auto-processes hash with detectSessionInUrl: true
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+        });
+        // Clear hash after processing
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname);
         }
-
-        // No session found - check if we have tokens to process
-        const hash = window.location.hash;
-        if (hash.includes('access_token') && !hash.includes('type=recovery')) {
-          const params = new URLSearchParams(hash.substring(1));
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-              .then(({ data: sessionData }) => {
-                if (sessionData.session?.user) {
-                  const { id, email, user_metadata } = sessionData.session.user;
-                  setUser({
-                    id,
-                    email: email || '',
-                    name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
-                  });
-                }
-                window.history.replaceState(null, '', window.location.pathname);
-                setChecking(false);
-              })
-              .catch(() => setChecking(false));
-            return;
-          }
-        }
-
-        // No session and no valid tokens
-        setChecking(false);
-      })
-      .catch(() => setChecking(false));
-  }, []);
+      }
+      setChecking(false);
+    });
+  }, [setUser]);
 
   if (checking) {
     return (
