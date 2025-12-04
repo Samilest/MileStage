@@ -855,7 +855,52 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       }`}
     >
       <div className={`${statusInfo.bgColor} px-4 sm:px-6 py-4 sm:py-6 border-b ${statusInfo.borderColor}`}>
-        <div className="flex items-center justify-between flex-wrap gap-4 sm:gap-6">
+        {/* Mobile Layout */}
+        <div className="flex sm:hidden flex-col gap-4">
+          {/* Top Row: Stage Title */}
+          <div className="flex items-center gap-3">
+            <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
+              <StatusIcon className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-lg font-bold ${
+                stage.status === 'locked' ? 'text-gray-600' : 'text-gray-900'
+              } truncate`}>
+                Stage {stage.stage_number}: {stage.name}
+              </h3>
+              <span className={`text-sm font-semibold ${statusInfo.color}`}>
+                {statusInfo.label}
+              </span>
+            </div>
+          </div>
+          
+          {/* Bottom Row: Status Badge Left, Amount + Revisions Right */}
+          <div className="flex items-center justify-between">
+            <span
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold ${paymentInfo.bgColor} ${paymentInfo.color} ${
+                stage.payment_status === 'pending' ? 'animate-pulse-slow' : ''
+              }`}
+            >
+              {paymentInfo.label}
+            </span>
+            <div className="text-right">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
+              <div className="text-2xl font-black text-gray-900">
+                {formatCurrency(stage.amount, currency)}
+              </div>
+              {stage.stage_number !== 0 && (
+                <div className="text-sm font-semibold" style={{
+                  color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used >= totalRevisions ? '#ef4444' : '#f59e0b'
+                }}>
+                  Revisions: {stage.revisions_used}/{totalRevisions}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout (unchanged) */}
+        <div className="hidden sm:flex items-center justify-between flex-wrap gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
               <StatusIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${statusInfo.color}`} />
