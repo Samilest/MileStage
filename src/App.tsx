@@ -7,6 +7,8 @@ import PublicRoute from './components/PublicRoute';
 
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Dashboard = lazy(() => import('./pages/DashboardNew')); // USING NEW FILE!
 const TemplateSelection = lazy(() => import('./pages/TemplateSelection'));
 const NewProject = lazy(() => import('./pages/NewProject'));
@@ -59,13 +61,37 @@ function App() {
       }
     };
 
+    // Check for existing session on mount (handles OAuth callback)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const userId = session.user.id;
+        const userEmail = session.user.email || '';
+        const userName = session.user.user_metadata?.name || 
+                         session.user.user_metadata?.full_name || 
+                         session.user.email?.split('@')[0] || 
+                         'User';
+
+        ensureUserProfile(userId, userEmail, userName).then(() => {
+          setUser({
+            id: userId,
+            email: userEmail,
+            name: userName,
+          });
+        });
+      }
+    });
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         (async () => {
           if (event === 'SIGNED_IN' && session?.user) {
             const userId = session.user.id;
             const userEmail = session.user.email || '';
-            const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+            const userName = session.user.user_metadata?.name || 
+                             session.user.user_metadata?.full_name || 
+                             session.user.email?.split('@')[0] || 
+                             'User';
 
             await ensureUserProfile(userId, userEmail, userName);
 
@@ -97,6 +123,10 @@ function App() {
           <Route path="/projects/:shareCode/client" element={<ClientView />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+
+          {/* Password reset routes (public) */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route
