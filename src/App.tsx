@@ -39,39 +39,36 @@ function AppRoutes() {
 
   useEffect(() => {
     let isMounted = true;
+    
+    // Safety timeout - initialize after 3 seconds no matter what
+    const timeout = setTimeout(() => {
+      if (isMounted && !isInitialized) {
+        console.log('[App] Timeout reached, forcing initialization');
+        setIsInitialized(true);
+      }
+    }, 3000);
 
     const initializeAuth = async () => {
       console.log('[App] Initializing auth...');
       console.log('[App] Current path:', location.pathname);
       console.log('[App] Hash:', location.hash);
 
-      try {
-        // Check for recovery token in hash (password reset link)
-        if (location.hash.includes('type=recovery')) {
-          console.log('[App] Recovery token detected, redirecting to reset-password');
-          if (isMounted) {
-            setIsInitialized(true);
-            navigate('/reset-password' + location.hash, { replace: true });
-          }
-          return;
-        }
+      // Check for recovery token in hash (password reset link)
+      if (location.hash.includes('type=recovery')) {
+        console.log('[App] Recovery token detected');
+        setIsInitialized(true);
+        navigate('/reset-password' + location.hash, { replace: true });
+        return;
+      }
 
-        // Check for access_token in hash (OAuth callback)
-        if (location.hash.includes('access_token')) {
-          console.log('[App] Access token detected, processing OAuth...');
-          
-          // Give Supabase a moment to process the hash
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
+      // Check for access_token in hash (OAuth callback)
+      if (location.hash.includes('access_token')) {
+        console.log('[App] Access token detected, processing OAuth...');
+        
+        try {
           const { data: { session }, error } = await supabase.auth.getSession();
           
-          if (error) {
-            console.error('[App] OAuth error:', error);
-            if (isMounted) setIsInitialized(true);
-            return;
-          }
-
-          if (session?.user) {
+          if (!error && session?.user) {
             console.log('[App] OAuth session found:', session.user.email);
             
             const userId = session.user.id;
@@ -81,94 +78,6 @@ function AppRoutes() {
                             session.user.email?.split('@')[0] || 'User';
 
             // Ensure user profile exists
-            try {
-              const { data: existingProfile } = await supabase
-                .from('user_profiles')
-                .select('id')
-                .eq('id', userId)
-                .maybeSingle();
-
-              if (!existingProfile) {
-                await supabase
-                  .from('user_profiles')
-                  .insert({
-                    id: userId,
-                    email: userEmail,
-                    name: userName,
-                    subscription_tier: 'free',
-                  });
-              }
-            } catch (profileError) {
-              console.error('[App] Profile error:', profileError);
-            }
-
-            if (isMounted) {
-              setUser({
-                id: userId,
-                email: userEmail,
-                name: userName,
-              });
-
-              // Clear hash and redirect
-              window.history.replaceState(null, '', '/dashboard');
-              navigate('/dashboard', { replace: true });
-            }
-          }
-          
-          if (isMounted) setIsInitialized(true);
-          return;
-        }
-
-        // Normal session check
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          console.log('[App] Existing session found:', session.user.email);
-          
-          const userId = session.user.id;
-          const userEmail = session.user.email || '';
-          const userName = session.user.user_metadata?.name || 
-                          session.user.user_metadata?.full_name || 
-                          session.user.email?.split('@')[0] || 'User';
-
-          if (isMounted) {
-            setUser({
-              id: userId,
-              email: userEmail,
-              name: userName,
-            });
-          }
-        } else {
-          console.log('[App] No existing session');
-        }
-
-      } catch (error) {
-        console.error('[App] Init error:', error);
-      } finally {
-        // ALWAYS set initialized to true
-        if (isMounted) {
-          console.log('[App] Setting initialized to true');
-          setIsInitialized(true);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[App] Auth state change:', event);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          const userId = session.user.id;
-          const userEmail = session.user.email || '';
-          const userName = session.user.user_metadata?.name || 
-                          session.user.user_metadata?.full_name ||
-                          session.user.email?.split('@')[0] || 'User';
-
-          // Ensure user profile exists
-          try {
             const { data: existingProfile } = await supabase
               .from('user_profiles')
               .select('id')
@@ -176,52 +85,101 @@ function AppRoutes() {
               .maybeSingle();
 
             if (!existingProfile) {
-              await supabase
-                .from('user_profiles')
-                .insert({
-                  id: userId,
-                  email: userEmail,
-                  name: userName,
-                  subscription_tier: 'free',
-                });
+              await supabase.from('user_profiles').insert({
+                id: userId,
+                email: userEmail,
+                name: userName,
+                subscription_tier: 'free',
+              });
             }
-          } catch (err) {
-            console.error('[App] Profile creation error:', err);
-          }
 
-          if (isMounted) {
-            setUser({
-              id: userId,
-              email: userEmail,
-              name: userName,
+            setUser({ id: userId, email: userEmail, name: userName });
+            window.history.replaceState(null, '', '/dashboard');
+            navigate('/dashboard', { replace: true });
+          }
+        } catch (err) {
+          console.error('[App] OAuth error:', err);
+        }
+        
+        if (isMounted) setIsInitialized(true);
+        return;
+      }
+
+      // Normal session check
+      try {
+        console.log('[App] Checking existing session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[App] Session check complete:', session ? 'found' : 'none');
+        
+        if (session?.user && isMounted) {
+          console.log('[App] User found:', session.user.email);
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || 
+                  session.user.user_metadata?.full_name || 
+                  session.user.email?.split('@')[0] || 'User',
+          });
+        }
+      } catch (error) {
+        console.error('[App] Session check error:', error);
+      }
+
+      if (isMounted) {
+        console.log('[App] Initialization complete');
+        setIsInitialized(true);
+      }
+    };
+
+    initializeAuth();
+
+    // Auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[App] Auth event:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          const { id, email, user_metadata } = session.user;
+          
+          // Ensure profile exists
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('id', id)
+            .maybeSingle();
+
+          if (!profile) {
+            await supabase.from('user_profiles').insert({
+              id,
+              email: email || '',
+              name: user_metadata?.name || email?.split('@')[0] || 'User',
+              subscription_tier: 'free',
             });
           }
+
+          setUser({
+            id,
+            email: email || '',
+            name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
+          });
         } else if (event === 'SIGNED_OUT') {
-          // Don't clear user if on reset-password page
-          const isOnResetPage = window.location.pathname.includes('reset-password');
-          if (!isOnResetPage && isMounted) {
+          if (!window.location.pathname.includes('reset-password')) {
             clearUser();
           }
-        } else if (event === 'PASSWORD_RECOVERY') {
-          console.log('[App] Password recovery event');
-          // Don't navigate - user handles this on ResetPassword page
         }
       }
     );
 
     return () => {
       isMounted = false;
+      clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array - run once on mount
+  }, []);
 
-  // Show loading while initializing auth
   if (!isInitialized) {
-    console.log('[App] Not initialized yet, showing loading...');
     return <LoadingFallback />;
   }
-
-  console.log('[App] Rendering routes');
 
   return (
     <Suspense fallback={<LoadingFallback />}>
@@ -234,78 +192,27 @@ function AppRoutes() {
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
 
-        {/* Password reset routes - accessible without login */}
+        {/* Password reset routes */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Public routes - redirect to dashboard if logged in */}
+        {/* Auth routes */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <PublicRoute>
-              <Signup />
-            </PublicRoute>
-          }
-        />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
 
-        {/* Protected routes - require auth */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/templates"
-          element={
-            <ProtectedRoute>
-              <TemplateSelection />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/new-project"
-          element={
-            <ProtectedRoute>
-              <NewProject />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects/:id/overview"
-          element={
-            <ProtectedRoute>
-              <ProjectOverview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/projects/:id/detail"
-          element={
-            <ProtectedRoute>
-              <ProjectDetail />
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/templates" element={<ProtectedRoute><TemplateSelection /></ProtectedRoute>} />
+        <Route path="/new-project" element={<ProtectedRoute><NewProject /></ProtectedRoute>} />
+        <Route path="/projects/:id/overview" element={<ProtectedRoute><ProjectOverview /></ProtectedRoute>} />
+        <Route path="/projects/:id/detail" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
       </Routes>
     </Suspense>
   );
 }
 
 function App() {
-  console.log('🟢 APP COMPONENT RENDERING');
-  
   return (
     <BrowserRouter>
       <AppRoutes />
