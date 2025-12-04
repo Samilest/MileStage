@@ -261,10 +261,14 @@ function AppRoutes() {
             name: userName,
           });
         } else if (event === 'SIGNED_OUT') {
-          clearUser();
+          // Don't clear user if we're on reset-password page (password recovery flow)
+          if (!window.location.pathname.includes('reset-password')) {
+            clearUser();
+          }
         } else if (event === 'PASSWORD_RECOVERY') {
-          console.log('[App] Password recovery event');
-          navigate('/reset-password', { replace: true });
+          console.log('[App] Password recovery event - user is resetting password');
+          // Don't redirect - user should already be on /reset-password
+          // Just log for debugging
         }
       }
     );

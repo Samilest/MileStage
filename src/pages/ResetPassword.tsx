@@ -94,20 +94,34 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log('[ResetPassword] Updating password...');
+      
+      const { data, error } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (error) throw error;
+      console.log('[ResetPassword] Update result:', { data, error });
 
+      if (error) {
+        console.error('[ResetPassword] Update error:', error);
+        throw error;
+      }
+
+      console.log('[ResetPassword] Password updated successfully');
+      
       // Sign out after password reset
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+        console.log('[ResetPassword] Signed out');
+      } catch (signOutError) {
+        console.log('[ResetPassword] Sign out error (non-critical):', signOutError);
+        // Continue even if sign out fails
+      }
       
       setIsSuccess(true);
     } catch (err: any) {
-      console.error('Password update error:', err);
-      setError(err.message || 'Failed to update password');
-    } finally {
+      console.error('[ResetPassword] Password update error:', err);
+      setError(err.message || 'Failed to update password. Please try again.');
       setIsLoading(false);
     }
   };
