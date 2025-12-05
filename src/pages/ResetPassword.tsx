@@ -17,36 +17,48 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const hash = window.location.hash;
-    
+    console.log('[ResetPassword] Hash:', hash.substring(0, 50) + '...');
+
     // Check for error in URL
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.substring(1));
       const errorDesc = params.get('error_description');
+      console.log('[ResetPassword] Error in URL:', errorDesc);
       setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
       setInitializing(false);
       return;
     }
-    
+
     // Check for recovery tokens in hash
     if (hash.includes('access_token') && hash.includes('type=recovery')) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
+      
+      console.log('[ResetPassword] Tokens found:', !!accessToken, !!refreshToken);
 
       if (accessToken && refreshToken) {
+        console.log('[ResetPassword] Calling setSession...');
+        
         supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
           .then(({ data, error: sessionError }) => {
+            console.log('[ResetPassword] setSession result:', { data: !!data?.session, error: sessionError });
+            
             if (sessionError) {
+              console.error('[ResetPassword] Session error:', sessionError);
               setError('Invalid or expired reset link.');
             } else if (data.session) {
+              console.log('[ResetPassword] Session set successfully');
               window.history.replaceState(null, '', window.location.pathname);
               setIsReady(true);
             } else {
+              console.log('[ResetPassword] No session in response');
               setError('Invalid or expired reset link.');
             }
             setInitializing(false);
           })
-          .catch(() => {
+          .catch((err) => {
+            console.error('[ResetPassword] setSession catch:', err);
             setError('Invalid or expired reset link.');
             setInitializing(false);
           });
@@ -55,7 +67,9 @@ export default function ResetPassword() {
     }
 
     // No tokens - check existing session
+    console.log('[ResetPassword] No tokens, checking existing session...');
     supabase.auth.getSession().then(({ data }) => {
+      console.log('[ResetPassword] Existing session:', !!data.session);
       if (data.session) {
         setIsReady(true);
       } else {
