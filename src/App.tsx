@@ -36,46 +36,50 @@ function AuthHandler() {
   const setUser = useStore((state) => state.setUser);
 
   useEffect(() => {
-    // Handle OAuth callback - check for access_token in hash
-    if (location.hash.includes('access_token') && !location.hash.includes('type=recovery')) {
-      console.log('[AuthHandler] OAuth callback detected');
-      
-      // Supabase automatically processes the hash, just get the session
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (session?.user) {
-          console.log('[AuthHandler] OAuth session found:', session.user.email);
-          
-          const userId = session.user.id;
-          const userEmail = session.user.email || '';
-          const userName = session.user.user_metadata?.name || 
-                          session.user.user_metadata?.full_name || 
-                          session.user.email?.split('@')[0] || 'User';
+    const hash = location.hash;
+    
+    // Handle OAuth callback
+    if (hash.includes('access_token') && !hash.includes('type=recovery')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
 
-          // Ensure user profile exists
-          const { data: existing } = await supabase
-            .from('user_profiles')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle();
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(async ({ data: { session }, error }) => {
+            if (error || !session?.user) {
+              console.error('[AuthHandler] setSession error:', error);
+              return;
+            }
 
-          if (!existing) {
-            await supabase.from('user_profiles').insert({
-              id: userId,
-              email: userEmail,
-              name: userName,
-              subscription_tier: 'free',
-            });
-          }
+            const { id, email, user_metadata } = session.user;
+            const userName = user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User';
 
-          setUser({ id: userId, email: userEmail, name: userName });
-          
-          // Clear hash and go to dashboard
-          window.history.replaceState(null, '', '/dashboard');
-          navigate('/dashboard', { replace: true });
-        }
-      });
+            // Ensure user profile exists
+            const { data: existing } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .eq('id', id)
+              .maybeSingle();
+
+            if (!existing) {
+              await supabase.from('user_profiles').insert({
+                id,
+                email: email || '',
+                name: userName,
+                subscription_tier: 'free',
+              });
+            }
+
+            setUser({ id, email: email || '', name: userName });
+            
+            // Clear hash and go to dashboard
+            window.history.replaceState(null, '', '/dashboard');
+            navigate('/dashboard', { replace: true });
+          });
+      }
     }
-  }, [location.hash]);
+  }, [location.hash, navigate, setUser]);
 
   return null;
 }
@@ -85,13 +89,13 @@ function App() {
   const clearUser = useStore((state) => state.clearUser);
 
   useEffect(() => {
-    // Check session on mount
+    // Check existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
         });
       }
     });
@@ -99,30 +103,30 @@ function App() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[App] Auth event:', event);
-        
         if (event === 'SIGNED_IN' && session?.user) {
-          const userId = session.user.id;
-          const userEmail = session.user.email || '';
-          const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+          const { id, email, user_metadata } = session.user;
 
           // Ensure user profile exists
           const { data: existing } = await supabase
             .from('user_profiles')
             .select('id')
-            .eq('id', userId)
+            .eq('id', id)
             .maybeSingle();
 
           if (!existing) {
             await supabase.from('user_profiles').insert({
-              id: userId,
-              email: userEmail,
-              name: userName,
+              id,
+              email: email || '',
+              name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
               subscription_tier: 'free',
             });
           }
 
-          setUser({ id: userId, email: userEmail, name: userName });
+          setUser({
+            id,
+            email: email || '',
+            name: user_metadata?.name || user_metadata?.full_name || email?.split('@')[0] || 'User',
+          });
         } else if (event === 'SIGNED_OUT') {
           clearUser();
         }
