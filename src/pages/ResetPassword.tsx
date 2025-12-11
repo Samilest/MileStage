@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,78 +17,92 @@ export default function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    console.log('[ResetPassword] Component mounted');
-    const hash = window.location.hash;
-
-    // Check for error in URL hash
-    if (hash.includes('error=')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const errorDesc = params.get('error_description');
-      setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
-      setInitializing(false);
-      return;
-    }
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[ResetPassword] Auth event:', event, !!session);
+    const verifyToken = async () => {
+      // Method 1: Check for token_hash in query params (PKCE flow - recommended)
+      const tokenHash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
       
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-        console.log('[ResetPassword] Session ready via auth event');
-        window.history.replaceState(null, '', window.location.pathname);
-        setIsReady(true);
-        setInitializing(false);
-      }
-    });
-
-    // Check for recovery tokens in hash and set session
-    if (hash.includes('access_token') && hash.includes('type=recovery')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        console.log('[ResetPassword] Setting session from hash...');
-        
-        // Fire and forget - onAuthStateChange will handle the result
-        supabase.auth.setSession({ 
-          access_token: accessToken, 
-          refresh_token: refreshToken 
+      if (tokenHash && type === 'recovery') {
+        console.log('[ResetPassword] Using verifyOtp with token_hash');
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
         });
         
-        // Timeout fallback
-        setTimeout(() => {
-          if (initializing) {
-            console.log('[ResetPassword] Timeout - checking session directly');
-            supabase.auth.getSession().then(({ data }) => {
-              if (data.session) {
-                window.history.replaceState(null, '', window.location.pathname);
-                setIsReady(true);
-              } else {
-                setError('Session expired. Please request a new reset link.');
-              }
-              setInitializing(false);
+        if (otpError) {
+          console.error('[ResetPassword] verifyOtp error:', otpError.message);
+          setError(otpError.message || 'Invalid or expired reset link.');
+        } else {
+          console.log('[ResetPassword] verifyOtp success');
+          window.history.replaceState(null, '', window.location.pathname);
+          setIsReady(true);
+        }
+        setInitializing(false);
+        return;
+      }
+
+      // Method 2: Check for access_token in hash (Implicit flow - legacy)
+      const hash = window.location.hash;
+      
+      if (hash.includes('error=')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const errorDesc = params.get('error_description');
+        setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
+        setInitializing(false);
+        return;
+      }
+
+      if (hash.includes('access_token') && hash.includes('type=recovery')) {
+        console.log('[ResetPassword] Using setSession with hash tokens');
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          try {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
             });
+
+            if (sessionError) {
+              console.error('[ResetPassword] setSession error:', sessionError.message);
+              setError(sessionError.message || 'Failed to verify reset link.');
+            } else {
+              console.log('[ResetPassword] setSession success');
+              window.history.replaceState(null, '', window.location.pathname);
+              setIsReady(true);
+            }
+          } catch (err: any) {
+            console.error('[ResetPassword] setSession exception:', err);
+            // Fallback: check if session exists anyway (might have been set by another listener)
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+              window.history.replaceState(null, '', window.location.pathname);
+              setIsReady(true);
+            } else {
+              setError('Failed to verify reset link. Please try again.');
+            }
           }
-        }, 3000);
-        
-        return () => subscription.unsubscribe();
+          setInitializing(false);
+          return;
+        }
       }
-    }
 
-    // No tokens - check existing session
-    supabase.auth.getSession().then(({ data }) => {
+      // Method 3: Check for existing session (user might already be authenticated)
+      const { data } = await supabase.auth.getSession();
       if (data.session) {
+        console.log('[ResetPassword] Existing session found');
         setIsReady(true);
-        setInitializing(false);
       } else {
-        setError('Invalid or expired reset link.');
-        setInitializing(false);
+        console.log('[ResetPassword] No valid tokens found');
+        setError('Invalid or expired reset link. Please request a new one.');
       }
-    });
+      setInitializing(false);
+    };
 
-    return () => subscription.unsubscribe();
-  }, []);
+    verifyToken();
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,18 +119,14 @@ export default function ResetPassword() {
     }
 
     setIsLoading(true);
-    console.log('[ResetPassword] Updating password...');
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
-      console.log('[ResetPassword] updateUser done, error:', updateError?.message);
-      
       if (updateError) throw updateError;
 
       await supabase.auth.signOut();
       setIsSuccess(true);
     } catch (err: any) {
-      console.error('[ResetPassword] Error:', err);
       setError(err.message || 'Failed to update password');
     } finally {
       setIsLoading(false);
