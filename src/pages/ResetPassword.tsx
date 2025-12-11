@@ -16,10 +16,8 @@ export default function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    // Check for error in URL hash
     const hash = window.location.hash;
-    console.log('[ResetPassword] Starting...');
-
-    // Check for error in URL
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.substring(1));
       const errorDesc = params.get('error_description');
@@ -28,64 +26,45 @@ export default function ResetPassword() {
       return;
     }
 
-    // Check for recovery tokens in hash
-    if (hash.includes('access_token') && hash.includes('type=recovery')) {
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (accessToken && refreshToken) {
-        console.log('[ResetPassword] Calling setSession...');
-        
-        // Add timeout - if setSession hangs for 5 seconds, proceed anyway
-        let completed = false;
-        
-        const timeout = setTimeout(() => {
-          if (!completed) {
-            console.log('[ResetPassword] Timeout - checking session directly');
-            supabase.auth.getSession().then(({ data }) => {
-              if (data.session) {
-                window.history.replaceState(null, '', window.location.pathname);
-                setIsReady(true);
-              } else {
-                // Token might still be valid, try to proceed
-                setIsReady(true);
-              }
-              setInitializing(false);
-            });
-          }
-        }, 5000);
-
-        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(({ data, error: sessionError }) => {
-            completed = true;
-            clearTimeout(timeout);
-            console.log('[ResetPassword] setSession completed:', !!data?.session, sessionError?.message);
-            
-            if (sessionError) {
-              setError('Invalid or expired reset link.');
-            } else if (data.session) {
-              window.history.replaceState(null, '', window.location.pathname);
-              setIsReady(true);
-            } else {
-              setError('Invalid or expired reset link.');
-            }
-            setInitializing(false);
-          })
-          .catch((err) => {
-            completed = true;
-            clearTimeout(timeout);
-            console.error('[ResetPassword] setSession error:', err);
-            setError('Invalid or expired reset link.');
-            setInitializing(false);
-          });
-        return;
+    // Listen for auth state change - Supabase will auto-process the hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[ResetPassword] Auth event:', event);
+      
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        if (session) {
+          console.log('[ResetPassword] Session ready');
+          window.history.replaceState(null, '', window.location.pathname);
+          setIsReady(true);
+          setInitializing(false);
+        }
+      } else if (event === 'INITIAL_SESSION') {
+        // Check if we have a session from the hash
+        if (session) {
+          console.log('[ResetPassword] Initial session found');
+          window.history.replaceState(null, '', window.location.pathname);
+          setIsReady(true);
+        }
+        setInitializing(false);
       }
-    }
+    });
 
-    // No tokens - show error
-    setError('Invalid or expired reset link.');
-    setInitializing(false);
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      console.log('[ResetPassword] Timeout - checking session');
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          setIsReady(true);
+        } else if (initializing) {
+          setError('Invalid or expired reset link.');
+        }
+        setInitializing(false);
+      });
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
