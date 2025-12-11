@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import Button from '../components/Button';
-import { retryOperation } from '../lib/errorHandling';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -45,37 +44,56 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await retryOperation(
-        async () => {
-          const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) throw signInError;
-          return data;
-        },
-        3,
-        'login'
+      // Use fetch directly because supabase.auth.signInWithPassword() hangs
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ email, password }),
+        }
       );
 
-      if (result?.user) {
-        setUser({
-          id: result.user.id,
-          email: result.user.email || '',
-          name: result.user.user_metadata?.name || result.user.email?.split('@')[0] || 'User',
-        });
-        toast.success('Welcome back!');
-        navigate('/dashboard');
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error_code === 'invalid_credentials' || data.msg?.includes('Invalid')) {
+          throw new Error('Invalid email or password');
+        }
+        throw new Error(data.msg || data.error_description || 'Failed to sign in');
       }
+
+      // Store session in localStorage (same format Supabase uses)
+      const storageKey = `sb-${import.meta.env.VITE_SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+      localStorage.setItem(storageKey, JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in,
+        expires_at: data.expires_at,
+        token_type: data.token_type,
+        user: data.user,
+      }));
+
+      // Set user in store
+      setUser({
+        id: data.user.id,
+        email: data.user.email || '',
+        name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+      });
+
+      toast.success('Welcome back!');
+      navigate('/dashboard');
     } catch (err: any) {
-      if (err.message?.includes('Invalid login credentials')) {
+      if (err.message?.includes('Invalid') || err.message?.includes('credentials')) {
         setError('Invalid email or password');
       } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
         setError('Connection error. Please check your internet and try again.');
         toast.error('Connection lost. Please try again.');
       } else {
-        setError('Unable to sign in. Please try again.');
+        setError(err.message || 'Unable to sign in. Please try again.');
         console.error('Login error:', err);
       }
     } finally {
