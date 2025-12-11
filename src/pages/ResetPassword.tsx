@@ -16,7 +16,6 @@ export default function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // Check for error in URL hash
     const hash = window.location.hash;
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.substring(1));
@@ -26,21 +25,17 @@ export default function ResetPassword() {
       return;
     }
 
-    // Listen for auth state change - Supabase will auto-process the hash
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[ResetPassword] Auth event:', event);
       
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         if (session) {
-          console.log('[ResetPassword] Session ready');
           window.history.replaceState(null, '', window.location.pathname);
           setIsReady(true);
           setInitializing(false);
         }
       } else if (event === 'INITIAL_SESSION') {
-        // Check if we have a session from the hash
         if (session) {
-          console.log('[ResetPassword] Initial session found');
           window.history.replaceState(null, '', window.location.pathname);
           setIsReady(true);
         }
@@ -48,9 +43,7 @@ export default function ResetPassword() {
       }
     });
 
-    // Timeout fallback
     const timeout = setTimeout(() => {
-      console.log('[ResetPassword] Timeout - checking session');
       supabase.auth.getSession().then(({ data }) => {
         if (data.session) {
           setIsReady(true);
@@ -82,14 +75,30 @@ export default function ResetPassword() {
     }
 
     setIsLoading(true);
+    console.log('[ResetPassword] Updating password...');
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
+      // First verify we have a session
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('[ResetPassword] Current session:', !!sessionData.session);
+      
+      if (!sessionData.session) {
+        throw new Error('Session expired. Please request a new reset link.');
+      }
+
+      console.log('[ResetPassword] Calling updateUser...');
+      const { data, error: updateError } = await supabase.auth.updateUser({ password });
+      console.log('[ResetPassword] updateUser result:', { data: !!data, error: updateError });
+      
       if (updateError) throw updateError;
 
+      console.log('[ResetPassword] Password updated, signing out...');
       await supabase.auth.signOut();
+      console.log('[ResetPassword] Signed out');
+      
       setIsSuccess(true);
     } catch (err: any) {
+      console.error('[ResetPassword] Error:', err);
       setError(err.message || 'Failed to update password');
     } finally {
       setIsLoading(false);
