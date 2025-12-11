@@ -173,6 +173,7 @@ export default function ResetPassword() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('[ResetPassword] Password update error:', errorData);
         // Handle specific error codes
         if (errorData.error_code === 'same_password') {
           throw new Error('New password must be different from your current password');
@@ -180,11 +181,13 @@ export default function ResetPassword() {
         throw new Error(errorData.msg || errorData.message || 'Failed to update password');
       }
 
-      // Clear session and redirect to login
+      console.log('[ResetPassword] Password updated successfully!');
+      
+      // Clear session (don't use supabase.auth.signOut() as it may hang)
       localStorage.removeItem('sb-pkubmisamfhmtirhsyqv-auth-token');
-      await supabase.auth.signOut();
       setIsSuccess(true);
     } catch (err: any) {
+      console.error('[ResetPassword] Error:', err.message);
       setError(err.message || 'Failed to update password');
     } finally {
       setIsLoading(false);
