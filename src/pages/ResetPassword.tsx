@@ -16,48 +16,67 @@ export default function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    console.log('[ResetPassword] Component mounted');
     const hash = window.location.hash;
+    console.log('[ResetPassword] Hash present:', hash.length > 0);
+
+    // Check for error in URL hash
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.substring(1));
       const errorDesc = params.get('error_description');
+      console.log('[ResetPassword] Error in hash:', errorDesc);
       setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
       setInitializing(false);
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[ResetPassword] Auth event:', event);
+    // Check for recovery tokens in hash
+    if (hash.includes('access_token') && hash.includes('type=recovery')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
       
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        if (session) {
-          window.history.replaceState(null, '', window.location.pathname);
-          setIsReady(true);
+      console.log('[ResetPassword] Recovery tokens found');
+
+      if (accessToken && refreshToken) {
+        console.log('[ResetPassword] Setting session manually...');
+        
+        supabase.auth.setSession({ 
+          access_token: accessToken, 
+          refresh_token: refreshToken 
+        }).then(({ data, error: sessionError }) => {
+          console.log('[ResetPassword] setSession result:', !!data?.session, sessionError?.message);
+          
+          if (sessionError) {
+            setError(sessionError.message || 'Invalid or expired reset link.');
+          } else if (data.session) {
+            window.history.replaceState(null, '', window.location.pathname);
+            setIsReady(true);
+          } else {
+            setError('Invalid or expired reset link.');
+          }
           setInitializing(false);
-        }
-      } else if (event === 'INITIAL_SESSION') {
-        if (session) {
-          window.history.replaceState(null, '', window.location.pathname);
-          setIsReady(true);
-        }
-        setInitializing(false);
-      }
-    });
-
-    const timeout = setTimeout(() => {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          setIsReady(true);
-        } else if (initializing) {
+        }).catch((err) => {
+          console.error('[ResetPassword] setSession catch:', err);
           setError('Invalid or expired reset link.');
-        }
-        setInitializing(false);
-      });
-    }, 3000);
+          setInitializing(false);
+        });
+        
+        return;
+      }
+    }
 
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
+    // No valid tokens found
+    console.log('[ResetPassword] No valid tokens, checking existing session');
+    supabase.auth.getSession().then(({ data }) => {
+      console.log('[ResetPassword] Existing session:', !!data.session);
+      if (data.session) {
+        setIsReady(true);
+      } else {
+        setError('Invalid or expired reset link. Please request a new one.');
+      }
+      setInitializing(false);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,23 +97,13 @@ export default function ResetPassword() {
     console.log('[ResetPassword] Updating password...');
 
     try {
-      // First verify we have a session
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('[ResetPassword] Current session:', !!sessionData.session);
-      
-      if (!sessionData.session) {
-        throw new Error('Session expired. Please request a new reset link.');
-      }
-
-      console.log('[ResetPassword] Calling updateUser...');
       const { data, error: updateError } = await supabase.auth.updateUser({ password });
-      console.log('[ResetPassword] updateUser result:', { data: !!data, error: updateError });
+      console.log('[ResetPassword] updateUser result:', !!data?.user, updateError?.message);
       
       if (updateError) throw updateError;
 
-      console.log('[ResetPassword] Password updated, signing out...');
+      console.log('[ResetPassword] Signing out...');
       await supabase.auth.signOut();
-      console.log('[ResetPassword] Signed out');
       
       setIsSuccess(true);
     } catch (err: any) {
