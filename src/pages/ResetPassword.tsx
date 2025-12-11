@@ -24,7 +24,7 @@ export default function ResetPassword() {
       
       if (tokenHash && type === 'recovery') {
         console.log('[ResetPassword] Using verifyOtp with token_hash');
-        const { error: otpError } = await supabase.auth.verifyOtp({
+        const { data, error: otpError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
           type: 'recovery',
         });
@@ -34,6 +34,37 @@ export default function ResetPassword() {
           setError(otpError.message || 'Invalid or expired reset link.');
         } else {
           console.log('[ResetPassword] verifyOtp success');
+          
+          // CRITICAL: Store session in localStorage for password update
+          // verifyOtp returns the session, but it may not persist to localStorage
+          if (data.session) {
+            console.log('[ResetPassword] Storing session in localStorage');
+            const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
+            localStorage.setItem(storageKey, JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+              expires_in: data.session.expires_in,
+              expires_at: data.session.expires_at,
+              token_type: data.session.token_type,
+              user: data.session.user,
+            }));
+          } else {
+            // Fallback: try to get session from Supabase client
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData.session) {
+              console.log('[ResetPassword] Got session from getSession, storing...');
+              const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
+              localStorage.setItem(storageKey, JSON.stringify({
+                access_token: sessionData.session.access_token,
+                refresh_token: sessionData.session.refresh_token,
+                expires_in: sessionData.session.expires_in,
+                expires_at: sessionData.session.expires_at,
+                token_type: sessionData.session.token_type,
+                user: sessionData.session.user,
+              }));
+            }
+          }
+          
           window.history.replaceState(null, '', window.location.pathname);
           setIsReady(true);
         }
