@@ -66,16 +66,18 @@ export default function Login() {
         throw new Error(data.msg || data.error_description || 'Failed to sign in');
       }
 
-      // Store session in localStorage (same format Supabase uses)
-      const storageKey = `sb-${import.meta.env.VITE_SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
-      localStorage.setItem(storageKey, JSON.stringify({
+      // CRITICAL: Use setSession to register with Supabase client
+      // This ensures getSession() and onAuthStateChange work correctly
+      console.log('[Login] Got tokens, setting session via Supabase client...');
+      const { error: sessionError } = await supabase.auth.setSession({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
-        expires_in: data.expires_in,
-        expires_at: data.expires_at,
-        token_type: data.token_type,
-        user: data.user,
-      }));
+      });
+
+      if (sessionError) {
+        console.error('[Login] setSession error:', sessionError);
+        throw new Error('Failed to establish session');
+      }
 
       // Set user in store
       setUser({
@@ -84,6 +86,7 @@ export default function Login() {
         name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
       });
 
+      console.log('[Login] Success!');
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (err: any) {
