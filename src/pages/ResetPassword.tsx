@@ -18,65 +18,75 @@ export default function ResetPassword() {
   useEffect(() => {
     console.log('[ResetPassword] Component mounted');
     const hash = window.location.hash;
-    console.log('[ResetPassword] Hash present:', hash.length > 0);
 
     // Check for error in URL hash
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.substring(1));
       const errorDesc = params.get('error_description');
-      console.log('[ResetPassword] Error in hash:', errorDesc);
       setError(errorDesc?.replace(/\+/g, ' ') || 'Invalid or expired reset link.');
       setInitializing(false);
       return;
     }
 
-    // Check for recovery tokens in hash
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[ResetPassword] Auth event:', event, !!session);
+      
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+        console.log('[ResetPassword] Session ready via auth event');
+        window.history.replaceState(null, '', window.location.pathname);
+        setIsReady(true);
+        setInitializing(false);
+      }
+    });
+
+    // Check for recovery tokens in hash and set session
     if (hash.includes('access_token') && hash.includes('type=recovery')) {
       const params = new URLSearchParams(hash.substring(1));
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
       
-      console.log('[ResetPassword] Recovery tokens found');
-
       if (accessToken && refreshToken) {
-        console.log('[ResetPassword] Setting session manually...');
+        console.log('[ResetPassword] Setting session from hash...');
         
+        // Fire and forget - onAuthStateChange will handle the result
         supabase.auth.setSession({ 
           access_token: accessToken, 
           refresh_token: refreshToken 
-        }).then(({ data, error: sessionError }) => {
-          console.log('[ResetPassword] setSession result:', !!data?.session, sessionError?.message);
-          
-          if (sessionError) {
-            setError(sessionError.message || 'Invalid or expired reset link.');
-          } else if (data.session) {
-            window.history.replaceState(null, '', window.location.pathname);
-            setIsReady(true);
-          } else {
-            setError('Invalid or expired reset link.');
-          }
-          setInitializing(false);
-        }).catch((err) => {
-          console.error('[ResetPassword] setSession catch:', err);
-          setError('Invalid or expired reset link.');
-          setInitializing(false);
         });
         
-        return;
+        // Timeout fallback
+        setTimeout(() => {
+          if (initializing) {
+            console.log('[ResetPassword] Timeout - checking session directly');
+            supabase.auth.getSession().then(({ data }) => {
+              if (data.session) {
+                window.history.replaceState(null, '', window.location.pathname);
+                setIsReady(true);
+              } else {
+                setError('Session expired. Please request a new reset link.');
+              }
+              setInitializing(false);
+            });
+          }
+        }, 3000);
+        
+        return () => subscription.unsubscribe();
       }
     }
 
-    // No valid tokens found
-    console.log('[ResetPassword] No valid tokens, checking existing session');
+    // No tokens - check existing session
     supabase.auth.getSession().then(({ data }) => {
-      console.log('[ResetPassword] Existing session:', !!data.session);
       if (data.session) {
         setIsReady(true);
+        setInitializing(false);
       } else {
-        setError('Invalid or expired reset link. Please request a new one.');
+        setError('Invalid or expired reset link.');
+        setInitializing(false);
       }
-      setInitializing(false);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,14 +107,12 @@ export default function ResetPassword() {
     console.log('[ResetPassword] Updating password...');
 
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({ password });
-      console.log('[ResetPassword] updateUser result:', !!data?.user, updateError?.message);
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      console.log('[ResetPassword] updateUser done, error:', updateError?.message);
       
       if (updateError) throw updateError;
 
-      console.log('[ResetPassword] Signing out...');
       await supabase.auth.signOut();
-      
       setIsSuccess(true);
     } catch (err: any) {
       console.error('[ResetPassword] Error:', err);
