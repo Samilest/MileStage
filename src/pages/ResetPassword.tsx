@@ -121,10 +121,32 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) throw updateError;
+      // Get session from localStorage
+      const sessionStr = localStorage.getItem('sb-pkubmisamfhmtirhsyqv-auth-token');
+      if (!sessionStr) {
+        throw new Error('Session expired. Please request a new reset link.');
+      }
+      
+      const session = JSON.parse(sessionStr);
+      
+      // Use fetch directly because supabase.auth.updateUser() hangs
+      const response = await fetch('https://pkubmisamfhmtirhsyqv.supabase.co/auth/v1/user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + session.access_token
+        },
+        body: JSON.stringify({ password })
+      });
 
-      await supabase.auth.signOut();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update password');
+      }
+
+      // Clear session and redirect to login
+      localStorage.removeItem('sb-pkubmisamfhmtirhsyqv-auth-token');
       setIsSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to update password');
