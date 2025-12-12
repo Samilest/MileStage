@@ -491,12 +491,14 @@ return (
               <p className="text-base sm:text-lg text-gray-600 mb-8 sm:mb-10">
                 Create a project in 30 seconds with our templates. Get paid faster with clear milestones.
               </p>
-              <Button
-                onClick={() => navigate('/templates')}
-                className="w-full sm:w-auto px-8 py-4 text-base sm:text-lg min-h-[44px]"
-              >
-                Create Your First Project
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => navigate('/templates')}
+                  className="px-8 py-4 text-base sm:text-lg min-h-[44px]"
+                >
+                  Create Your First Project
+                </Button>
+              </div>
 
               <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-gray-200">
                 <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
