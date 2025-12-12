@@ -33,8 +33,8 @@ export default function ForgotPassword() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 bg-white flex items-center justify-center p-4">
+      <>
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center">
           <div className="mb-6">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -70,15 +70,14 @@ export default function ForgotPassword() {
           </Link>
         </div>
       </div>
-      
       <Footer />
-    </div>
+    </>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 bg-white flex items-center justify-center p-4">
+    <>
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black mb-2">Reset Password</h1>
@@ -131,8 +130,7 @@ export default function ForgotPassword() {
           </Link>
         </div>
       </div>
-      
       <Footer />
-    </div>
+    </>
   );
 }

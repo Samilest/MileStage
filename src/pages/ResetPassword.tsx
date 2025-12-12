@@ -197,23 +197,22 @@ export default function ResetPassword() {
 
   if (initializing) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 bg-white flex items-center justify-center p-4">
+      <>
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
           <p className="text-gray-600">Verifying reset link...</p>
         </div>
       </div>
-      
       <Footer />
-    </div>
+    </>
     );
   }
 
   if (error && !isReady) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 bg-white flex items-center justify-center p-4">
+      <>
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-red-600" />
@@ -228,16 +227,15 @@ export default function ResetPassword() {
           </button>
         </div>
       </div>
-      
       <Footer />
-    </div>
+    </>
     );
   }
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 bg-white flex items-center justify-center p-4">
+      <>
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-8 h-8 text-green-600" />
@@ -252,15 +250,14 @@ export default function ResetPassword() {
           </button>
         </div>
       </div>
-      
       <Footer />
-    </div>
+    </>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 bg-white flex items-center justify-center p-4">
+    <>
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-black mb-2">Set New Password</h1>
@@ -330,8 +327,7 @@ export default function ResetPassword() {
         </form>
       </div>
     </div>
-    
     <Footer />
-  </div>
+  </>
   );
 }
