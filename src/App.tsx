@@ -9,6 +9,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PoweredBy = lazy(() => import('./pages/PoweredBy'));
 const Dashboard = lazy(() => import('./pages/DashboardNew'));
 const TemplateSelection = lazy(() => import('./pages/TemplateSelection'));
 const NewProject = lazy(() => import('./pages/NewProject'));
@@ -227,6 +228,7 @@ function App() {
           <Route path="/projects/:shareCode/client" element={<ClientView />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/powered-by" element={<PoweredBy />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
