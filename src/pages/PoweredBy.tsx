@@ -31,16 +31,12 @@ export default function PoweredBy() {
             </div>
 
             {/* Headline */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                 You're viewing a project
               </h1>
-              
-              <p className="text-2xl sm:text-3xl font-semibold text-green-600">
-                powered by MileStage
-              </p>
 
-              <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed pt-4">
+              <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
                 MileStage helps your freelancers deliver great work with clear milestones and on-time payments.
               </p>
             </div>
