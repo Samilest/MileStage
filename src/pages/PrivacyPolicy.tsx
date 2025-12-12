@@ -178,7 +178,7 @@ export default function PrivacyPolicy() {
               </ul>
 
               <p className="text-gray-700">
-                <strong>To exercise these rights:</strong> Email privacy@milestage.com
+                <strong>To exercise these rights:</strong> Email support@milestage.com
               </p>
             </section>
 
@@ -232,7 +232,7 @@ export default function PrivacyPolicy() {
             <section className="bg-gray-50 rounded-lg p-6 mt-8">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Contact Us</h3>
               <p className="text-gray-700">
-                Questions about privacy? Email: <a href="mailto:privacy@milestage.com" className="text-green-600 hover:text-green-700 font-medium">privacy@milestage.com</a>
+                Questions about privacy? Email: <a href="mailto:support@milestage.com" className="text-green-600 hover:text-green-700 font-medium">support@milestage.com</a>
               </p>
             </section>
           </div>
