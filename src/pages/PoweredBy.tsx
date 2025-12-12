@@ -38,7 +38,7 @@ export default function PoweredBy() {
             <div className="space-y-6">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                 You're viewing a project<br />
-                <span className="text-green-600">powered by MileStage</span>
+                powered by <span className="text-green-600">MileStage</span>
               </h1>
 
               <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
