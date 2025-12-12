@@ -66,21 +66,9 @@ export default function Login() {
         throw new Error(data.msg || data.error_description || 'Failed to sign in');
       }
 
-      // CRITICAL: Use setSession to register with Supabase client
-      // This ensures getSession() and onAuthStateChange work correctly
-      console.log('[Login] Got tokens, setting session via Supabase client...');
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-
-      if (sessionError) {
-        console.error('[Login] setSession error:', sessionError);
-        // Fallback: store manually if setSession fails
-        console.log('[Login] Falling back to manual storage...');
-      }
-      
-      // Always store manually as backup (setSession may not persist)
+      // Store session manually in localStorage
+      // NOTE: We skip supabase.auth.setSession() because it hangs indefinitely
+      console.log('[Login] Got tokens, storing session manually...');
       const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
       localStorage.setItem(storageKey, JSON.stringify({
         access_token: data.access_token,
