@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import Button from '../components/Button';
+import Footer from '../components/Footer';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -107,13 +108,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 page-enter">
-      <div className="max-w-2xl w-full space-y-6 sm:space-y-8">
-        <div className="animate-fade-in">
-          <h2 className="text-center text-3xl sm:text-4xl lg:text-6xl font-bold text-text-primary leading-tight">
-            Sign in to your account
-          </h2>
-        </div>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 bg-secondary-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 page-enter">
+        <div className="max-w-2xl w-full space-y-6 sm:space-y-8">
+          <div className="animate-fade-in">
+            <h2 className="text-center text-3xl sm:text-4xl lg:text-6xl font-bold text-text-primary leading-tight">
+              Sign in to your account
+            </h2>
+          </div>
         
         <div className="mt-6 sm:mt-8 bg-white p-4 sm:p-6 lg:p-8 shadow rounded-lg animate-fade-in animate-stagger-1">
           {/* Social Sign-In Buttons */}
@@ -208,6 +210,8 @@ export default function Login() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useStore } from '../store/useStore';
 import Button from '../components/Button';
 import { retryOperation } from '../lib/errorHandling';
+import Footer from '../components/Footer';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -101,12 +102,13 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 page-enter">
-      <div className="max-w-2xl w-full space-y-6 sm:space-y-8">
-        <div className="animate-fade-in">
-          <h2 className="text-center text-3xl sm:text-4xl lg:text-6xl font-bold text-text-primary leading-tight">
-            Create your account
-          </h2>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 bg-secondary-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 page-enter">
+        <div className="max-w-2xl w-full space-y-6 sm:space-y-8">
+          <div className="animate-fade-in">
+            <h2 className="text-center text-3xl sm:text-4xl lg:text-6xl font-bold text-text-primary leading-tight">
+              Create your account
+            </h2>
           <p className="mt-4 sm:mt-6 text-center text-sm sm:text-base lg:text-lg text-text-secondary leading-relaxed">
             Start tracking your project payments
           </p>
@@ -237,6 +239,8 @@ export default function Signup() {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
