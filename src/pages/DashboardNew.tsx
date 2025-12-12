@@ -450,26 +450,29 @@ return (
               Manage your projects and track payments
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              variant="secondary"
-              className="flex-shrink-0"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-              <span className="sm:hidden">↻</span>
-            </Button>
-            <Button
-              onClick={() => navigate('/templates')}
-              variant="primary"
-              className="flex-1 sm:flex-initial whitespace-nowrap"
-            >
-              <span className="hidden sm:inline">Create Project</span>
-              <span className="sm:hidden">Create</span>
-            </Button>
-          </div>
+          {/* Only show buttons when there are projects */}
+          {projects.length > 0 && (
+            <div className="flex gap-3">
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                variant="secondary"
+                className="flex-shrink-0"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+                <span className="sm:hidden">↻</span>
+              </Button>
+              <Button
+                onClick={() => navigate('/templates')}
+                variant="primary"
+                className="flex-1 sm:flex-initial whitespace-nowrap"
+              >
+                <span className="hidden sm:inline">Create Project</span>
+                <span className="sm:hidden">Create</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {loading ? (
