@@ -109,10 +109,10 @@ export default function Signup() {
             <h2 className="text-center text-3xl sm:text-4xl lg:text-6xl font-bold text-text-primary leading-tight">
               Create your account
             </h2>
-          <p className="mt-4 sm:mt-6 text-center text-sm sm:text-base lg:text-lg text-text-secondary leading-relaxed">
-            Start tracking your project payments
-          </p>
-        </div>
+            <p className="mt-4 sm:mt-6 text-center text-sm sm:text-base lg:text-lg text-text-secondary leading-relaxed">
+              Start tracking your project payments
+            </p>
+          </div>
         
         <div className="mt-6 sm:mt-8 bg-white p-4 sm:p-6 lg:p-8 shadow rounded-lg animate-fade-in animate-stagger-1">
           {/* Social Sign-In Buttons */}
@@ -239,8 +239,9 @@ export default function Signup() {
           </div>
         </div>
       </div>
-      
-      <Footer />
     </div>
+      
+    <Footer />
+  </div>
   );
 }
