@@ -19,7 +19,6 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const verifyToken = async () => {
-      // Method 1: Check for token_hash in query params (PKCE flow - recommended)
       const tokenHash = searchParams.get('token_hash');
       const type = searchParams.get('type');
       
@@ -36,8 +35,6 @@ export default function ResetPassword() {
         } else {
           console.log('[ResetPassword] verifyOtp success');
           
-          // CRITICAL: Store session in localStorage for password update
-          // verifyOtp returns the session, but it may not persist to localStorage
           if (data.session) {
             console.log('[ResetPassword] Storing session in localStorage');
             const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
@@ -50,7 +47,6 @@ export default function ResetPassword() {
               user: data.session.user,
             }));
           } else {
-            // Fallback: try to get session from Supabase client
             const { data: sessionData } = await supabase.auth.getSession();
             if (sessionData.session) {
               console.log('[ResetPassword] Got session from getSession, storing...');
@@ -73,7 +69,6 @@ export default function ResetPassword() {
         return;
       }
 
-      // Method 2: Check for access_token in hash (Implicit flow - legacy)
       const hash = window.location.hash;
       
       if (hash.includes('error=')) {
@@ -107,7 +102,6 @@ export default function ResetPassword() {
             }
           } catch (err: any) {
             console.error('[ResetPassword] setSession exception:', err);
-            // Fallback: check if session exists anyway (might have been set by another listener)
             const { data } = await supabase.auth.getSession();
             if (data.session) {
               window.history.replaceState(null, '', window.location.pathname);
@@ -121,7 +115,6 @@ export default function ResetPassword() {
         }
       }
 
-      // Method 3: Check for existing session (user might already be authenticated)
       const { data } = await supabase.auth.getSession();
       if (data.session) {
         console.log('[ResetPassword] Existing session found');
@@ -153,7 +146,6 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      // Get session from localStorage
       const sessionStr = localStorage.getItem('sb-pkubmisamfhmtirhsyqv-auth-token');
       if (!sessionStr) {
         throw new Error('Session expired. Please request a new reset link.');
@@ -161,7 +153,6 @@ export default function ResetPassword() {
       
       const session = JSON.parse(sessionStr);
       
-      // Use fetch directly because supabase.auth.updateUser() hangs
       const response = await fetch('https://pkubmisamfhmtirhsyqv.supabase.co/auth/v1/user', {
         method: 'PUT',
         headers: {
@@ -175,7 +166,6 @@ export default function ResetPassword() {
       if (!response.ok) {
         const errorData = await response.json();
         console.log('[ResetPassword] Password update error:', errorData);
-        // Handle specific error codes
         if (errorData.error_code === 'same_password') {
           throw new Error('New password must be different from your current password');
         }
@@ -184,7 +174,6 @@ export default function ResetPassword() {
 
       console.log('[ResetPassword] Password updated successfully!');
       
-      // Clear session (don't use supabase.auth.signOut() as it may hang)
       localStorage.removeItem('sb-pkubmisamfhmtirhsyqv-auth-token');
       setIsSuccess(true);
     } catch (err: any) {
@@ -197,137 +186,137 @@ export default function ResetPassword() {
 
   if (initializing) {
     return (
-      <>
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-          <p className="text-gray-600">Verifying reset link...</p>
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-white flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+            <p className="text-gray-600">Verifying reset link...</p>
+          </div>
         </div>
+        <Footer />
       </div>
-      <Footer />
-    </>
     );
   }
 
   if (error && !isReady) {
     return (
-      <>
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-8 h-8 text-red-600" />
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-white flex items-center justify-center p-4">
+          <div className="max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-black mb-4">Link Expired</h1>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => navigate('/forgot-password')}
+              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
+            >
+              Request New Reset Link
+            </button>
           </div>
-          <h1 className="text-2xl font-bold text-black mb-4">Link Expired</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => navigate('/forgot-password')}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
-          >
-            Request New Reset Link
-          </button>
         </div>
+        <Footer />
       </div>
-      <Footer />
-    </>
     );
   }
 
   if (isSuccess) {
     return (
-      <>
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-white flex items-center justify-center p-4">
+          <div className="max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-black mb-4">Password Updated!</h1>
+            <p className="text-gray-600 mb-6">You can now log in with your new password.</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
+            >
+              Go to Login
+            </button>
           </div>
-          <h1 className="text-2xl font-bold text-black mb-4">Password Updated!</h1>
-          <p className="text-gray-600 mb-6">You can now log in with your new password.</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
-          >
-            Go to Login
-          </button>
         </div>
+        <Footer />
       </div>
-      <Footer />
-    </>
     );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Set New Password</h1>
-          <p className="text-gray-600">Enter your new password below.</p>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-black mb-2">Set New Password</h1>
+            <p className="text-gray-600">Enter your new password below.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50"
+            >
+              {isLoading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              >
-                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:opacity-50"
-          >
-            {isLoading ? 'Updating...' : 'Update Password'}
-          </button>
-        </form>
       </div>
+      <Footer />
     </div>
-    <Footer />
-  </>
   );
 }
