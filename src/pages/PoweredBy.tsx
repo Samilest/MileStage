@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import logo from '../assets/milestage-logo.png';
 
 export default function PoweredBy() {
   const navigate = useNavigate();
@@ -23,15 +24,10 @@ export default function PoweredBy() {
             {/* Logo */}
             <div className="flex justify-center">
               <img 
-                src="/assets/milestage-logo.png" 
+                src={logo}
                 alt="MileStage" 
                 className="h-16 sm:h-20"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
               />
-              <div className="hidden text-5xl font-bold text-gray-900">MileStage</div>
             </div>
 
             {/* Headline */}
