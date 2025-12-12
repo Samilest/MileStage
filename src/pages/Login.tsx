@@ -76,8 +76,20 @@ export default function Login() {
 
       if (sessionError) {
         console.error('[Login] setSession error:', sessionError);
-        throw new Error('Failed to establish session');
+        // Fallback: store manually if setSession fails
+        console.log('[Login] Falling back to manual storage...');
       }
+      
+      // Always store manually as backup (setSession may not persist)
+      const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
+      localStorage.setItem(storageKey, JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in,
+        expires_at: data.expires_at,
+        token_type: data.token_type,
+        user: data.user,
+      }));
 
       // Set user in store
       setUser({
@@ -86,9 +98,11 @@ export default function Login() {
         name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
       });
 
-      console.log('[Login] Success!');
+      console.log('[Login] Success! Redirecting...');
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      
+      // Use window.location for full page reload to ensure clean auth state
+      window.location.href = '/dashboard';
     } catch (err: any) {
       if (err.message?.includes('Invalid') || err.message?.includes('credentials')) {
         setError('Invalid email or password');
