@@ -1,5 +1,5 @@
-// Force rebuild v3 - ensure share_code is included in query
-import { useEffect, useState, useCallback, useRef } from 'react';
+// Enhanced Dashboard v4 - SAFE VERSION - Keeps Active/Completed Sections
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useStore } from '../store/useStore';
@@ -15,7 +15,7 @@ import WelcomeModal from '../components/WelcomeModal';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
-import { RefreshCw, CreditCard, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Search, Trash2, X } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -30,7 +30,10 @@ interface Project {
   primary_notification?: string;
   currency: CurrencyCode;
   share_code: string;
+  created_at?: string;
 }
+
+type SortOption = 'recent' | 'client' | 'amount' | 'status';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -41,13 +44,18 @@ export default function Dashboard() {
   const [stripeConnected, setStripeConnected] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  
+  // New state for search/sort/delete
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  
   const fetchingRef = useRef(false);
   const userId = user?.id;
 
   const fetchProjects = useCallback(async (isRefresh = false) => {
     if (!userId) return;
 
-    // Prevent duplicate fetches
     if (fetchingRef.current) {
       console.log('[Dashboard] Already fetching, skipping duplicate request');
       return;
@@ -76,6 +84,7 @@ export default function Dashboard() {
               status,
               currency,
               share_code,
+              created_at,
               stages (
                 id,
                 stage_number,
@@ -98,75 +107,48 @@ export default function Dashboard() {
                 stage_notes!stage_notes_stage_id_fkey (
                   id,
                   author_type,
-                  viewed_by_freelancer_at,
-                  created_at
+                  note,
+                  created_at,
+                  viewed_by_freelancer_at
                 )
               )
             `)
             .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .order('stage_number', { foreignTable: 'stages', ascending: true });
+            .order('created_at', { ascending: false });
 
           if (error) throw error;
           return data;
         },
         3,
-        'fetch projects'
+        1000
       );
 
-      const projectsWithStats = projectsData?.map((project: any) => {
-        // Ensure stages are sorted by stage_number
-        const stages = (project.stages || []).sort((a: any, b: any) => a.stage_number - b.stage_number);
-        const completedStages = stages.filter((s: any) => s.payment_status === 'received').length;
-        const amountEarned = stages
-          .filter((s: any) => s.payment_status === 'received')
-          .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+      const enrichedProjects = (projectsData || []).map((project: any) => {
+        const stages = project.stages || [];
+        const totalStages = stages.length;
+        const completedStages = stages.filter((stage: any) => 
+          stage.status === 'completed' && 
+          stage.payment_status === 'paid'
+        ).length;
 
-        // Find the first stage with unread actions and get its primary notification
-        let primaryNotification = '';
-        let hasUnreadActions = false;
-
-        for (const stage of stages) {
-          // ✅ Skip completed/closed stages - they're locked and inaccessible
-          if (stage.status === 'complete' || stage.status === 'completed') {
-            continue;
-          }
-
-          const hasUnreadRevision = stage.revisions?.some((rev: any) =>
-            rev.requested_at && !rev.viewed_by_freelancer_at
-          ) || false;
-
-          const hasUnreadPayment = stage.stage_payments?.some((payment: any) =>
-            payment.status === 'marked_paid' &&
-            payment.marked_paid_at &&
-            !payment.viewed_by_freelancer_at
-          ) || false;
-
-          const hasUnreadApproval = stage.approved_at && !stage.viewed_by_freelancer_at;
-
-          const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
+        const hasUnreadActions = stages.some((stage: any) => {
+          const hasUnreadRevision = stage.revisions?.some((rev: any) => !rev.viewed_by_freelancer_at);
+          const hasUnreadPayment = stage.stage_payments?.some((payment: any) => 
+            payment.status === 'pending_verification' && !payment.viewed_by_freelancer_at
+          );
+          const hasUnreadNote = stage.stage_notes?.some((note: any) => 
             note.author_type === 'client' && !note.viewed_by_freelancer_at
-          ).length || 0;
+          );
+          const hasUnreadApproval = stage.status === 'approved' && !stage.viewed_by_freelancer_at;
 
-          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
+          return hasUnreadRevision || hasUnreadPayment || hasUnreadNote || hasUnreadApproval;
+        });
 
-          if (stageHasUnread) {
-            hasUnreadActions = true;
-            if (!primaryNotification) {
-              console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
-              primaryNotification = getPrimaryNotification(
-                {
-                  hasUnviewedPayment: hasUnreadPayment,
-                  hasUnviewedRevision: hasUnreadRevision,
-                  hasUnviewedApproval: hasUnreadApproval,
-                  unreadMessageCount: unreadMessageCount
-                },
-                ''
-              );
-              console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
-            }
-          }
-        }
+        const primaryNotification = getPrimaryNotification(stages);
+
+        const amountEarned = stages
+          .filter((stage: any) => stage.payment_status === 'paid')
+          .reduce((sum: number, stage: any) => sum + stage.amount, 0);
 
         return {
           id: project.id,
@@ -175,28 +157,20 @@ export default function Dashboard() {
           total_amount: project.total_amount,
           status: project.status,
           completed_stages: completedStages,
-          total_stages: stages.length,
+          total_stages: totalStages,
           amount_earned: amountEarned,
           has_unread_actions: hasUnreadActions,
           primary_notification: primaryNotification,
           currency: project.currency || 'USD',
+          share_code: project.share_code,
+          created_at: project.created_at,
         };
-      }) || [];
+      });
 
-      console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
-      setProjects(projectsWithStats);
-
-      if (isRefresh) {
-        toast.success('Refreshed!');
-      }
-    } catch (error: any) {
-      console.error('[Dashboard] Error:', error);
-
-      if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
-        toast.error('Connection lost. Retrying...');
-      } else {
-        toast.error('Could not load Projects');
-      }
+      setProjects(enrichedProjects);
+    } catch (error) {
+      console.error('[Dashboard] Error fetching projects:', error);
+      toast.error('Failed to load projects');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -204,199 +178,124 @@ export default function Dashboard() {
     }
   }, [userId]);
 
-  const handleRefresh = useCallback(() => {
-    fetchProjects(true);
-  }, [fetchProjects]);
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    if (!confirm(`Are you sure you want to delete "${projectName}"?\n\nThis will permanently delete:\n• All project stages\n• All payments and revisions\n• All notes and files\n\nThis action cannot be undone.`)) {
+      return;
+    }
 
-  useEffect(() => {
-    console.log('[Dashboard] Component mounted, fetching projects');
-    fetchProjects();
+    setDeletingProjectId(projectId);
     
-    // Also fetch when component becomes visible again (user navigates back)
-    return () => {
-      console.log('[Dashboard] Component unmounting');
-    };
-  }, [fetchProjects]);
-
-  // Refetch data when user comes back to this tab/window
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('[Dashboard] Tab became visible, refreshing data...');
-        fetchProjects(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchProjects]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    console.log('[Dashboard] Setting up realtime subscription');
-
-    const channel = supabase
-      .channel('dashboard-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'projects',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          console.log('[Dashboard] Project change detected, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stages',
-        },
-        () => {
-          console.log('[Dashboard] Stage change detected, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'stage_notes',
-        },
-        () => {
-          console.log('[Dashboard] New note detected, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stage_payments',
-        },
-        () => {
-          console.log('[Dashboard] Payment change detected, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'revisions',
-        },
-        () => {
-          console.log('[Dashboard] Revision change detected, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'stage_notes',
-        },
-        () => {
-          console.log('[Dashboard] Message viewed, refreshing...');
-          fetchProjects(true);
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Dashboard] Realtime subscription status:', status);
-      });
-
-    return () => {
-      console.log('[Dashboard] Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [userId, fetchProjects]);
-
-  useEffect(() => {
-    const checkStripeConnection = async () => {
-      if (!userId) return;
-
-      try {
-        const { data } = await supabase
-          .from('user_profiles')
-          .select('stripe_account_id')
-          .eq('user_id', userId)
-          .single();
-
-        setStripeConnected(!!data?.stripe_account_id);
-      } catch (error) {
-        console.error('[Dashboard] Error checking Stripe connection:', error);
-      }
-    };
-
-    checkStripeConnection();
-  }, [userId]);
-
-  // Check if user should see welcome modal
-  useEffect(() => {
-    const checkWelcomeModal = async () => {
-      if (!userId) return;
-      
-      try {
-        const { data } = await supabase
-          .from('user_profiles')
-          .select('welcome_modal_seen')
-          .eq('id', userId)
-          .single();
-
-        if (!data?.welcome_modal_seen) {
-          setShowWelcomeModal(true);
-        }
-      } catch (error) {
-        console.error('Error checking welcome modal status:', error);
-      }
-    };
-
-    checkWelcomeModal();
-  }, [userId]);
-
-  const handleConnectStripe = async () => {
-    setConnectingStripe(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-stripe-connect-account', {
-        body: { userId },
-      });
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId)
+        .eq('user_id', userId);
 
       if (error) throw error;
 
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error('Could not generate Stripe connection link');
-      }
-    } catch (error: any) {
-      console.error('[Dashboard] Stripe connection error:', error);
-      toast.error('Could not connect to Stripe. Please try again.');
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      toast.success('Project deleted successfully');
+    } catch (error) {
+      console.error('[Dashboard] Error deleting project:', error);
+      toast.error('Failed to delete project');
     } finally {
-      setConnectingStripe(false);
+      setDeletingProjectId(null);
     }
   };
 
-  const handleNavigateToProject = useCallback((projectId: string) => {
-    console.log('[Dashboard] Navigating to project overview:', projectId);
-    navigate(`/projects/${projectId}/overview`);
-  }, [navigate]);
+  // Apply search and sort to all projects
+  const filteredProjects = useMemo(() => {
+    let filtered = [...projects];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.project_name.toLowerCase().includes(query) ||
+        project.client_name.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'client':
+          return a.client_name.localeCompare(b.client_name);
+        case 'amount':
+          return b.total_amount - a.total_amount;
+        case 'status':
+          if (a.has_unread_actions && !b.has_unread_actions) return -1;
+          if (!a.has_unread_actions && b.has_unread_actions) return 1;
+          return 0;
+        case 'recent':
+        default:
+          return 0; // Already sorted by created_at DESC from query
+      }
+    });
+
+    return filtered;
+  }, [projects, searchQuery, sortBy]);
+
+  const handleRefresh = () => {
+    fetchProjects(true);
+  };
+
+  const handleNavigateToProject = (shareCode: string) => {
+    if (!shareCode) {
+      toast.error('Project link not available');
+      return;
+    }
+    navigate(`/projects/${shareCode}/detail`);
+  };
+
+  const checkStripeStatus = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('stripe_account_id')
+        .eq('id', userId)
+        .single();
+      
+      setStripeConnected(!!data?.stripe_account_id);
+    } catch (error) {
+      console.error('[Dashboard] Error checking Stripe status:', error);
+    }
+  }, [userId]);
+
+  const checkWelcomeModal = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('welcome_modal_seen')
+        .eq('id', userId)
+        .single();
+
+      if (!data?.welcome_modal_seen) {
+        setShowWelcomeModal(true);
+      }
+    } catch (error) {
+      console.error('[Dashboard] Error checking welcome modal:', error);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchProjects();
+      checkStripeStatus();
+      checkWelcomeModal();
+    }
+  }, [userId, fetchProjects, checkStripeStatus, checkWelcomeModal]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border-green-200';
       default:
@@ -417,28 +316,23 @@ export default function Dashboard() {
     }
   };
 
-return (
-  <div className="min-h-screen bg-gray-50">
-    <Navigation />
-    
-    {/* Welcome Modal for first-time users */}
-    {showWelcomeModal && (
-      <WelcomeModal 
-        userId={userId!} 
-        onClose={() => setShowWelcomeModal(false)} 
-      />
-    )}
-    
-    {/* Fixed bottom-right container */}
-    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
-      <RealtimeStatus />
-    </div>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      
+      {showWelcomeModal && (
+        <WelcomeModal 
+          userId={userId!} 
+          onClose={() => setShowWelcomeModal(false)} 
+        />
+      )}
+      
+      <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+        <RealtimeStatus />
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Stripe Connect Component */}
         <StripeConnect userId={userId!} />
-
-        {/* Payment Tracker Section */}
         <PaymentTracker userId={userId!} />
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -450,7 +344,6 @@ return (
               Manage your projects and track payments
             </p>
           </div>
-          {/* Only show buttons when there are projects */}
           {projects.length > 0 && (
             <div className="flex gap-3">
               <Button
@@ -535,20 +428,68 @@ return (
           </Card>
         ) : (
           <>
+            {/* Search and Sort Bar */}
+            <Card className="p-4 sm:p-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Search Bar */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search projects or clients..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[160px]"
+                >
+                  <option value="recent">Most Recent</option>
+                  <option value="client">Client Name</option>
+                  <option value="amount">Amount</option>
+                  <option value="status">Needs Attention</option>
+                </select>
+              </div>
+
+              {/* Search Results Counter */}
+              {searchQuery && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                  <span>Showing {filteredProjects.length} of {projects.length} projects</span>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-green-600 hover:text-green-700 font-medium transition-colors"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
+            </Card>
+
+            {/* Active and Completed Projects Sections (PRESERVED!) */}
             {(() => {
-              const activeProjects = projects.filter(p => {
+              const activeProjects = filteredProjects.filter(p => {
                 const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
                 return !isComplete;
               }).sort((a, b) => {
-                // First: Sort by notification status (needs attention first)
                 if (a.has_unread_actions && !b.has_unread_actions) return -1;
                 if (!a.has_unread_actions && b.has_unread_actions) return 1;
-
-                // Then: Keep existing order (already sorted by created_at DESC from query)
                 return 0;
               });
 
-              const completedProjects = projects.filter(p => {
+              const completedProjects = filteredProjects.filter(p => {
                 const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
                 return isComplete;
               });
@@ -567,19 +508,51 @@ return (
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
-                        <p className="text-gray-600 mb-2">All caught up!</p>
-                        <p className="text-sm text-gray-500">Your active projects will appear here</p>
+                        {searchQuery ? (
+                          <>
+                            <p className="text-gray-600 mb-2">No active projects match your search</p>
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className="text-green-600 hover:text-green-700 font-medium"
+                            >
+                              Clear search
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-gray-600 mb-2">All caught up!</p>
+                            <p className="text-sm text-gray-500">Your active projects will appear here</p>
+                          </>
+                        )}
                       </Card>
                     ) : (
                       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {activeProjects.map((project) => (
-                          <ProjectCard
-                            key={project.id}
-                            project={project}
-                            onNavigate={handleNavigateToProject}
-                            getStatusColor={getStatusColor}
-                            getStatusLabel={getStatusLabel}
-                          />
+                          <div key={project.id} className="relative group">
+                            <ProjectCard
+                              project={project}
+                              onNavigate={handleNavigateToProject}
+                              getStatusColor={getStatusColor}
+                              getStatusLabel={getStatusLabel}
+                            />
+                            
+                            {/* Delete Button - Appears on Hover */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProject(project.id, project.project_name);
+                              }}
+                              disabled={deletingProjectId === project.id}
+                              className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 z-10"
+                              title="Delete project"
+                            >
+                              {deletingProjectId === project.id ? (
+                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -593,13 +566,31 @@ return (
                       </h2>
                       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
                         {completedProjects.map((project) => (
-                          <ProjectCard
-                            key={project.id}
-                            project={project}
-                            onNavigate={handleNavigateToProject}
-                            getStatusColor={getStatusColor}
-                            getStatusLabel={getStatusLabel}
-                          />
+                          <div key={project.id} className="relative group">
+                            <ProjectCard
+                              project={project}
+                              onNavigate={handleNavigateToProject}
+                              getStatusColor={getStatusColor}
+                              getStatusLabel={getStatusLabel}
+                            />
+                            
+                            {/* Delete Button - Appears on Hover */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProject(project.id, project.project_name);
+                              }}
+                              disabled={deletingProjectId === project.id}
+                              className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 z-10"
+                              title="Delete project"
+                            >
+                              {deletingProjectId === project.id ? (
+                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
