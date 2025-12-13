@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/milestage-logo.png';
+import logo from '../../assets/milestage-logo.png';
 
 export default function LandingNav() {
   const navigate = useNavigate();
