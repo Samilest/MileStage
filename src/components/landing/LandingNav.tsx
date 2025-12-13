@@ -23,7 +23,7 @@ export default function LandingNav() {
             <img 
               src={logo}
               alt="MileStage" 
-              className="h-8"
+              className="h-10"
             />
           </button>
 
