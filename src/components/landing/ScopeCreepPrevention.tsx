@@ -5,6 +5,10 @@ export default function ScopeCreepPrevention() {
       answer: 'Stage locked. Pay Stage 1 first.',
     },
     {
+      question: 'Can we just tweak this one more time?',
+      answer: 'Out of revisions. New stage = new payment required.',
+    },
+    {
       question: 'Can we add one more round of changes?',
       answer: 'Create new stage. Get paid first.',
     },

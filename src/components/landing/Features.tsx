@@ -5,17 +5,17 @@ export default function Features() {
     {
       icon: RefreshCw,
       title: 'Runs Automatically',
-      description: 'Reminders send themselves. No chasing needed.',
+      description: 'Payment reminders and revision tracking happen in the background. Zero effort required.',
     },
     {
       icon: Lock,
-      title: 'Stage Locking',
-      description: 'Next stage locked until payment clears.',
+      title: 'Stage Locking + Revision Limits',
+      description: 'Next stage locked until payment clears. Revision limits enforced to prevent scope creep.',
     },
     {
       icon: DollarSign,
       title: 'Zero Fees',
-      description: '$19/month flat. No transaction fees.',
+      description: '$19/month flat. No transaction fees. You keep 100% of what clients pay.',
     },
   ];
 

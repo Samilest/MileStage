@@ -13,14 +13,32 @@ export default function Hero() {
             <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-black leading-[1.1] tracking-tight mb-8">
               Stop Scope Creep.
               <br />
-              Get Paid Faster.
+              Get Paid On Time.
             </h1>
             
-            <div className="space-y-3 text-xl lg:text-2xl text-gray-700 leading-relaxed mb-12">
-              <p>Stage-by-stage payment tracking with automatic locking.</p>
-              <p>Client can't start next stage until current stage is paid.</p>
-              <p className="text-black font-medium">No free work. No awkward conversations.</p>
+            <p className="text-xl lg:text-2xl text-gray-700 leading-relaxed mb-8">
+              MileStage tracks your project stages, revision limits, and payments automatically—so clients can't blur boundaries or skip payments.
+            </p>
+
+            {/* Key Features - Updated with Revisions */}
+            <div className="space-y-3 mb-10">
+              {[
+                'Stage payments lock until paid',
+                'Revision limits enforced per stage',
+                'Automatic payment reminders',
+              ].map((feature, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-lg text-gray-700">{feature}</span>
+                </div>
+              ))}
             </div>
+
+            <p className="text-lg text-black font-medium mb-8">
+              No free work. No awkward conversations.
+            </p>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <button
