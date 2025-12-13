@@ -1,4 +1,4 @@
-// Enhanced Dashboard v4 - SAFE VERSION - Keeps Active/Completed Sections
+// Enhanced Dashboard v4 - QUICK FIX - Removed stage_notes.note column
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -107,7 +107,6 @@ export default function Dashboard() {
                 stage_notes!stage_notes_stage_id_fkey (
                   id,
                   author_type,
-                  note,
                   created_at,
                   viewed_by_freelancer_at
                 )
@@ -230,7 +229,7 @@ export default function Dashboard() {
           return 0;
         case 'recent':
         default:
-          return 0; // Already sorted by created_at DESC from query
+          return 0;
       }
     });
 
@@ -478,7 +477,7 @@ export default function Dashboard() {
               )}
             </Card>
 
-            {/* Active and Completed Projects Sections (PRESERVED!) */}
+            {/* Active and Completed Projects Sections */}
             {(() => {
               const activeProjects = filteredProjects.filter(p => {
                 const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
@@ -536,7 +535,7 @@ export default function Dashboard() {
                               getStatusLabel={getStatusLabel}
                             />
                             
-                            {/* Delete Button - Appears on Hover */}
+                            {/* Delete Button */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -574,7 +573,7 @@ export default function Dashboard() {
                               getStatusLabel={getStatusLabel}
                             />
                             
-                            {/* Delete Button - Appears on Hover */}
+                            {/* Delete Button */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
