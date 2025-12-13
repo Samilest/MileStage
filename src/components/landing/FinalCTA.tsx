@@ -14,10 +14,11 @@ export default function FinalCTA() {
         
         <button
           onClick={() => navigate('/signup')}
-          className="inline-flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-5 rounded-xl text-xl transition-all duration-200 hover:scale-105 shadow-xl hover:shadow-2xl mb-6 group"
+          className="inline-flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white font-semibold px-12 py-5 rounded-xl text-xl transition-all duration-300 hover:scale-110 shadow-xl hover:shadow-2xl mb-6 group relative overflow-hidden"
         >
-          <span>Start Free Trial</span>
-          <span className="group-hover:translate-x-1 transition-transform">→</span>
+          <span className="relative z-10">Start Free Trial</span>
+          <span className="relative z-10 group-hover:translate-x-2 transition-transform duration-300">→</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </button>
 
         <p className="text-gray-600 text-lg">

@@ -26,9 +26,12 @@ export default function Features() {
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <div key={index} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-gray-50">
-                  <Icon className="w-8 h-8 text-black" strokeWidth={1.5} />
+              <div 
+                key={index} 
+                className="text-center group cursor-default transition-all duration-300 hover:-translate-y-2"
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-gray-50 group-hover:bg-green-50 transition-all duration-300 group-hover:shadow-md">
+                  <Icon className="w-8 h-8 text-black group-hover:text-green-600 transition-all duration-300 group-hover:scale-110" strokeWidth={1.5} />
                 </div>
                 <h3 className="text-2xl font-bold text-black mb-3">
                   {feature.title}

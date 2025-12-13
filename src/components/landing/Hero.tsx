@@ -25,10 +25,10 @@ export default function Hero() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <button
                 onClick={() => navigate('/signup')}
-                className="group bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-4 rounded-xl text-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
+                className="group bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-4 rounded-xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
               >
                 <span>Start Free</span>
-                <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform duration-300">→</span>
               </button>
               <div className="text-sm text-gray-600">
                 <div>14-day trial</div>
@@ -39,7 +39,7 @@ export default function Hero() {
 
           {/* Right: Dashboard Screenshot */}
           <div className="relative lg:ml-auto">
-            <div className="relative rounded-2xl shadow-2xl border border-gray-200 overflow-hidden bg-white">
+            <div className="relative rounded-2xl shadow-2xl border border-gray-200 overflow-hidden bg-white transition-transform duration-500 hover:scale-[1.02]">
               <img
                 src="/dashboard-screenshot.png"
                 alt="MileStage Dashboard - Track milestone payments"
@@ -47,7 +47,7 @@ export default function Hero() {
               />
             </div>
             {/* Subtle accent */}
-            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-green-100 rounded-full -z-10 blur-3xl opacity-30" />
+            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-green-100 rounded-full -z-10 blur-3xl opacity-40 animate-pulse" />
           </div>
 
         </div>

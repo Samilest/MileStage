@@ -28,7 +28,7 @@ export default function ScopeCreepPrevention() {
           {scenarios.map((scenario, index) => (
             <div 
               key={index}
-              className="bg-gray-50 rounded-2xl p-8 lg:p-10 border border-gray-100 hover:border-gray-200 transition-colors"
+              className="bg-gray-50 rounded-2xl p-8 lg:p-10 border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-default"
             >
               <p className="text-lg lg:text-xl italic text-gray-600 mb-4">
                 "{scenario.question}"
@@ -40,7 +40,7 @@ export default function ScopeCreepPrevention() {
           ))}
         </div>
 
-        <div className="mt-16 text-center bg-green-50 rounded-2xl p-8 border border-green-100">
+        <div className="mt-16 text-center bg-green-50 rounded-2xl p-8 border border-green-100 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-default">
           <p className="text-xl lg:text-2xl text-black font-bold mb-2">
             No awkward conversations.
           </p>

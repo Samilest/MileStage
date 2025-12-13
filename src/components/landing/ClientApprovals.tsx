@@ -38,7 +38,7 @@ export default function ClientApprovals() {
           ].map((benefit, index) => (
             <div 
               key={index}
-              className="flex items-start gap-4 bg-white rounded-xl p-6 border border-gray-100"
+              className="flex items-start gap-4 bg-white rounded-xl p-6 border border-gray-100 transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-default"
             >
               <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

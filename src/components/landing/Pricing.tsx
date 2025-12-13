@@ -112,9 +112,10 @@ export default function Pricing() {
             {/* CTA */}
             <button
               onClick={() => navigate('/signup')}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl mb-4"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl mb-4 relative overflow-hidden group"
             >
-              Start Free Trial
+              <span className="relative z-10">Start Free Trial</span>
+              <div className="absolute inset-0 bg-green-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
             </button>
 
             <p className="text-center text-gray-600 text-sm">

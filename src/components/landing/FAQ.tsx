@@ -37,9 +37,9 @@ export default function FAQ() {
           {faqs.map((faq, index) => (
             <div 
               key={index} 
-              className="pb-10 border-b border-gray-200 last:border-0 last:pb-0"
+              className="pb-10 border-b border-gray-200 last:border-0 last:pb-0 group transition-all duration-300 hover:translate-x-2"
             >
-              <h3 className="text-2xl font-bold text-black mb-4">
+              <h3 className="text-2xl font-bold text-black mb-4 group-hover:text-green-600 transition-colors duration-300">
                 {faq.question}
               </h3>
               <p className="text-lg lg:text-xl text-gray-600 leading-relaxed">
