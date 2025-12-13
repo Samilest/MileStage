@@ -1,0 +1,54 @@
+export default function ScopeCreepPrevention() {
+  const scenarios = [
+    {
+      question: 'Can we start revisions while payment processes?',
+      answer: 'Stage locked. Pay Stage 1 first.',
+    },
+    {
+      question: 'Can we add one more round of changes?',
+      answer: 'Create new stage. Get paid first.',
+    },
+    {
+      question: 'Can we just do a quick extra thing?',
+      answer: 'Quick things = new stage = payment required.',
+    },
+  ];
+
+  return (
+    <section className="py-24 lg:py-32 bg-white">
+      <div className="max-w-4xl mx-auto px-6 lg:px-12">
+        <h2 className="text-4xl lg:text-5xl font-bold text-black text-center mb-6">
+          Prevents Scope Creep Automatically
+        </h2>
+        <p className="text-xl text-gray-600 text-center mb-16 max-w-2xl mx-auto">
+          The system enforces boundaries so you don't have to have awkward conversations.
+        </p>
+
+        <div className="space-y-8">
+          {scenarios.map((scenario, index) => (
+            <div 
+              key={index}
+              className="bg-gray-50 rounded-2xl p-8 lg:p-10 border border-gray-100 hover:border-gray-200 transition-colors"
+            >
+              <p className="text-lg lg:text-xl italic text-gray-600 mb-4">
+                "{scenario.question}"
+              </p>
+              <p className="text-lg lg:text-xl text-black font-semibold">
+                → {scenario.answer}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-16 text-center bg-green-50 rounded-2xl p-8 border border-green-100">
+          <p className="text-xl lg:text-2xl text-black font-bold mb-2">
+            No awkward conversations.
+          </p>
+          <p className="text-lg text-gray-700">
+            The system enforces boundaries for you.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
