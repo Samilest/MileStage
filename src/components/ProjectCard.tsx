@@ -106,14 +106,16 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
         {project.completed_stages}/{project.total_stages} stages complete
       </div>
 
-      {/* Primary notification - show only if needs attention */}
-      {needsAttention && project.primary_notification && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
+      {/* Primary notification - ALWAYS RESERVE SPACE for consistent card height */}
+      <div className="mt-3 pt-3 border-t border-gray-200 min-h-[3rem]">
+        {needsAttention && project.primary_notification ? (
           <p className="text-sm text-gray-700 font-medium">
             {project.primary_notification}
           </p>
-        </div>
-      )}
+        ) : (
+          <div className="h-5" />
+        )}
+      </div>
     </div>
   );
 }

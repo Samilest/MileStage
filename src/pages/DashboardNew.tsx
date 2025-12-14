@@ -354,6 +354,7 @@ export default function Dashboard() {
     }
   }, [userId]);
 
+  // Separate effect for initial load
   useEffect(() => {
     if (userId) {
       fetchProjects();
@@ -361,6 +362,74 @@ export default function Dashboard() {
       checkWelcomeModal();
     }
   }, [userId, fetchProjects, checkStripeStatus, checkWelcomeModal]);
+
+  // Separate effect for realtime subscription (doesn't depend on projects array)
+  useEffect(() => {
+    if (!userId) return;
+
+    console.log('[Dashboard] Setting up realtime subscription...');
+    
+    // Subscribe to changes in tables that affect notifications
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'stages'
+        },
+        (payload) => {
+          console.log('[Dashboard] Stage changed:', payload);
+          fetchProjects(false); // Silent refresh - no toast
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_payments'
+        },
+        (payload) => {
+          console.log('[Dashboard] Payment changed:', payload);
+          fetchProjects(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'revisions'
+        },
+        (payload) => {
+          console.log('[Dashboard] Revision changed:', payload);
+          fetchProjects(false);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_notes'
+        },
+        (payload) => {
+          console.log('[Dashboard] Note changed:', payload);
+          fetchProjects(false);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Dashboard] Realtime status:', status);
+      });
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[Dashboard] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchProjects]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
