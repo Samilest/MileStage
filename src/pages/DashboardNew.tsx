@@ -1,4 +1,4 @@
-// Enhanced Dashboard v4 - QUICK FIX - Removed stage_notes.note column
+// Enhanced Dashboard v5 - Archive/Restore + Search/Sort - Based on original working file
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -15,7 +15,7 @@ import WelcomeModal from '../components/WelcomeModal';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
-import { RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { RefreshCw, Search, Archive, ArchiveRestore, X } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -30,9 +30,10 @@ interface Project {
   primary_notification?: string;
   currency: CurrencyCode;
   share_code: string;
-  created_at?: string;
+  archived_at?: string | null;
 }
 
+type FilterOption = 'active' | 'completed' | 'archived' | 'all';
 type SortOption = 'recent' | 'client' | 'amount' | 'status';
 
 export default function Dashboard() {
@@ -45,10 +46,11 @@ export default function Dashboard() {
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   
-  // New state for search/sort/delete
+  // New state for search/filter/sort/archive
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterBy, setFilterBy] = useState<FilterOption>('active');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [archivingProjectId, setArchivingProjectId] = useState<string | null>(null);
   
   const fetchingRef = useRef(false);
   const userId = user?.id;
@@ -56,6 +58,7 @@ export default function Dashboard() {
   const fetchProjects = useCallback(async (isRefresh = false) => {
     if (!userId) return;
 
+    // Prevent duplicate fetches
     if (fetchingRef.current) {
       console.log('[Dashboard] Already fetching, skipping duplicate request');
       return;
@@ -84,7 +87,7 @@ export default function Dashboard() {
               status,
               currency,
               share_code,
-              created_at,
+              archived_at,
               stages (
                 id,
                 stage_number,
@@ -107,47 +110,42 @@ export default function Dashboard() {
                 stage_notes!stage_notes_stage_id_fkey (
                   id,
                   author_type,
-                  created_at,
-                  viewed_by_freelancer_at
+                  viewed_by_freelancer_at,
+                  created_at
                 )
               )
             `)
             .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .order('stage_number', { foreignTable: 'stages', ascending: true });
 
           if (error) throw error;
           return data;
         },
         3,
-        1000
+        'fetch projects'
       );
 
-      const enrichedProjects = (projectsData || []).map((project: any) => {
-        const stages = project.stages || [];
-        const totalStages = stages.length;
-        const completedStages = stages.filter((stage: any) => 
-          stage.status === 'completed' && 
-          stage.payment_status === 'paid'
-        ).length;
-
-        const hasUnreadActions = stages.some((stage: any) => {
-          const hasUnreadRevision = stage.revisions?.some((rev: any) => !rev.viewed_by_freelancer_at);
-          const hasUnreadPayment = stage.stage_payments?.some((payment: any) => 
-            payment.status === 'pending_verification' && !payment.viewed_by_freelancer_at
-          );
-          const hasUnreadNote = stage.stage_notes?.some((note: any) => 
-            note.author_type === 'client' && !note.viewed_by_freelancer_at
-          );
-          const hasUnreadApproval = stage.status === 'approved' && !stage.viewed_by_freelancer_at;
-
-          return hasUnreadRevision || hasUnreadPayment || hasUnreadNote || hasUnreadApproval;
-        });
-
-        const primaryNotification = getPrimaryNotification(stages);
-
+      const projectsWithStats = projectsData?.map((project: any) => {
+        // Ensure stages are sorted by stage_number
+        const stages = (project.stages || []).sort((a: any, b: any) => a.stage_number - b.stage_number);
+        const completedStages = stages.filter((s: any) => s.payment_status === 'received').length;
         const amountEarned = stages
-          .filter((stage: any) => stage.payment_status === 'paid')
-          .reduce((sum: number, stage: any) => sum + stage.amount, 0);
+          .filter((s: any) => s.payment_status === 'received')
+          .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
+
+        // Find the first stage with unread actions and get its primary notification
+        let hasUnreadActions = false;
+        let primaryNotification = '';
+        
+        for (const stage of stages) {
+          const stageNotification = getPrimaryNotification([stage]);
+          if (stageNotification) {
+            hasUnreadActions = true;
+            primaryNotification = stageNotification;
+            break;
+          }
+        }
 
         return {
           id: project.id,
@@ -155,21 +153,21 @@ export default function Dashboard() {
           client_name: project.client_name,
           total_amount: project.total_amount,
           status: project.status,
+          currency: project.currency || 'USD',
+          share_code: project.share_code,
           completed_stages: completedStages,
-          total_stages: totalStages,
+          total_stages: stages.length,
           amount_earned: amountEarned,
           has_unread_actions: hasUnreadActions,
           primary_notification: primaryNotification,
-          currency: project.currency || 'USD',
-          share_code: project.share_code,
-          created_at: project.created_at,
+          archived_at: project.archived_at,
         };
-      });
+      }) || [];
 
-      setProjects(enrichedProjects);
-    } catch (error) {
+      setProjects(projectsWithStats);
+    } catch (error: any) {
       console.error('[Dashboard] Error fetching projects:', error);
-      toast.error('Failed to load projects');
+      toast.error(error.message || 'Failed to load projects');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -177,33 +175,45 @@ export default function Dashboard() {
     }
   }, [userId]);
 
-  const handleDeleteProject = async (projectId: string, projectName: string) => {
-    if (!confirm(`Are you sure you want to delete "${projectName}"?\n\nThis will permanently delete:\n• All project stages\n• All payments and revisions\n• All notes and files\n\nThis action cannot be undone.`)) {
+  // Archive/Restore project
+  const handleArchiveProject = async (projectId: string, projectName: string, isArchived: boolean) => {
+    const action = isArchived ? 'restore' : 'archive';
+    const confirmMessage = isArchived 
+      ? `Restore "${projectName}"?\n\nThis will move it back to your active projects.`
+      : `Archive "${projectName}"?\n\nYou can restore it later from the Archived filter.`;
+    
+    if (!confirm(confirmMessage)) {
       return;
     }
 
-    setDeletingProjectId(projectId);
+    setArchivingProjectId(projectId);
     
     try {
       const { error } = await supabase
         .from('projects')
-        .delete()
+        .update({ archived_at: isArchived ? null : new Date().toISOString() })
         .eq('id', projectId)
         .eq('user_id', userId);
 
       if (error) throw error;
 
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      toast.success('Project deleted successfully');
+      // Update local state
+      setProjects(prev => prev.map(p => 
+        p.id === projectId 
+          ? { ...p, archived_at: isArchived ? null : new Date().toISOString() }
+          : p
+      ));
+
+      toast.success(isArchived ? 'Project restored successfully' : 'Project archived successfully');
     } catch (error) {
-      console.error('[Dashboard] Error deleting project:', error);
-      toast.error('Failed to delete project');
+      console.error(`[Dashboard] Error ${action}ing project:`, error);
+      toast.error(`Failed to ${action} project`);
     } finally {
-      setDeletingProjectId(null);
+      setArchivingProjectId(null);
     }
   };
 
-  // Apply search and sort to all projects
+  // Filter and sort projects
   const filteredProjects = useMemo(() => {
     let filtered = [...projects];
 
@@ -215,6 +225,25 @@ export default function Dashboard() {
         project.client_name.toLowerCase().includes(query)
       );
     }
+
+    // Apply archive/status filter
+    filtered = filtered.filter(project => {
+      const isArchived = !!project.archived_at;
+      const isComplete = project.total_stages > 0 && project.completed_stages === project.total_stages;
+
+      switch (filterBy) {
+        case 'active':
+          return !isArchived && !isComplete;
+        case 'completed':
+          return !isArchived && isComplete;
+        case 'archived':
+          return isArchived;
+        case 'all':
+          return !isArchived; // Show all non-archived
+        default:
+          return true;
+      }
+    });
 
     // Apply sorting
     filtered.sort((a, b) => {
@@ -229,12 +258,12 @@ export default function Dashboard() {
           return 0;
         case 'recent':
         default:
-          return 0;
+          return 0; // Already sorted by created_at DESC from query
       }
     });
 
     return filtered;
-  }, [projects, searchQuery, sortBy]);
+  }, [projects, searchQuery, filterBy, sortBy]);
 
   const handleRefresh = () => {
     fetchProjects(true);
@@ -319,6 +348,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
+      {/* Welcome Modal for first-time users */}
       {showWelcomeModal && (
         <WelcomeModal 
           userId={userId!} 
@@ -326,12 +356,16 @@ export default function Dashboard() {
         />
       )}
       
+      {/* Fixed bottom-right container - REALTIME STATUS KEPT! */}
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
         <RealtimeStatus />
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Stripe Connect Component */}
         <StripeConnect userId={userId!} />
+
+        {/* Payment Tracker Section */}
         <PaymentTracker userId={userId!} />
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -343,6 +377,7 @@ export default function Dashboard() {
               Manage your projects and track payments
             </p>
           </div>
+          {/* Only show buttons when there are projects */}
           {projects.length > 0 && (
             <div className="flex gap-3">
               <Button
@@ -427,9 +462,9 @@ export default function Dashboard() {
           </Card>
         ) : (
           <>
-            {/* Search and Sort Bar */}
+            {/* Search, Filter, Sort Bar */}
             <Card className="p-4 sm:p-6">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col lg:flex-row gap-4">
                 {/* Search Bar */}
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -450,23 +485,36 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Sort Dropdown */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[160px]"
-                >
-                  <option value="recent">Most Recent</option>
-                  <option value="client">Client Name</option>
-                  <option value="amount">Amount</option>
-                  <option value="status">Needs Attention</option>
-                </select>
+                {/* Filter and Sort Dropdowns */}
+                <div className="flex gap-3">
+                  <select
+                    value={filterBy}
+                    onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[140px]"
+                  >
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="archived">Archived</option>
+                    <option value="all">All Projects</option>
+                  </select>
+
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[160px]"
+                  >
+                    <option value="recent">Most Recent</option>
+                    <option value="client">Client Name</option>
+                    <option value="amount">Amount</option>
+                    <option value="status">Needs Attention</option>
+                  </select>
+                </div>
               </div>
 
               {/* Search Results Counter */}
               {searchQuery && (
                 <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-                  <span>Showing {filteredProjects.length} of {projects.length} projects</span>
+                  <span>Showing {filteredProjects.length} of {projects.filter(p => !p.archived_at).length} projects</span>
                   <button
                     onClick={() => setSearchQuery('')}
                     className="text-green-600 hover:text-green-700 font-medium transition-colors"
@@ -477,126 +525,190 @@ export default function Dashboard() {
               )}
             </Card>
 
-            {/* Active and Completed Projects Sections */}
-            {(() => {
-              const activeProjects = filteredProjects.filter(p => {
-                const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
-                return !isComplete;
-              }).sort((a, b) => {
-                if (a.has_unread_actions && !b.has_unread_actions) return -1;
-                if (!a.has_unread_actions && b.has_unread_actions) return 1;
-                return 0;
-              });
-
-              const completedProjects = filteredProjects.filter(p => {
-                const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
-                return isComplete;
-              });
-
-              return (
-                <>
-                  {/* Active Projects Section */}
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-                      Active Projects ({activeProjects.length})
-                    </h2>
-                    {activeProjects.length === 0 ? (
-                      <Card className="text-center py-12 px-4">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        {searchQuery ? (
-                          <>
-                            <p className="text-gray-600 mb-2">No active projects match your search</p>
-                            <button
-                              onClick={() => setSearchQuery('')}
-                              className="text-green-600 hover:text-green-700 font-medium"
-                            >
-                              Clear search
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-gray-600 mb-2">All caught up!</p>
-                            <p className="text-sm text-gray-500">Your active projects will appear here</p>
-                          </>
-                        )}
-                      </Card>
+            {/* Projects Display - Separate Active/Completed sections OR Archived view */}
+            {filterBy === 'archived' ? (
+              /* ARCHIVED PROJECTS VIEW */
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                  Archived Projects ({filteredProjects.length})
+                </h2>
+                {filteredProjects.length === 0 ? (
+                  <Card className="text-center py-12 px-4">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Archive className="w-8 h-8 text-gray-400" />
+                    </div>
+                    {searchQuery ? (
+                      <>
+                        <p className="text-gray-600 mb-2">No archived projects match your search</p>
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="text-green-600 hover:text-green-700 font-medium"
+                        >
+                          Clear search
+                        </button>
+                      </>
                     ) : (
-                      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                        {activeProjects.map((project) => (
-                          <div key={project.id} className="relative group">
-                            <ProjectCard
-                              project={project}
-                              onNavigate={handleNavigateToProject}
-                              getStatusColor={getStatusColor}
-                              getStatusLabel={getStatusLabel}
-                            />
-                            
-                            {/* Delete Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteProject(project.id, project.project_name);
-                              }}
-                              disabled={deletingProjectId === project.id}
-                              className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 z-10"
-                              title="Delete project"
-                            >
-                              {deletingProjectId === project.id ? (
-                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Trash2 className="w-5 h-5" />
-                              )}
-                            </button>
+                      <>
+                        <p className="text-gray-600 mb-2">No archived projects</p>
+                        <p className="text-sm text-gray-500">Archived projects will appear here</p>
+                      </>
+                    )}
+                  </Card>
+                ) : (
+                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-75">
+                    {filteredProjects.map((project) => (
+                      <div key={project.id} className="relative group">
+                        <ProjectCard
+                          project={project}
+                          onNavigate={handleNavigateToProject}
+                          getStatusColor={getStatusColor}
+                          getStatusLabel={getStatusLabel}
+                        />
+                        
+                        {/* Restore Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveProject(project.id, project.project_name, true);
+                          }}
+                          disabled={archivingProjectId === project.id}
+                          className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-green-50 hover:text-green-600 disabled:opacity-50 z-10"
+                          title="Restore project"
+                        >
+                          {archivingProjectId === project.id ? (
+                            <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <ArchiveRestore className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ACTIVE AND COMPLETED PROJECTS VIEW (ORIGINAL LAYOUT) */
+              (() => {
+                const activeProjects = filteredProjects.filter(p => {
+                  const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                  return !isComplete;
+                }).sort((a, b) => {
+                  // Sort by notification status (needs attention first)
+                  if (a.has_unread_actions && !b.has_unread_actions) return -1;
+                  if (!a.has_unread_actions && b.has_unread_actions) return 1;
+                  return 0;
+                });
+
+                const completedProjects = filteredProjects.filter(p => {
+                  const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                  return isComplete;
+                });
+
+                return (
+                  <>
+                    {/* Active Projects Section */}
+                    <div>
+                      <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                        Active Projects ({activeProjects.length})
+                      </h2>
+                      {activeProjects.length === 0 ? (
+                        <Card className="text-center py-12 px-4">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
                           </div>
-                        ))}
+                          {searchQuery ? (
+                            <>
+                              <p className="text-gray-600 mb-2">No active projects match your search</p>
+                              <button
+                                onClick={() => setSearchQuery('')}
+                                className="text-green-600 hover:text-green-700 font-medium"
+                              >
+                                Clear search
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-gray-600 mb-2">All caught up!</p>
+                              <p className="text-sm text-gray-500">Your active projects will appear here</p>
+                            </>
+                          )}
+                        </Card>
+                      ) : (
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                          {activeProjects.map((project) => (
+                            <div key={project.id} className="relative group">
+                              <ProjectCard
+                                project={project}
+                                onNavigate={handleNavigateToProject}
+                                getStatusColor={getStatusColor}
+                                getStatusLabel={getStatusLabel}
+                              />
+                              
+                              {/* Archive Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleArchiveProject(project.id, project.project_name, false);
+                                }}
+                                disabled={archivingProjectId === project.id}
+                                className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
+                                title="Archive project"
+                              >
+                                {archivingProjectId === project.id ? (
+                                  <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Archive className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Completed Projects Section */}
+                    {completedProjects.length > 0 && (
+                      <div className="mt-12">
+                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                          Completed Projects ({completedProjects.length})
+                        </h2>
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
+                          {completedProjects.map((project) => (
+                            <div key={project.id} className="relative group">
+                              <ProjectCard
+                                project={project}
+                                onNavigate={handleNavigateToProject}
+                                getStatusColor={getStatusColor}
+                                getStatusLabel={getStatusLabel}
+                              />
+                              
+                              {/* Archive Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleArchiveProject(project.id, project.project_name, false);
+                                }}
+                                disabled={archivingProjectId === project.id}
+                                className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
+                                title="Archive project"
+                              >
+                                {archivingProjectId === project.id ? (
+                                  <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Archive className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
-
-                  {/* Completed Projects Section */}
-                  {completedProjects.length > 0 && (
-                    <div className="mt-12">
-                      <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-                        Completed Projects ({completedProjects.length})
-                      </h2>
-                      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
-                        {completedProjects.map((project) => (
-                          <div key={project.id} className="relative group">
-                            <ProjectCard
-                              project={project}
-                              onNavigate={handleNavigateToProject}
-                              getStatusColor={getStatusColor}
-                              getStatusLabel={getStatusLabel}
-                            />
-                            
-                            {/* Delete Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteProject(project.id, project.project_name);
-                              }}
-                              disabled={deletingProjectId === project.id}
-                              className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 z-10"
-                              title="Delete project"
-                            >
-                              {deletingProjectId === project.id ? (
-                                <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Trash2 className="w-5 h-5" />
-                              )}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+                  </>
+                );
+              })()
+            )}
           </>
         )}
       </main>
