@@ -1,5 +1,5 @@
-// Enhanced Dashboard v5 - Archive/Restore + Search/Sort - Based on original working file
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+// Enhanced Dashboard v6 - CORRECT VERSION - Preserves ALL original logic
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useStore } from '../store/useStore';
@@ -134,16 +134,49 @@ export default function Dashboard() {
           .filter((s: any) => s.payment_status === 'received')
           .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
 
-        // Find the first stage with unread actions and get its primary notification
-        let hasUnreadActions = false;
+        // EXACT ORIGINAL LOGIC - Find the first stage with unread actions
         let primaryNotification = '';
-        
+        let hasUnreadActions = false;
+
         for (const stage of stages) {
-          const stageNotification = getPrimaryNotification([stage]);
-          if (stageNotification) {
+          // ✅ Skip completed/closed stages - they're locked and inaccessible
+          if (stage.status === 'complete' || stage.status === 'completed') {
+            continue;
+          }
+
+          const hasUnreadRevision = stage.revisions?.some((rev: any) =>
+            rev.requested_at && !rev.viewed_by_freelancer_at
+          ) || false;
+
+          const hasUnreadPayment = stage.stage_payments?.some((payment: any) =>
+            payment.status === 'marked_paid' &&
+            payment.marked_paid_at &&
+            !payment.viewed_by_freelancer_at
+          ) || false;
+
+          const hasUnreadApproval = stage.approved_at && !stage.viewed_by_freelancer_at;
+
+          const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
+            note.author_type === 'client' && !note.viewed_by_freelancer_at
+          ).length || 0;
+
+          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
+
+          if (stageHasUnread) {
             hasUnreadActions = true;
-            primaryNotification = stageNotification;
-            break;
+            if (!primaryNotification) {
+              console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
+              primaryNotification = getPrimaryNotification(
+                {
+                  hasUnviewedPayment: hasUnreadPayment,
+                  hasUnviewedRevision: hasUnreadRevision,
+                  hasUnviewedApproval: hasUnreadApproval,
+                  unreadMessageCount: unreadMessageCount
+                },
+                ''
+              );
+              console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
+            }
           }
         }
 
@@ -153,21 +186,31 @@ export default function Dashboard() {
           client_name: project.client_name,
           total_amount: project.total_amount,
           status: project.status,
-          currency: project.currency || 'USD',
-          share_code: project.share_code,
           completed_stages: completedStages,
           total_stages: stages.length,
           amount_earned: amountEarned,
           has_unread_actions: hasUnreadActions,
           primary_notification: primaryNotification,
+          currency: project.currency || 'USD',
+          share_code: project.share_code,
           archived_at: project.archived_at,
         };
       }) || [];
 
+      console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
       setProjects(projectsWithStats);
+
+      if (isRefresh) {
+        toast.success('Refreshed!');
+      }
     } catch (error: any) {
-      console.error('[Dashboard] Error fetching projects:', error);
-      toast.error(error.message || 'Failed to load projects');
+      console.error('[Dashboard] Error:', error);
+
+      if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
+        toast.error('Connection lost. Retrying...');
+      } else {
+        toast.error('Could not load Projects');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -226,20 +269,20 @@ export default function Dashboard() {
       );
     }
 
-    // Apply archive/status filter
+    // Apply archive/status filter - FIXED LOGIC!
     filtered = filtered.filter(project => {
       const isArchived = !!project.archived_at;
       const isComplete = project.total_stages > 0 && project.completed_stages === project.total_stages;
 
       switch (filterBy) {
         case 'active':
-          return !isArchived && !isComplete;
+          return !isArchived && !isComplete; // Only active, not archived
         case 'completed':
-          return !isArchived && isComplete;
+          return !isArchived && isComplete; // Only completed, not archived
         case 'archived':
-          return isArchived;
+          return isArchived; // Only archived (regardless of completion)
         case 'all':
-          return !isArchived; // Show all non-archived
+          return !isArchived; // All non-archived (both active and completed)
         default:
           return true;
       }
@@ -356,7 +399,7 @@ export default function Dashboard() {
         />
       )}
       
-      {/* Fixed bottom-right container - REALTIME STATUS KEPT! */}
+      {/* Fixed bottom-right container */}
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
         <RealtimeStatus />
       </div>
@@ -525,7 +568,7 @@ export default function Dashboard() {
               )}
             </Card>
 
-            {/* Projects Display - Separate Active/Completed sections OR Archived view */}
+            {/* Projects Display */}
             {filterBy === 'archived' ? (
               /* ARCHIVED PROJECTS VIEW */
               <div>
@@ -587,127 +630,131 @@ export default function Dashboard() {
                 )}
               </div>
             ) : (
-              /* ACTIVE AND COMPLETED PROJECTS VIEW (ORIGINAL LAYOUT) */
-              (() => {
-                const activeProjects = filteredProjects.filter(p => {
-                  const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
-                  return !isComplete;
-                }).sort((a, b) => {
-                  // Sort by notification status (needs attention first)
-                  if (a.has_unread_actions && !b.has_unread_actions) return -1;
-                  if (!a.has_unread_actions && b.has_unread_actions) return 1;
-                  return 0;
-                });
+              /* ORIGINAL ACTIVE/COMPLETED LAYOUT - EXACT COPY */
+              <>
+                {(() => {
+                  const activeProjects = filteredProjects.filter(p => {
+                    const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                    return !isComplete;
+                  }).sort((a, b) => {
+                    // First: Sort by notification status (needs attention first)
+                    if (a.has_unread_actions && !b.has_unread_actions) return -1;
+                    if (!a.has_unread_actions && b.has_unread_actions) return 1;
 
-                const completedProjects = filteredProjects.filter(p => {
-                  const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
-                  return isComplete;
-                });
+                    // Then: Keep existing order (already sorted by created_at DESC from query)
+                    return 0;
+                  });
 
-                return (
-                  <>
-                    {/* Active Projects Section */}
-                    <div>
-                      <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-                        Active Projects ({activeProjects.length})
-                      </h2>
-                      {activeProjects.length === 0 ? (
-                        <Card className="text-center py-12 px-4">
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          {searchQuery ? (
-                            <>
-                              <p className="text-gray-600 mb-2">No active projects match your search</p>
-                              <button
-                                onClick={() => setSearchQuery('')}
-                                className="text-green-600 hover:text-green-700 font-medium"
-                              >
-                                Clear search
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-gray-600 mb-2">All caught up!</p>
-                              <p className="text-sm text-gray-500">Your active projects will appear here</p>
-                            </>
-                          )}
-                        </Card>
-                      ) : (
-                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                          {activeProjects.map((project) => (
-                            <div key={project.id} className="relative group">
-                              <ProjectCard
-                                project={project}
-                                onNavigate={handleNavigateToProject}
-                                getStatusColor={getStatusColor}
-                                getStatusLabel={getStatusLabel}
-                              />
-                              
-                              {/* Archive Button */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleArchiveProject(project.id, project.project_name, false);
-                                }}
-                                disabled={archivingProjectId === project.id}
-                                className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
-                                title="Archive project"
-                              >
-                                {archivingProjectId === project.id ? (
-                                  <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Archive className="w-5 h-5" />
-                                )}
-                              </button>
+                  const completedProjects = filteredProjects.filter(p => {
+                    const isComplete = p.total_stages > 0 && p.completed_stages === p.total_stages;
+                    return isComplete;
+                  });
+
+                  return (
+                    <>
+                      {/* Active Projects Section */}
+                      <div>
+                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                          Active Projects ({activeProjects.length})
+                        </h2>
+                        {activeProjects.length === 0 ? (
+                          <Card className="text-center py-12 px-4">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
                             </div>
-                          ))}
+                            {searchQuery ? (
+                              <>
+                                <p className="text-gray-600 mb-2">No active projects match your search</p>
+                                <button
+                                  onClick={() => setSearchQuery('')}
+                                  className="text-green-600 hover:text-green-700 font-medium"
+                                >
+                                  Clear search
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-gray-600 mb-2">All caught up!</p>
+                                <p className="text-sm text-gray-500">Your active projects will appear here</p>
+                              </>
+                            )}
+                          </Card>
+                        ) : (
+                          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {activeProjects.map((project) => (
+                              <div key={project.id} className="relative group">
+                                <ProjectCard
+                                  project={project}
+                                  onNavigate={handleNavigateToProject}
+                                  getStatusColor={getStatusColor}
+                                  getStatusLabel={getStatusLabel}
+                                />
+                                
+                                {/* Archive Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleArchiveProject(project.id, project.project_name, false);
+                                  }}
+                                  disabled={archivingProjectId === project.id}
+                                  className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
+                                  title="Archive project"
+                                >
+                                  {archivingProjectId === project.id ? (
+                                    <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Archive className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Completed Projects Section */}
+                      {completedProjects.length > 0 && (
+                        <div className="mt-12">
+                          <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                            Completed Projects ({completedProjects.length})
+                          </h2>
+                          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
+                            {completedProjects.map((project) => (
+                              <div key={project.id} className="relative group">
+                                <ProjectCard
+                                  project={project}
+                                  onNavigate={handleNavigateToProject}
+                                  getStatusColor={getStatusColor}
+                                  getStatusLabel={getStatusLabel}
+                                />
+                                
+                                {/* Archive Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleArchiveProject(project.id, project.project_name, false);
+                                  }}
+                                  disabled={archivingProjectId === project.id}
+                                  className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
+                                  title="Archive project"
+                                >
+                                  {archivingProjectId === project.id ? (
+                                    <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Archive className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Completed Projects Section */}
-                    {completedProjects.length > 0 && (
-                      <div className="mt-12">
-                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-                          Completed Projects ({completedProjects.length})
-                        </h2>
-                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 opacity-90">
-                          {completedProjects.map((project) => (
-                            <div key={project.id} className="relative group">
-                              <ProjectCard
-                                project={project}
-                                onNavigate={handleNavigateToProject}
-                                getStatusColor={getStatusColor}
-                                getStatusLabel={getStatusLabel}
-                              />
-                              
-                              {/* Archive Button */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleArchiveProject(project.id, project.project_name, false);
-                                }}
-                                disabled={archivingProjectId === project.id}
-                                className="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 z-10"
-                                title="Archive project"
-                              >
-                                {archivingProjectId === project.id ? (
-                                  <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Archive className="w-5 h-5" />
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()
+                    </>
+                  );
+                })()}
+              </>
             )}
           </>
         )}
