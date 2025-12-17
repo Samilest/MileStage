@@ -15,10 +15,11 @@ interface ProjectCardProps {
     primary_notification?: string;
     currency: CurrencyCode;
     share_code: string;
+    archived_at?: string | null;
   };
   onNavigate: (projectId: string) => void;
-  getStatusColor: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => string;
-  getStatusLabel: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean) => string;
+  getStatusColor: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean, isArchived?: boolean) => string;
+  getStatusLabel: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean, isArchived?: boolean) => string;
 }
 
 function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) {
@@ -26,10 +27,12 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
     ? Math.round((project.completed_stages / project.total_stages) * 100)
     : 0;
 
-  const statusLabel = getStatusLabel(project.status, project.completed_stages, project.total_stages, project.has_unread_actions);
+  const isArchived = !!project.archived_at;
+  const statusLabel = getStatusLabel(project.status, project.completed_stages, project.total_stages, project.has_unread_actions, isArchived);
   const isActive = statusLabel.includes('Active') || statusLabel.includes('In Progress');
   const isPaused = statusLabel.includes('Paused');
   const isCompleted = statusLabel.includes('Complete');
+  const isArchivedStatus = statusLabel.includes('Archived');
   const needsAttention = project.has_unread_actions && !isCompleted;
 
   const getProgressBarColor = () => {
@@ -45,6 +48,7 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
   };
 
   const getStatusBadgeColor = () => {
+    if (isArchivedStatus) return 'bg-gray-100 text-gray-600';
     if (isCompleted) return 'bg-green-100 text-green-700';
     if (isActive) return 'bg-yellow-100 text-yellow-700';
     if (isPaused) return 'bg-orange-100 text-orange-700';

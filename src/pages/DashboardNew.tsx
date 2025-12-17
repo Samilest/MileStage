@@ -431,19 +431,41 @@ export default function Dashboard() {
     };
   }, [userId, fetchProjects]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean, isArchived?: boolean) => {
+    // Check if archived first
+    if (isArchived) {
+      return 'bg-gray-100 text-gray-600 border-gray-300';
+    }
+    
+    // Check if completed (100% progress)
+    const isCompleted = totalStages > 0 && completedStages === totalStages;
+    if (isCompleted) {
+      return 'bg-green-100 text-green-700 border-green-200';
+    }
+    
+    // Otherwise show active status
     switch (status) {
       case 'active':
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean, isArchived?: boolean) => {
+    // Check if archived first
+    if (isArchived) {
+      return 'Archived';
+    }
+    
+    // Check if completed (100% progress)
+    const isCompleted = totalStages > 0 && completedStages === totalStages;
+    if (isCompleted) {
+      return 'Completed';
+    }
+    
+    // Otherwise show active status
     switch (status) {
       case 'active':
         return 'Active';
