@@ -317,7 +317,7 @@ export default function Dashboard() {
       toast.error('Project link not available');
       return;
     }
-    navigate(`/projects/${shareCode}/detail`);
+    navigate(`/projects/${shareCode}/overview`);
   };
 
   const checkStripeStatus = useCallback(async () => {
