@@ -743,11 +743,12 @@ export default function Dashboard() {
 
                   return (
                     <>
-                      {/* Active Projects Section */}
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-                          Active Projects ({activeProjects.length})
-                        </h2>
+                      {/* Active Projects Section - Hide when viewing Completed filter */}
+                      {filterBy !== 'completed' && (
+                        <div>
+                          <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
+                            Active Projects ({activeProjects.length})
+                          </h2>
                         {activeProjects.length === 0 ? (
                           <Card className="text-center py-12 px-4">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
@@ -804,10 +805,11 @@ export default function Dashboard() {
                           </div>
                         )}
                       </div>
+                      )}
 
                       {/* Completed Projects Section */}
                       {completedProjects.length > 0 && (
-                        <div className="mt-12">
+                        <div className={filterBy === 'completed' ? '' : 'mt-12'}>
                           <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
                             Completed Projects ({completedProjects.length})
                           </h2>
