@@ -404,7 +404,46 @@ export default function NewProject() {
       console.log('[NewProject] Inserted Stages Count:', insertedStages?.length || 0);
 
       console.log('[NewProject] ===== ✅ SUCCESS: Project and stages created successfully! =====');
-      toast.success('Project created successfully!', { id: loadingToast });
+      
+      // Send email invitation to client
+      console.log('[NewProject] Sending email invitation to client...');
+      try {
+        const portalLink = `${window.location.origin}/projects/${shareCode}`;
+        const freelancerProfile = await supabase
+          .from('user_profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        
+        const freelancerName = freelancerProfile.data?.full_name || user.email?.split('@')[0] || 'Your freelancer';
+        
+        const emailResponse = await fetch('/api/send-project-invite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clientEmail: clientEmail,
+            clientName: clientName,
+            projectName: projectName,
+            freelancerName: freelancerName,
+            portalLink: portalLink,
+          }),
+        });
+
+        if (emailResponse.ok) {
+          console.log('[NewProject] ✅ Email sent successfully to client');
+          toast.success(`Project created! Invitation sent to ${clientEmail}`, { id: loadingToast });
+        } else {
+          console.warn('[NewProject] ⚠️ Email sending failed, but project created');
+          toast.success('Project created successfully!', { id: loadingToast });
+        }
+      } catch (emailError) {
+        console.error('[NewProject] ❌ Email error:', emailError);
+        // Don't fail the whole operation if email fails
+        toast.success('Project created successfully!', { id: loadingToast });
+      }
+      
       console.log('[NewProject] Redirecting to dashboard...');
       setTimeout(() => {
         console.log('[NewProject] Navigating to /dashboard');
