@@ -408,7 +408,7 @@ export default function NewProject() {
       // Send email invitation to client
       console.log('[NewProject] Sending email invitation to client...');
       try {
-        const portalLink = `${window.location.origin}/projects/${shareCode}`;
+        const portalLink = `${window.location.origin}/portal/${shareCode}`;
         const freelancerProfile = await supabase
           .from('user_profiles')
           .select('full_name')
