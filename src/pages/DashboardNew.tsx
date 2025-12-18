@@ -51,9 +51,24 @@ export default function Dashboard() {
   const [filterBy, setFilterBy] = useState<FilterOption>('active');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [archivingProjectId, setArchivingProjectId] = useState<string | null>(null);
+  const [hasNewCompletions, setHasNewCompletions] = useState(false);
   
   const fetchingRef = useRef(false);
   const userId = user?.id;
+
+  // Clear notification badge when user views Completed filter
+  useEffect(() => {
+    if (filterBy === 'completed' && userId) {
+      setHasNewCompletions(false);
+      localStorage.setItem(`lastCompletedCheck_${userId}`, new Date().toISOString());
+      
+      // Mark all currently completed projects as seen
+      const completedProjects = projects.filter(p => p.status === 'completed' && !p.archived_at);
+      completedProjects.forEach(p => {
+        localStorage.setItem(`completed_seen_${p.id}`, 'true');
+      });
+    }
+  }, [filterBy, userId, projects]);
 
   const fetchProjects = useCallback(async (isRefresh = false) => {
     if (!userId) return;
@@ -199,6 +214,21 @@ export default function Dashboard() {
 
       console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
       setProjects(projectsWithStats);
+
+      // Check for new completions (projects completed in last 24 hours that user hasn't seen yet)
+      const lastCheck = localStorage.getItem(`lastCompletedCheck_${userId}`);
+      const completedProjects = projectsWithStats.filter(p => p.status === 'completed' && !p.archived_at);
+      
+      if (completedProjects.length > 0 && lastCheck) {
+        const lastCheckTime = new Date(lastCheck).getTime();
+        const hasNew = completedProjects.some(p => {
+          // Check if project has all stages paid (completed status)
+          // We consider it "new" if we don't have a record of seeing it as completed
+          const projectKey = `completed_seen_${p.id}`;
+          return !localStorage.getItem(projectKey);
+        });
+        setHasNewCompletions(hasNew);
+      }
 
       if (isRefresh) {
         toast.success('Refreshed!');
@@ -621,16 +651,23 @@ export default function Dashboard() {
 
                 {/* Filter and Sort Dropdowns */}
                 <div className="flex gap-3">
-                  <select
-                    value={filterBy}
-                    onChange={(e) => setFilterBy(e.target.value as FilterOption)}
-                    className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[140px]"
-                  >
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="archived">Archived</option>
-                    <option value="all">All Projects</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={filterBy}
+                      onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+                      className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[140px] appearance-none pr-10"
+                    >
+                      <option value="active">Active</option>
+                      <option value="completed">Completed</option>
+                      <option value="archived">Archived</option>
+                      <option value="all">All Projects</option>
+                    </select>
+                    {hasNewCompletions && filterBy !== 'completed' && (
+                      <div className="absolute top-1/2 right-10 -translate-y-1/2 pointer-events-none">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                    )}
+                  </div>
 
                   <select
                     value={sortBy}
