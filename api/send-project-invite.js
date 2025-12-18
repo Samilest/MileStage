@@ -74,7 +74,7 @@ export default async function handler(req, res) {
                           <tr>
                             <td align="center" style="padding-bottom: 32px;">
                               <a href="${portalLink}" 
-                                 style="display: inline-block; padding: 16px 32px; background-color: #10B981; color: #000000; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                 style="display: inline-block; padding: 16px 32px; background-color: #10B981; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
                                 View Your Project Portal
                               </a>
                             </td>
