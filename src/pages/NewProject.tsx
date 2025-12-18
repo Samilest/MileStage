@@ -411,11 +411,11 @@ export default function NewProject() {
         const portalLink = `${window.location.origin}/portal/${shareCode}`;
         const freelancerProfile = await supabase
           .from('user_profiles')
-          .select('full_name')
+          .select('name')
           .eq('id', user.id)
           .single();
         
-        const freelancerName = freelancerProfile.data?.full_name || user.email?.split('@')[0] || 'Your freelancer';
+        const freelancerName = freelancerProfile.data?.name || user.email?.split('@')[0] || 'Your freelancer';
         
         const emailResponse = await fetch('/api/send-project-invite', {
           method: 'POST',
