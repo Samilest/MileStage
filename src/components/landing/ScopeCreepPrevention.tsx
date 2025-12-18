@@ -9,7 +9,7 @@ export default function ScopeCreepPrevention() {
       answer: 'Out of free revisions. Buy extra revision for $X or new stage.',
     },
     {
-      question: 'What's the latest update on Stage 2?',
+      question: "What's the latest update on Stage 2?",
       answer: 'Check your portal—all updates posted there.',
     },
     {
