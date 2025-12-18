@@ -51,24 +51,26 @@ export default function Dashboard() {
   const [filterBy, setFilterBy] = useState<FilterOption>('active');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [archivingProjectId, setArchivingProjectId] = useState<string | null>(null);
-  const [hasNewCompletions, setHasNewCompletions] = useState(false);
+  const [newCompletedCount, setNewCompletedCount] = useState(0);
   
   const fetchingRef = useRef(false);
   const userId = user?.id;
 
-  // Clear notification badge when user views Completed filter
+  // When user clicks Completed filter, mark all completed projects as viewed
   useEffect(() => {
-    if (filterBy === 'completed' && userId) {
-      setHasNewCompletions(false);
-      localStorage.setItem(`lastCompletedCheck_${userId}`, new Date().toISOString());
+    if (filterBy === 'completed' && userId && newCompletedCount > 0) {
+      console.log('[Dashboard] User viewing Completed filter - clearing badge');
       
-      // Mark all currently completed projects as seen
-      const completedProjects = projects.filter(p => p.status === 'completed' && !p.archived_at);
-      completedProjects.forEach(p => {
-        localStorage.setItem(`completed_seen_${p.id}`, 'true');
-      });
+      const currentCompletedIds = projects
+        .filter(p => p.status === 'completed' && !p.archived_at)
+        .map(p => p.id)
+        .sort()
+        .join(',');
+      
+      localStorage.setItem(`lastViewedCompleted_${userId}`, currentCompletedIds);
+      setNewCompletedCount(0);
     }
-  }, [filterBy, userId, projects]);
+  }, [filterBy, userId, newCompletedCount, projects]);
 
   const fetchProjects = useCallback(async (isRefresh = false) => {
     if (!userId) return;
@@ -215,21 +217,31 @@ export default function Dashboard() {
       console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
       setProjects(projectsWithStats);
 
-      // Check for new completions
-      const completedProjects = projectsWithStats.filter(p => p.status === 'completed' && !p.archived_at);
+      // SUPER SIMPLE: Count completed projects
+      const completedCount = projectsWithStats.filter(p => 
+        p.status === 'completed' && !p.archived_at
+      ).length;
       
-      if (completedProjects.length > 0) {
-        // Check if any completed projects haven't been seen yet
-        const hasNew = completedProjects.some(p => {
-          const projectKey = `completed_seen_${p.id}`;
-          const wasSeen = localStorage.getItem(projectKey);
-          console.log(`[Dashboard] Checking project ${p.project_name}: seen=${wasSeen}`);
-          return !wasSeen; // Show badge if not seen
-        });
-        console.log(`[Dashboard] Has new completions: ${hasNew}`);
-        setHasNewCompletions(hasNew);
+      console.log('[Dashboard] Completed projects count:', completedCount);
+      
+      // Check if user has viewed completed filter since last completion
+      const lastViewedCompleted = localStorage.getItem(`lastViewedCompleted_${userId}`) || '0';
+      const currentCompletedIds = projectsWithStats
+        .filter(p => p.status === 'completed' && !p.archived_at)
+        .map(p => p.id)
+        .sort()
+        .join(',');
+      
+      console.log('[Dashboard] Last viewed completed IDs:', lastViewedCompleted);
+      console.log('[Dashboard] Current completed IDs:', currentCompletedIds);
+      
+      // If the list of completed projects has changed, show badge
+      if (currentCompletedIds !== lastViewedCompleted && completedCount > 0) {
+        setNewCompletedCount(completedCount);
+        console.log('[Dashboard] NEW COMPLETIONS DETECTED!');
       } else {
-        setHasNewCompletions(false);
+        setNewCompletedCount(0);
+        console.log('[Dashboard] No new completions');
       }
 
       if (isRefresh) {
@@ -653,20 +665,20 @@ export default function Dashboard() {
 
                 {/* Filter and Sort Dropdowns */}
                 <div className="flex gap-3">
-                  <div className="relative">
+                  <div className="relative inline-block">
                     <select
                       value={filterBy}
                       onChange={(e) => setFilterBy(e.target.value as FilterOption)}
                       className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all bg-white min-w-[140px]"
                     >
                       <option value="active">Active</option>
-                      <option value="completed">Completed {hasNewCompletions && filterBy !== 'completed' ? '●' : ''}</option>
+                      <option value="completed">Completed{newCompletedCount > 0 ? ` (${newCompletedCount} new)` : ''}</option>
                       <option value="archived">Archived</option>
                       <option value="all">All Projects</option>
                     </select>
-                    {hasNewCompletions && filterBy !== 'completed' && (
-                      <div className="absolute -top-1 -right-1 pointer-events-none">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse ring-2 ring-white"></div>
+                    {newCompletedCount > 0 && filterBy !== 'completed' && (
+                      <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 bg-green-500 text-white text-xs font-bold rounded-full border-2 border-white shadow-lg animate-pulse">
+                        {newCompletedCount}
                       </div>
                     )}
                   </div>
