@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
 import Button from './Button';
 import logo from '../assets/milestage-logo.png';
+import { Settings } from 'lucide-react';
 
 function Navigation() {
   const navigate = useNavigate();
@@ -30,6 +31,15 @@ function Navigation() {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
+            <Link
+              to="/settings"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline text-sm font-medium">Settings</span>
+            </Link>
+            
             <Button variant="secondary" onClick={handleLogout} className="text-sm sm:text-base px-4 sm:px-6">
               Logout
             </Button>

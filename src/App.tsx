@@ -15,6 +15,7 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
 const Dashboard = lazy(() => import('./pages/DashboardNew'));
+const Settings = lazy(() => import('./pages/Settings'));
 const TemplateSelection = lazy(() => import('./pages/TemplateSelection'));
 const NewProject = lazy(() => import('./pages/NewProject'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
@@ -243,6 +244,7 @@ function App() {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><TemplateSelection /></ProtectedRoute>} />
           <Route path="/new-project" element={<ProtectedRoute><NewProject /></ProtectedRoute>} />
           <Route path="/projects/:id/overview" element={<ProtectedRoute><ProjectOverview /></ProtectedRoute>} />
