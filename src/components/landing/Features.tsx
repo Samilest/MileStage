@@ -3,19 +3,19 @@ import { RefreshCw, Lock, DollarSign } from 'lucide-react';
 export default function Features() {
   const features = [
     {
-      icon: RefreshCw,
-      title: 'Runs Automatically',
-      description: 'Payment reminders and revision tracking happen in the background. Zero effort required.',
+      icon: Lock,
+      title: 'Stage Locking',
+      description: 'Prevents endless tweaks. Next stage stays locked until current stage is complete and paid.',
     },
     {
-      icon: Lock,
-      title: 'Stage Locking + Revision Limits',
-      description: 'Next stage locked until payment clears. Revision limits enforced to prevent scope creep.',
+      icon: RefreshCw,
+      title: 'Revision Counters',
+      description: 'Makes limits visible to clients. No more "I didn\'t know" arguments about what\'s included.',
     },
     {
       icon: DollarSign,
-      title: 'Zero Fees',
-      description: '$19/month flat. No transaction fees. You keep 100% of what clients pay.',
+      title: 'Payment Gates',
+      description: 'No payment, no next stage. Boundaries aren\'t personal—the system enforces them.',
     },
   ];
 

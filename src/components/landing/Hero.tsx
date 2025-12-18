@@ -11,21 +11,19 @@ export default function Hero() {
           {/* Left: Content */}
           <div className="max-w-xl">
             <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-black leading-[1.1] tracking-tight mb-8">
-              Stop Scope Creep.
-              <br />
-              Get Paid On Time.
+              Clients can't push "just one more tweak" if the stage is closed.
             </h1>
             
             <p className="text-xl lg:text-2xl text-gray-700 leading-relaxed mb-8">
-              MileStage tracks your project stages, revision limits, and payments automatically—so clients can't blur boundaries or skip payments.
+              MileStage locks project stages, revision limits, and payments—so boundaries are clear and payment delays disappear.
             </p>
 
-            {/* Key Features - Updated with Revisions */}
+            {/* Key Features - Outcome-focused */}
             <div className="space-y-3 mb-10">
               {[
-                'Stage payments lock until paid',
-                'Revision limits enforced per stage',
-                'Automatic payment reminders',
+                'Stage locking prevents endless tweaks',
+                'Revision counters make limits visible',
+                'Payment gates stop unpaid work',
               ].map((feature, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +35,7 @@ export default function Hero() {
             </div>
 
             <p className="text-lg text-black font-medium mb-8">
-              No free work. No awkward conversations.
+              The system enforces boundaries—not you.
             </p>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">

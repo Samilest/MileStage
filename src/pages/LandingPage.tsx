@@ -3,6 +3,8 @@ import Hero from '../components/landing/Hero';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
+import Comparison from '../components/landing/Comparison';
+import TargetAudience from '../components/landing/TargetAudience';
 import ClientApprovals from '../components/landing/ClientApprovals';
 import TrustSection from '../components/landing/TrustSection';
 import Pricing from '../components/landing/Pricing';
@@ -16,8 +18,10 @@ export default function LandingPage() {
       <LandingNav />
       <Hero />
       <Features />
-      <HowItWorks />
       <ScopeCreepPrevention />
+      <Comparison />
+      <HowItWorks />
+      <TargetAudience />
       <ClientApprovals />
       <TrustSection />
       <Pricing />

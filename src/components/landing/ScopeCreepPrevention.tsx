@@ -5,16 +5,16 @@ export default function ScopeCreepPrevention() {
       answer: 'Stage locked. Pay Stage 1 first.',
     },
     {
-      question: 'Can we just tweak this one more time?',
-      answer: 'Out of revisions. New stage = new payment required.',
-    },
-    {
       question: 'Can we add one more round of changes?',
-      answer: 'Create new stage. Get paid first.',
+      answer: 'Out of free revisions. Buy extra revision for $X or new stage.',
     },
     {
-      question: 'Can we just do a quick extra thing?',
-      answer: 'Quick things = new stage = payment required.',
+      question: 'What's the latest update on Stage 2?',
+      answer: 'Check your portal—all updates posted there.',
+    },
+    {
+      question: 'Can you approve this so I can move forward?',
+      answer: 'Use the approval button in your portal.',
     },
   ];
 
