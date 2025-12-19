@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import Navigation from '../components/Navigation';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import ManageBillingButton from '../components/ManageBillingButton';
 import { User, Mail, CreditCard, Check, Loader2 } from 'lucide-react';
 
 export default function Settings() {
@@ -17,6 +18,7 @@ export default function Settings() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [stripeConnected, setStripeConnected] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('');
   const [errors, setErrors] = useState({
     fullName: '',
   });
@@ -37,7 +39,7 @@ export default function Settings() {
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('name, email, stripe_account_id')
+        .select('name, email, stripe_account_id, stripe_customer_id, subscription_status')
         .eq('id', user.id)
         .single();
 
@@ -47,6 +49,7 @@ export default function Settings() {
         setFullName(data.name || '');
         setEmail(data.email || user.email || '');
         setStripeConnected(!!data.stripe_account_id);
+        setSubscriptionStatus(data.subscription_status || 'trialing');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -235,6 +238,67 @@ export default function Settings() {
                     'Save Changes'
                   )}
                 </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Subscription Management Card */}
+          <Card>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">Subscription</h2>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Status</p>
+                    <p className="text-lg font-semibold text-gray-900 capitalize">
+                      {subscriptionStatus === 'active' && '✅ Active'}
+                      {subscriptionStatus === 'trialing' && '🔄 Trial'}
+                      {subscriptionStatus === 'past_due' && '⚠️ Past Due'}
+                      {subscriptionStatus === 'canceled' && '❌ Canceled'}
+                      {!subscriptionStatus && '🔄 Trial'}
+                    </p>
+                  </div>
+                  {subscriptionStatus === 'active' && (
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Plan</p>
+                      <p className="text-lg font-semibold text-gray-900">Pro</p>
+                    </div>
+                  )}
+                </div>
+
+                {subscriptionStatus === 'active' ? (
+                  <>
+                    <ManageBillingButton 
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
+                    />
+                    <p className="mt-3 text-xs text-gray-500">
+                      Manage your subscription, update payment method, view invoices, or cancel.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                      <p className="text-sm text-blue-800">
+                        {subscriptionStatus === 'trialing' 
+                          ? 'You\'re currently on a free trial. Upgrade to continue using MileStage after your trial ends.'
+                          : 'Upgrade to Pro to continue using MileStage.'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/pricing')}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
+                    >
+                      Upgrade to Pro
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </Card>
