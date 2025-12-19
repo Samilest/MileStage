@@ -192,7 +192,7 @@ export default function Settings() {
               {/* Stripe Status (Read-only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Stripe Payment Status
+                  Stripe for Project Payments
                 </label>
                 <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
                   stripeConnected 
@@ -217,7 +217,12 @@ export default function Settings() {
                 </div>
                 {!stripeConnected && (
                   <p className="mt-1 text-xs text-gray-500">
-                    Connect Stripe when you create your first project to receive payments.
+                    Connect Stripe when you create your first project to receive client payments.
+                  </p>
+                )}
+                {stripeConnected && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    You can receive project payments from clients via Stripe.
                   </p>
                 )}
               </div>

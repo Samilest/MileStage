@@ -43,7 +43,7 @@ export default function Pricing() {
 
   return (
     <section className="py-24 lg:py-32 bg-gray-50" id="pricing">
-      <div className="max-w-4xl mx-auto px-6 lg:px-12">
+      <div className="max-w-2xl mx-auto px-6 lg:px-12">
         
         {/* Header */}
         <div className="text-center mb-12">
