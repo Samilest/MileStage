@@ -297,7 +297,17 @@ export default function Settings() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => window.location.href = '/#pricing'}
+                      onClick={() => {
+                        // Navigate to landing page with pricing hash
+                        navigate('/#pricing');
+                        // Force scroll after brief delay
+                        setTimeout(() => {
+                          const pricingSection = document.getElementById('pricing');
+                          if (pricingSection) {
+                            pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }, 300);
+                      }}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
                     >
                       Upgrade to Pro
