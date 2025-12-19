@@ -39,7 +39,7 @@ export default function Settings() {
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('name, email, stripe_account_id, stripe_customer_id, subscription_status')
+        .select('name, email, stripe_account_id, stripe_customer_id, subscription_status, stripe_onboarding_completed, stripe_charges_enabled')
         .eq('id', user.id)
         .single();
 
@@ -48,7 +48,8 @@ export default function Settings() {
       if (data) {
         setFullName(data.name || '');
         setEmail(data.email || user.email || '');
-        setStripeConnected(!!data.stripe_account_id);
+        // Only show as connected if Stripe is FULLY set up
+        setStripeConnected(!!data.stripe_account_id && data.stripe_onboarding_completed && data.stripe_charges_enabled);
         setSubscriptionStatus(data.subscription_status || 'trialing');
       }
     } catch (error) {
@@ -297,17 +298,7 @@ export default function Settings() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        // Navigate to landing page with pricing hash
-                        navigate('/#pricing');
-                        // Force scroll after brief delay
-                        setTimeout(() => {
-                          const pricingSection = document.getElementById('pricing');
-                          if (pricingSection) {
-                            pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }
-                        }, 300);
-                      }}
+                      onClick={() => window.location.href = '/#pricing'}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
                     >
                       Upgrade to Pro
