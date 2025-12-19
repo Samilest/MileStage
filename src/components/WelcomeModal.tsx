@@ -1,7 +1,11 @@
+// src/components/WelcomeModal.tsx
+// Simplified welcome modal - removed demo option
+
 import { useState } from 'react';
-import { X, Rocket, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { X, Rocket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 interface WelcomeModalProps {
   userId: string;
@@ -10,200 +14,89 @@ interface WelcomeModalProps {
 
 export default function WelcomeModal({ userId, onClose }: WelcomeModalProps) {
   const navigate = useNavigate();
-  const [creating, setCreating] = useState(false);
+  const [closing, setClosing] = useState(false);
 
-  const handleCreateRealProject = async () => {
-    // Mark modal as seen
-    await markWelcomeModalSeen();
-    onClose();
-    navigate('/new-project');
-  };
-
-  const handleTryDemo = async () => {
-    setCreating(true);
-    try {
-      // Create a demo project
-      const demoProject = {
-        user_id: userId,
-        project_name: 'Demo: Website Redesign Project',
-        client_name: 'Demo Client',
-        client_email: 'demo@example.com',
-        total_amount: 5000,
-        currency: 'USD',
-        status: 'active',
-        is_demo: true,
-        payment_methods: {
-          paypal: 'demo@paypal.com',
-          bank_transfer: 'Demo Bank Account',
-        },
-      };
-
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert(demoProject)
-        .select()
-        .single();
-
-      if (projectError) throw projectError;
-
-      // Create demo stages
-      const demoStages = [
-        {
-          project_id: project.id,
-          stage_number: 0,
-          name: 'Down Payment',
-          amount: 1500,
-          status: 'approved',
-          payment_status: 'received',
-          revisions_included: 0,
-          revisions_used: 0,
-          extension_enabled: false,
-        },
-        {
-          project_id: project.id,
-          stage_number: 1,
-          name: 'Discovery & Planning',
-          amount: 800,
-          status: 'approved',
-          payment_status: 'received',
-          revisions_included: 2,
-          revisions_used: 1,
-          extension_enabled: true,
-          extension_price: 200,
-        },
-        {
-          project_id: project.id,
-          stage_number: 2,
-          name: 'Design Mockups',
-          amount: 1500,
-          status: 'delivered',
-          payment_status: 'unpaid',
-          revisions_included: 3,
-          revisions_used: 0,
-          extension_enabled: true,
-          extension_price: 300,
-        },
-        {
-          project_id: project.id,
-          stage_number: 3,
-          name: 'Development',
-          amount: 1000,
-          status: 'locked',
-          payment_status: 'unpaid',
-          revisions_included: 2,
-          revisions_used: 0,
-          extension_enabled: true,
-          extension_price: 250,
-        },
-        {
-          project_id: project.id,
-          stage_number: 4,
-          name: 'Launch & Training',
-          amount: 200,
-          status: 'locked',
-          payment_status: 'unpaid',
-          revisions_included: 1,
-          revisions_used: 0,
-          extension_enabled: false,
-        },
-      ];
-
-      const { error: stagesError } = await supabase
-        .from('stages')
-        .insert(demoStages);
-
-      if (stagesError) throw stagesError;
-
-      // Add a demo deliverable to Stage 2
-      await supabase.from('deliverables').insert({
-        stage_id: demoStages[2].stage_number, // This needs the actual stage ID
-        name: 'Homepage Mockup',
-        file_url: 'https://example.com/demo-mockup.pdf',
-      });
-
-      // Mark modal as seen
-      await markWelcomeModalSeen();
-      
-      onClose();
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Error creating demo project:', error);
-      alert('Failed to create demo project. Please try again.');
-    } finally {
-      setCreating(false);
-    }
+  const handleCreateProject = async () => {
+    await markWelcomeSeen();
+    navigate('/templates');
   };
 
   const handleSkip = async () => {
-    await markWelcomeModalSeen();
+    await markWelcomeSeen();
     onClose();
   };
 
-  const markWelcomeModalSeen = async () => {
-    await supabase
-      .from('user_profiles')
-      .update({ welcome_modal_seen: true })
-      .eq('id', userId);
+  const markWelcomeSeen = async () => {
+    try {
+      await supabase
+        .from('user_profiles')
+        .update({ welcome_modal_seen: true })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Error marking welcome as seen:', error);
+    }
+  };
+
+  const handleClose = async () => {
+    setClosing(true);
+    await markWelcomeSeen();
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-fadeIn">
+        
+        {/* Close button */}
         <button
-          onClick={handleSkip}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          onClick={handleClose}
+          disabled={closing}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-2">Welcome to MileStage! 👋</h2>
-        <p className="text-gray-600 mb-6">How would you like to start?</p>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-4">👋</div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome to MileStage!
+          </h2>
+          <p className="text-gray-600">
+            How would you like to start?
+          </p>
+        </div>
 
-        <div className="space-y-3 mb-6">
+        {/* Options */}
+        <div className="space-y-4">
+          
+          {/* Create Project */}
           <button
-            onClick={handleCreateRealProject}
-            className="w-full bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg transition-colors text-left"
+            onClick={handleCreateProject}
+            className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl p-6 text-left transition-all transform hover:scale-[1.02] active:scale-[0.98] group"
           >
-            <div className="flex items-start gap-3">
-              <div className="bg-white bg-opacity-20 p-2 rounded">
-                <Rocket className="w-5 h-5" />
+            <div className="flex items-start gap-4">
+              <div className="bg-white bg-opacity-20 rounded-lg p-3">
+                <Rocket className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">Create Real Project</h3>
-                <p className="text-sm text-green-50">
+                <h3 className="font-bold text-lg mb-1">Create Your First Project</h3>
+                <p className="text-green-100 text-sm">
                   Start with an actual client project
                 </p>
               </div>
             </div>
           </button>
 
+          {/* Skip */}
           <button
-            onClick={handleTryDemo}
-            disabled={creating}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 p-4 rounded-lg transition-colors text-left disabled:opacity-50"
+            onClick={handleSkip}
+            className="w-full text-gray-600 hover:text-gray-900 text-sm font-medium py-4 transition-colors"
           >
-            <div className="flex items-start gap-3">
-              <div className="bg-gray-300 p-2 rounded">
-                <Eye className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">
-                  {creating ? 'Creating Demo...' : 'Explore with Demo'}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  See how it works with sample data (2 min)
-                </p>
-              </div>
-            </div>
+            Skip - I'll explore on my own
           </button>
         </div>
 
-        <button
-          onClick={handleSkip}
-          className="w-full text-sm text-gray-500 hover:text-gray-700"
-        >
-          Skip - I'll explore on my own
-        </button>
       </div>
     </div>
   );
