@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
@@ -224,6 +225,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthHandler />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import LandingFooter from '../components/landing/LandingFooter';
 
 export default function TermsOfService() {
   return (
@@ -254,6 +255,9 @@ export default function TermsOfService() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <LandingFooter />
     </div>
   );
 }
