@@ -292,7 +292,7 @@ export default function Settings() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => navigate('/pricing')}
+                      onClick={() => window.location.href = '/#pricing'}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
                     >
                       Upgrade to Pro

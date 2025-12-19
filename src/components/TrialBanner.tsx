@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import UpgradeButton from './UpgradeButton';
 
 export default function TrialBanner() {
   const user = useStore((state) => state.user);
@@ -61,11 +60,12 @@ export default function TrialBanner() {
             <p className="text-red-700 mb-4">
               Your 14-day trial has ended. Upgrade to continue using MileStage.
             </p>
-            <UpgradeButton 
-              priceId={import.meta.env.VITE_STRIPE_PRICE_MONTHLY}
-              label="Upgrade to Pro ($19/month)"
+            <button
+              onClick={() => window.location.href = '/#pricing'}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-            />
+            >
+              Upgrade to Pro ($19/month)
+            </button>
           </div>
         </div>
       </div>
@@ -85,11 +85,12 @@ export default function TrialBanner() {
             <p className="text-yellow-700 mb-4">
               Upgrade now to continue using MileStage without interruption.
             </p>
-            <UpgradeButton 
-              priceId={import.meta.env.VITE_STRIPE_PRICE_MONTHLY}
-              label="Upgrade to Pro ($19/month)"
+            <button
+              onClick={() => window.location.href = '/#pricing'}
               className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-            />
+            >
+              Upgrade to Pro ($19/month)
+            </button>
           </div>
         </div>
       </div>
@@ -106,11 +107,12 @@ export default function TrialBanner() {
             Trial: <strong>{trialInfo.daysLeft} days remaining</strong>
           </span>
         </div>
-        <UpgradeButton 
-          priceId={import.meta.env.VITE_STRIPE_PRICE_MONTHLY}
-          label="Upgrade Now"
+        <button
+          onClick={() => window.location.href = '/#pricing'}
           className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        />
+        >
+          Upgrade Now
+        </button>
       </div>
     </div>
   );
