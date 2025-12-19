@@ -1,30 +1,22 @@
 // api/stripe/subscription-webhook.js
-// Handles Stripe subscription events
+// Fixed webhook - uses correct column names
 
 import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
-// Disable body parsing (Stripe needs raw body)
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Helper to read raw body
-async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => { data += chunk; });
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
+async function buffer(readable) {
+  const chunks = [];
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 export default async function handler(req, res) {
@@ -32,182 +24,147 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const buf = await buffer(req);
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
+
+  let event;
+
   try {
-    // Get raw body
-    const rawBody = await getRawBody(req);
-    const signature = req.headers['stripe-signature'];
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+  } catch (err) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
 
-    // Verify webhook signature
-    const event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+  console.log(`[Webhook] Received event: ${event.type}`);
 
-    console.log('Webhook received:', event.type);
-
-    // Handle different event types
+  try {
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutComplete(event.data.object);
-        break;
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        
+        if (session.mode === 'subscription') {
+          const customerId = session.customer;
+          const subscriptionId = session.subscription;
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdate(event.data.object);
-        break;
+          console.log(`[Webhook] Checkout completed - Customer: ${customerId}, Subscription: ${subscriptionId}`);
 
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object);
-        break;
+          // Update user_profiles with correct column names
+          const supabaseUrl = process.env.VITE_SUPABASE_URL;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-      case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(event.data.object);
-        break;
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                subscription_status: 'active',
+                stripe_subscription_id: subscriptionId,
+                trial_ends_at: null,
+              }),
+            }
+          );
 
-      case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object);
+          if (!response.ok) {
+            console.error(`[Webhook] Failed to update user: ${response.statusText}`);
+          } else {
+            console.log(`[Webhook] User updated to active status`);
+          }
+        }
         break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+        const status = subscription.status;
+
+        console.log(`[Webhook] Subscription updated - Customer: ${customerId}, Status: ${status}`);
+
+        // Map Stripe status to our status
+        let ourStatus = 'trialing';
+        if (status === 'active') ourStatus = 'active';
+        else if (status === 'past_due') ourStatus = 'past_due';
+        else if (status === 'canceled') ourStatus = 'canceled';
+        else if (status === 'unpaid') ourStatus = 'past_due';
+        else if (status === 'trialing') ourStatus = 'trialing';
+
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              subscription_status: ourStatus,
+              stripe_subscription_id: subscription.id,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`[Webhook] Failed to update user: ${response.statusText}`);
+        } else {
+          console.log(`[Webhook] User subscription status updated to: ${ourStatus}`);
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+
+        console.log(`[Webhook] Subscription deleted - Customer: ${customerId}`);
+
+        const supabaseUrl = process.env.VITE_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              subscription_status: 'canceled',
+              stripe_subscription_id: null,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`[Webhook] Failed to update user: ${response.statusText}`);
+        } else {
+          console.log(`[Webhook] User subscription canceled`);
+        }
+        break;
+      }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`[Webhook] Unhandled event type: ${event.type}`);
     }
 
-    return res.status(200).json({ received: true });
-
+    res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
-    return res.status(400).json({ 
-      error: 'Webhook handler failed',
-      message: error.message 
-    });
-  }
-}
-
-// Handle successful checkout
-async function handleCheckoutComplete(session) {
-  const userId = session.metadata.userId || session.client_reference_id;
-  
-  if (!userId) {
-    console.error('No userId found in checkout session');
-    return;
-  }
-
-  // Update user profile with Stripe customer ID
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      stripe_customer_id: session.customer,
-      subscription_status: 'active',
-    })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('Error updating user after checkout:', error);
-  } else {
-    console.log(`User ${userId} subscription activated`);
-  }
-}
-
-// Handle subscription updates (renewals, plan changes)
-async function handleSubscriptionUpdate(subscription) {
-  const userId = subscription.metadata.userId;
-  
-  if (!userId) {
-    console.error('No userId found in subscription metadata');
-    return;
-  }
-
-  const status = subscription.status; // active, past_due, canceled, etc.
-  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-  const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      subscription_status: status,
-      current_period_end: currentPeriodEnd,
-      cancel_at_period_end: cancelAtPeriodEnd,
-    })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('Error updating subscription:', error);
-  } else {
-    console.log(`Subscription updated for user ${userId}: ${status}`);
-  }
-}
-
-// Handle subscription cancellation
-async function handleSubscriptionDeleted(subscription) {
-  const userId = subscription.metadata.userId;
-  
-  if (!userId) {
-    console.error('No userId found in subscription metadata');
-    return;
-  }
-
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      subscription_status: 'canceled',
-      cancel_at_period_end: false,
-    })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('Error canceling subscription:', error);
-  } else {
-    console.log(`Subscription canceled for user ${userId}`);
-  }
-}
-
-// Handle successful payment (renewal)
-async function handlePaymentSucceeded(invoice) {
-  const customerId = invoice.customer;
-  
-  // Find user by customer ID
-  const { data: user } = await supabase
-    .from('user_profiles')
-    .select('id')
-    .eq('stripe_customer_id', customerId)
-    .single();
-
-  if (user) {
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({
-        subscription_status: 'active',
-      })
-      .eq('id', user.id);
-
-    if (!error) {
-      console.log(`Payment succeeded for user ${user.id}`);
-    }
-  }
-}
-
-// Handle failed payment
-async function handlePaymentFailed(invoice) {
-  const customerId = invoice.customer;
-  
-  // Find user by customer ID
-  const { data: user } = await supabase
-    .from('user_profiles')
-    .select('id')
-    .eq('stripe_customer_id', customerId)
-    .single();
-
-  if (user) {
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({
-        subscription_status: 'past_due',
-      })
-      .eq('id', user.id);
-
-    if (!error) {
-      console.log(`Payment failed for user ${user.id}`);
-    }
+    console.error(`[Webhook] Error processing event:`, error);
+    res.status(500).json({ error: 'Webhook handler failed' });
   }
 }
