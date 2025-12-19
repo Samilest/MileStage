@@ -1,205 +1,115 @@
+// src/components/StripeConnect.tsx
+// Updated with black styling for better visual hierarchy
+
 import { useState, useEffect } from 'react';
-import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { CreditCard, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface StripeConnectProps {
   userId: string;
-  onConnected?: () => void;
 }
 
-export default function StripeConnect({ userId, onConnected }: StripeConnectProps) {
+export default function StripeConnect({ userId }: StripeConnectProps) {
+  const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [stripeStatus, setStripeStatus] = useState<{
-    connected: boolean;
-    onboardingCompleted: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-    accountId?: string;
-  }>({
-    connected: false,
-    onboardingCompleted: false,
-    chargesEnabled: false,
-    payoutsEnabled: false,
-  });
 
   useEffect(() => {
-    checkStripeStatus();
+    checkConnection();
   }, [userId]);
 
-  const checkStripeStatus = async () => {
+  const checkConnection = async () => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('stripe_account_id, stripe_connected_at, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled')
+        .select('stripe_account_id')
         .eq('id', userId)
         .single();
 
       if (error) throw error;
-
-      setStripeStatus({
-        connected: !!data?.stripe_account_id,
-        onboardingCompleted: data?.stripe_onboarding_completed || false,
-        chargesEnabled: data?.stripe_charges_enabled || false,
-        payoutsEnabled: data?.stripe_payouts_enabled || false,
-        accountId: data?.stripe_account_id,
-      });
+      setIsConnected(!!data?.stripe_account_id);
     } catch (error) {
-      console.error('Error checking Stripe status:', error);
-      toast.error('Failed to load payment status');
+      console.error('Error checking Stripe connection:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConnectStripe = async () => {
+  const handleConnect = async () => {
     setConnecting(true);
+    toast.loading('Connecting to Stripe...');
+
     try {
-      // Call your backend API to create Stripe Connect account
+      // Call API to create Stripe Connect account
       const response = await fetch('/api/stripe/create-connect-account', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create Stripe account');
+        throw new Error(data.error || 'Failed to connect Stripe');
       }
 
-      const { accountLink } = await response.json();
-
       // Redirect to Stripe onboarding
-      window.location.href = accountLink;
-    } catch (error) {
-      console.error('Error connecting Stripe:', error);
-      toast.error('Failed to connect Stripe. Please try again.');
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error('Stripe connection error:', error);
+      toast.dismiss();
+      toast.error(error.message || 'Failed to connect Stripe');
       setConnecting(false);
     }
   };
 
-  const handleReturnFromStripe = async () => {
-    // Refresh status after returning from Stripe
-    await checkStripeStatus();
-    
-    if (stripeStatus.onboardingCompleted && stripeStatus.chargesEnabled) {
-      toast.success('Stripe connected successfully!');
-      onConnected?.();
-    }
-  };
+  if (loading) return null;
+  if (isConnected) return null; // Hide when connected
 
-  // Check if returning from Stripe onboarding
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('stripe_return') === 'true') {
-      handleReturnFromStripe();
-    }
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-      </div>
-    );
-  }
-
-  // Fully connected and ready
-  if (stripeStatus.onboardingCompleted && stripeStatus.chargesEnabled && stripeStatus.payoutsEnabled) {
-    return (
-      <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-green-900">Stripe Connected</h3>
-            <p className="text-sm text-green-800 mt-1">
-              Your payment account is active. You can now receive payments from clients.
-            </p>
-            <a
-              href="https://dashboard.stripe.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-green-700 hover:text-green-900 mt-2 font-medium"
-            >
-              View Stripe Dashboard <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Onboarding incomplete
-  if (stripeStatus.connected && !stripeStatus.onboardingCompleted) {
-    return (
-      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-orange-900">Complete Stripe Setup</h3>
-            <p className="text-sm text-orange-800 mt-1">
-              You started connecting Stripe but didn't finish. Complete the setup to receive payments.
-            </p>
-            <button
-              onClick={handleConnectStripe}
-              disabled={connecting}
-              className="mt-3 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm font-semibold disabled:opacity-50"
-            >
-              {connecting ? 'Connecting...' : 'Complete Setup'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Not connected yet
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+    <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6">
       <div className="flex items-start gap-4">
-        <div className="bg-green-100 p-3 rounded-lg">
-          <CreditCard className="w-6 h-6 text-green-600" />
+        {/* Icon - Changed to black */}
+        <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+          <CreditCard className="w-6 h-6 text-gray-900" />
         </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-lg mb-2">Connect Stripe to Get Paid</h3>
-          <p className="text-gray-600 text-sm mb-4">
-            Connect your Stripe account to accept credit card payments from clients. 
-            Setup takes 2 minutes.
-          </p>
-          
-          <div className="space-y-2 mb-4 text-sm">
-            <div className="flex items-center gap-2 text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <span>Accept credit cards, Apple Pay, Google Pay</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <span>Automatic payouts to your bank account</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-700">
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
-              <span>Secure payment processing by Stripe</span>
-            </div>
-          </div>
 
+        {/* Content */}
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Connect Stripe to Get Paid
+          </h3>
+          <p className="text-gray-600 text-sm mb-4">
+            Connect your Stripe account to accept credit card payments from clients. Setup takes 2 minutes.
+          </p>
+
+          {/* Benefits */}
+          <ul className="space-y-2 mb-4">
+            <li className="flex items-center gap-2 text-sm text-gray-600">
+              <Check className="w-4 h-4 text-gray-900 flex-shrink-0" />
+              Accept credit cards, Apple Pay, Google Pay
+            </li>
+            <li className="flex items-center gap-2 text-sm text-gray-600">
+              <Check className="w-4 h-4 text-gray-900 flex-shrink-0" />
+              Automatic payouts to your bank account
+            </li>
+            <li className="flex items-center gap-2 text-sm text-gray-600">
+              <Check className="w-4 h-4 text-gray-900 flex-shrink-0" />
+              Secure payment processing by Stripe
+            </li>
+          </ul>
+
+          {/* Button - Changed to black */}
           <button
-            onClick={handleConnectStripe}
+            onClick={handleConnect}
             disabled={connecting}
-            className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {connecting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-5 h-5" />
-                Connect Stripe
-              </>
-            )}
+            <CreditCard className="w-5 h-5" />
+            {connecting ? 'Connecting...' : 'Connect Stripe'}
           </button>
 
           <p className="text-xs text-gray-500 mt-3">
