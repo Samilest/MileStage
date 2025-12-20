@@ -16,15 +16,8 @@ export default function LandingFooter() {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      // On different page - navigate to homepage then scroll
-      navigate('/');
-      // Wait for navigation to complete, then scroll
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
+      // On different page - navigate to homepage with hash
+      window.location.href = `/#${sectionId}`;
     }
   };
 
@@ -35,7 +28,7 @@ export default function LandingFooter() {
           {/* Brand */}
           <div className="col-span-1">
             <img 
-              src="/assets/Footer_Logo.png" 
+              src="assets/Footer_Logo.png" 
               alt="MileStage" 
               className="h-8 mb-4"
             />
@@ -48,15 +41,6 @@ export default function LandingFooter() {
           <div>
             <h3 className="font-semibold text-gray-900 mb-4">Product</h3>
             <ul className="space-y-3">
-              <li>
-                <a
-                  href="#how-it-works"
-                  onClick={(e) => handleSectionClick(e, 'how-it-works')}
-                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
-                >
-                  How it works
-                </a>
-              </li>
               <li>
                 <a
                   href="#pricing"
@@ -91,7 +75,7 @@ export default function LandingFooter() {
               </li>
               <li>
                 <Link
-                  to="/refund-policy"
+                  to="/refund"
                   className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   Refund Policy
