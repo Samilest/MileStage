@@ -47,15 +47,21 @@ export default async function handler(req, res) {
         if (session.mode === 'subscription') {
           const customerId = session.customer;
           const subscriptionId = session.subscription;
+          const customerEmail = session.customer_details?.email || session.customer_email;
 
-          console.log(`[Webhook] Checkout completed - Customer: ${customerId}, Subscription: ${subscriptionId}`);
+          console.log(`[Webhook] Checkout completed - Customer: ${customerId}, Email: ${customerEmail}, Subscription: ${subscriptionId}`);
 
-          // Update user_profiles with correct column names
+          if (!customerEmail) {
+            console.error('[Webhook] No customer email found in session');
+            break;
+          }
+
+          // Update user_profiles - find by EMAIL since stripe_customer_id might be NULL
           const supabaseUrl = process.env.VITE_SUPABASE_URL;
           const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
           const response = await fetch(
-            `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+            `${supabaseUrl}/rest/v1/user_profiles?email=eq.${encodeURIComponent(customerEmail)}`,
             {
               method: 'PATCH',
               headers: {
@@ -66,6 +72,7 @@ export default async function handler(req, res) {
               },
               body: JSON.stringify({
                 subscription_status: 'active',
+                stripe_customer_id: customerId,
                 stripe_subscription_id: subscriptionId,
                 trial_ends_at: null,
               }),
@@ -75,7 +82,7 @@ export default async function handler(req, res) {
           if (!response.ok) {
             console.error(`[Webhook] Failed to update user: ${response.statusText}`);
           } else {
-            console.log(`[Webhook] User updated to active status`);
+            console.log(`[Webhook] User updated to active status for email: ${customerEmail}`);
           }
         }
         break;
