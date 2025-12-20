@@ -1,27 +1,11 @@
-const { createClient } = require('@supabase/supabase-js');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// api/stripe/webhook.js - Stripe Connect webhook handler
+// Handles project payment webhooks and Connect account updates
 
-const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import Stripe from 'stripe';
 
-// Helper to get raw body
-async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      resolve(Buffer.from(data));
-    });
-    req.on('error', reject);
-  });
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Main handler
-async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -29,197 +13,162 @@ async function handler(req, res) {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!sig || !webhookSecret) {
-    console.error('[Webhook] Missing signature or webhook secret');
-    return res.status(400).json({ error: 'Missing signature or webhook secret' });
+  if (!webhookSecret) {
+    console.error('[Webhook] Missing STRIPE_WEBHOOK_SECRET');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  let event;
+  let buf;
+
+  try {
+    // Read raw body
+    if (req.body instanceof Buffer) {
+      buf = req.body;
+    } else if (typeof req.body === 'string') {
+      buf = Buffer.from(req.body);
+    } else {
+      buf = Buffer.from(JSON.stringify(req.body));
+    }
+
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+  } catch (err) {
+    console.error(`[Webhook] Signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  console.log(`[Webhook] Received event: ${event.type}`);
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[Webhook] Missing Supabase credentials');
+    return res.status(500).json({ error: 'Server configuration error' });
   }
 
   try {
-    const rawBody = await getRawBody(req);
-    
-    // Verify webhook signature
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-    } catch (err) {
-      console.error('[Webhook] Signature verification failed:', err.message);
-      return res.status(400).json({ error: 'Invalid signature' });
-    }
+    switch (event.type) {
+      // ============================================
+      // STRIPE CONNECT ACCOUNT UPDATES
+      // ============================================
+      case 'account.updated': {
+        const account = event.data.object;
+        const accountId = account.id;
 
-    console.log('[Webhook] ✅ Signature verified. Event type:', event.type);
+        console.log(`[Webhook] Account updated: ${accountId}`);
+        console.log(`[Webhook] Charges enabled: ${account.charges_enabled}`);
+        console.log(`[Webhook] Payouts enabled: ${account.payouts_enabled}`);
+        console.log(`[Webhook] Details submitted: ${account.details_submitted}`);
 
-    // Handle payment_intent.succeeded
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
-      const stageId = paymentIntent.metadata?.stage_id;
-      const projectId = paymentIntent.metadata?.project_id;
-      const paymentType = paymentIntent.metadata?.type;
+        // Update user profile with account capabilities
+        const updateData = {
+          stripe_charges_enabled: account.charges_enabled || false,
+          stripe_payouts_enabled: account.payouts_enabled || false,
+          stripe_onboarding_completed: account.details_submitted || false,
+        };
 
-      console.log('[Webhook] Payment succeeded:', { 
-        stageId, 
-        projectId, 
-        type: paymentType,
-        amount: paymentIntent.amount / 100
-      });
-
-      // Handle extension payment
-      if (paymentType === 'extension' && stageId) {
-        console.log('[Webhook] Processing extension payment...');
-        
-        // Create extension record
-        const { data: extensionData, error: extensionError } = await supabaseAdmin
-          .from('extensions')
-          .insert({
-            stage_id: stageId,
-            amount: paymentIntent.amount / 100,
-            status: 'paid',
-            payment_received_at: new Date().toISOString(),
-            additional_revisions: 1,
-            stripe_payment_intent_id: paymentIntent.id,
-          })
-          .select()
-          .single();
-
-        if (extensionError) {
-          console.error('[Webhook] Extension insert failed:', extensionError);
-          return res.status(500).json({ error: 'Failed to create extension record' });
+        // If account is fully enabled, set connected timestamp
+        if (account.charges_enabled && account.payouts_enabled) {
+          updateData.stripe_connected_at = new Date().toISOString();
         }
 
-        console.log('[Webhook] ✅ Extension payment recorded:', extensionData?.id);
+        console.log(`[Webhook] Updating account ${accountId} with:`, updateData);
 
-        // Get stage and project info for notification
-        const { data: stage, error: stageError } = await supabaseAdmin
-          .from('stages')
-          .select('name, stage_number, projects(id, user_id, project_name, client_name)')
-          .eq('id', stageId)
-          .single();
+        const accountResponse = await fetch(
+          `${supabaseUrl}/rest/v1/user_profiles?stripe_account_id=eq.${accountId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=representation',
+            },
+            body: JSON.stringify(updateData),
+          }
+        );
 
-        if (stageError) {
-          console.error('[Webhook] Error fetching stage:', stageError);
-        }
-
-        if (stage && stage.projects) {
-          // Create notification for freelancer
-          const { error: notifError } = await supabaseAdmin
-            .from('notifications')
-            .insert({
-              project_id: stage.projects.id,
-              stage_id: stageId,
-              type: 'extension_purchased',
-              message: `${stage.projects.client_name} purchased an extra revision for ${stage.name}`,
-              is_read: false,
-            });
-
-          if (notifError) {
-            console.error('[Webhook] Notification insert failed:', notifError);
-          } else {
-            console.log('[Webhook] ✅ Notification created for extension purchase');
+        if (!accountResponse.ok) {
+          const errorText = await accountResponse.text();
+          console.error(`[Webhook] Failed to update user profile: ${accountResponse.status} - ${errorText}`);
+        } else {
+          const updated = await accountResponse.json();
+          console.log(`[Webhook] Successfully updated ${updated.length} user(s) for account ${accountId}`);
+          
+          if (account.charges_enabled && account.payouts_enabled) {
+            console.log(`[Webhook] ✅ Account ${accountId} is now fully enabled!`);
           }
         }
-
-        return res.status(200).json({ received: true, type: 'extension' });
+        break;
       }
 
-      // Handle stage payment
-      if (stageId && projectId && !paymentType) {
-        console.log('[Webhook] Processing stage payment...');
+      // ============================================
+      // PROJECT PAYMENT EVENTS
+      // ============================================
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const stageId = paymentIntent.metadata?.stage_id;
 
-        // Update stage to completed
-        const { data: updatedStage, error: updateError } = await supabaseAdmin
-          .from('stages')
-          .update({
-            payment_status: 'received',
-            payment_received_at: new Date().toISOString(),
-            status: 'completed'
-          })
-          .eq('id', stageId)
-          .select('stage_number, name, projects(project_name, client_name)')
-          .single();
-
-        if (updateError) {
-          console.error('[Webhook] Update failed:', updateError);
-          return res.status(500).json({ error: 'Failed to update stage' });
+        if (!stageId) {
+          console.log('[Webhook] No stage_id in payment metadata, skipping');
+          break;
         }
 
-        console.log('[Webhook] ✅ Stage updated to completed');
+        console.log(`[Webhook] Payment succeeded for stage: ${stageId}`);
 
-        // Create notification for stage payment
-        if (updatedStage && updatedStage.projects) {
-          const { error: notifError } = await supabaseAdmin
-            .from('notifications')
-            .insert({
-              project_id: projectId,
-              stage_id: stageId,
-              type: 'payment_received',
-              message: `${updatedStage.projects.client_name} paid for ${updatedStage.name}`,
-              is_read: false,
-            });
-
-          if (notifError) {
-            console.error('[Webhook] Notification insert failed:', notifError);
-          } else {
-            console.log('[Webhook] ✅ Notification created for stage payment');
+        // Update stage payment status
+        const paymentResponse = await fetch(
+          `${supabaseUrl}/rest/v1/stage_payments?id=eq.${stageId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              status: 'paid',
+              marked_paid_at: new Date().toISOString(),
+              stripe_payment_intent_id: paymentIntent.id,
+            }),
           }
+        );
+
+        if (!paymentResponse.ok) {
+          console.error(`[Webhook] Failed to update stage payment: ${paymentResponse.statusText}`);
+        } else {
+          console.log(`[Webhook] Stage ${stageId} marked as paid`);
         }
-
-        // Get all stages to unlock next one
-        const { data: stages } = await supabaseAdmin
-          .from('stages')
-          .select('id, stage_number, status')
-          .eq('project_id', projectId)
-          .order('stage_number', { ascending: true });
-
-        if (stages) {
-          const nextStage = stages.find(s => 
-            s.stage_number === updatedStage.stage_number + 1
-          );
-
-          if (nextStage && nextStage.status === 'locked') {
-            await supabaseAdmin
-              .from('stages')
-              .update({ status: 'active' })
-              .eq('id', nextStage.id);
-            
-            console.log('[Webhook] ✅ Unlocked next stage:', nextStage.id);
-          }
-        }
-
-        return res.status(200).json({ received: true, type: 'stage_payment' });
+        break;
       }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object;
+        const stageId = paymentIntent.metadata?.stage_id;
+
+        if (stageId) {
+          console.log(`[Webhook] Payment failed for stage: ${stageId}`);
+          // Optionally update status or notify user
+        }
+        break;
+      }
+
+      default:
+        console.log(`[Webhook] Unhandled event type: ${event.type}`);
     }
 
-    // Handle account.updated
-    if (event.type === 'account.updated') {
-      const account = event.data.object;
-      const userId = account.metadata?.user_id;
-
-      if (userId) {
-        await supabaseAdmin
-          .from('user_profiles')
-          .update({
-            stripe_charges_enabled: account.charges_enabled || false,
-            stripe_payouts_enabled: account.payouts_enabled || false,
-            stripe_onboarding_completed: account.details_submitted || false,
-            stripe_connected_at: account.details_submitted ? new Date().toISOString() : null
-          })
-          .eq('id', userId);
-        
-        console.log('[Webhook] ✅ Updated user profile for Stripe Connect');
-      }
-    }
-
-    return res.status(200).json({ received: true });
+    res.status(200).json({ received: true });
   } catch (error) {
-    console.error('[Webhook] Error:', error);
-    return res.status(500).json({ 
-      error: error.message 
-    });
+    console.error(`[Webhook] Error processing event: ${error.message}`);
+    console.error(error.stack);
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 }
 
-// Vercel serverless config (CommonJS style)
-module.exports = handler;
-module.exports.config = {
+// Disable body parsing for webhooks (need raw body for signature verification)
+export const config = {
   api: {
     bodyParser: false,
   },
