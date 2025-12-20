@@ -1,26 +1,59 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export default function LandingFooter() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isHomePage = location.pathname === '/';
+
+  // Handle scroll to section
+  const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    e.preventDefault();
+    
+    if (isHomePage) {
+      // Already on homepage - just scroll
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // On different page - navigate to homepage then scroll
+      navigate('/');
+      // Wait for navigation to complete, then scroll
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  };
+
   return (
-    <footer className="bg-white border-t border-gray-200 py-16">
-      <div className="max-w-7xl mx-auto px-6 lg:px-20">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+    <footer className="bg-white border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
-          <div>
-            <h3 className="text-2xl font-bold text-black mb-4">MileStage</h3>
-            <p className="text-gray-600">
-              Stage-by-stage payment tracking for freelancers.
+          <div className="col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">M</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">MileStage</span>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Simple milestone payment tracking for freelancers.
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="text-lg font-semibold text-black mb-4">Product</h4>
-            <ul className="space-y-2">
+            <h3 className="font-semibold text-gray-900 mb-4">Product</h3>
+            <ul className="space-y-3">
               <li>
                 <a
                   href="#how-it-works"
-                  className="text-gray-600 hover:text-black transition-colors"
+                  onClick={(e) => handleSectionClick(e, 'how-it-works')}
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   How it works
                 </a>
@@ -28,7 +61,8 @@ export default function LandingFooter() {
               <li>
                 <a
                   href="#pricing"
-                  className="text-gray-600 hover:text-black transition-colors"
+                  onClick={(e) => handleSectionClick(e, 'pricing')}
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   Pricing
                 </a>
@@ -38,12 +72,27 @@ export default function LandingFooter() {
 
           {/* Company */}
           <div>
-            <h4 className="text-lg font-semibold text-black mb-4">Company</h4>
-            <ul className="space-y-2">
+            <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+            <ul className="space-y-3">
+              <li>
+                <a
+                  href="mailto:support@milestage.com"
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
+                >
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <ul className="space-y-3">
               <li>
                 <Link
                   to="/privacy"
-                  className="text-gray-600 hover:text-black transition-colors"
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -51,50 +100,27 @@ export default function LandingFooter() {
               <li>
                 <Link
                   to="/terms"
-                  className="text-gray-600 hover:text-black transition-colors"
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   Terms of Service
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/refund"
-                  className="text-gray-600 hover:text-black transition-colors"
+                  to="/refund-policy"
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
                 >
                   Refund Policy
                 </Link>
               </li>
             </ul>
           </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="text-lg font-semibold text-black mb-4">Support</h4>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="mailto:support@milestage.com"
-                  className="text-gray-600 hover:text-black transition-colors"
-                >
-                  support@milestage.com
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#faq"
-                  className="text-gray-600 hover:text-black transition-colors"
-                >
-                  FAQ
-                </a>
-              </li>
-            </ul>
-          </div>
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-gray-200">
-          <p className="text-center text-gray-600">
-            © 2025 MileStage. All rights reserved.
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <p className="text-center text-gray-600 text-sm">
+            © {new Date().getFullYear()} MileStage. All rights reserved.
           </p>
         </div>
       </div>
