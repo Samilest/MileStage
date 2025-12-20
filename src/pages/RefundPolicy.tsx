@@ -41,16 +41,19 @@ export default function RefundPolicy() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Free Trial (14 Days)</h2>
               <p className="text-gray-700 mb-4">
-                You get 14 days to try everything:
+                Try MileStage free for 14 days:
               </p>
               <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
                 <li>All features unlocked</li>
                 <li>Unlimited projects</li>
-                <li>No credit card required</li>
-                <li>No charges</li>
+                <li>No charge from MileStage</li>
+                <li>Cancel anytime</li>
               </ul>
               <p className="text-gray-700 mb-4">
-                Cancel anytime during the trial. No questions, no charges.
+                To receive payments from clients, you'll connect your Stripe account (free, but requires bank details for payouts).
+              </p>
+              <p className="text-gray-700 mb-4">
+                Cancel anytime during the trial. No questions, no charges from MileStage.
               </p>
               <p className="text-gray-700 font-medium">
                 Use the trial. Really test it. Make sure it works for you before paying.
