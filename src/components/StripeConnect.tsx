@@ -85,6 +85,46 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
     }
   }, [userId, checkStripeStatus]);
 
+  // Verify Stripe status directly from Stripe API (bypasses webhook dependency)
+  const verifyStripeStatus = useCallback(async (): Promise<StripeStatusData | null> => {
+    if (!userId) return null;
+    
+    try {
+      console.log('[StripeConnect] Verifying status directly from Stripe API...');
+      
+      const response = await fetch('/api/stripe/verify-connect-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to verify Stripe status');
+      }
+
+      const data = await response.json();
+      
+      console.log('[StripeConnect] Verified status from Stripe:', data);
+      
+      const newStatus: StripeStatusData = {
+        connected: data.connected || false,
+        onboardingCompleted: data.onboardingCompleted || false,
+        chargesEnabled: data.chargesEnabled || false,
+        payoutsEnabled: data.payoutsEnabled || false,
+        accountId: data.accountId,
+      };
+      
+      setStripeStatus(newStatus);
+      return newStatus;
+    } catch (error) {
+      console.error('[StripeConnect] Error verifying Stripe status:', error);
+      // Fall back to database check
+      return checkStripeStatus();
+    }
+  }, [userId, checkStripeStatus]);
+
   // Handle return from Stripe onboarding - check URL params and clean up
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -99,34 +139,33 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
       newUrl.searchParams.delete('refresh');
       window.history.replaceState({}, '', newUrl.pathname + (newUrl.search || ''));
       
-      // Fetch fresh status and show toast based on NEW data (not stale closure)
+      // Verify status directly from Stripe API (this also updates the database)
       const handleReturn = async () => {
-        const freshStatus = await checkStripeStatus();
+        const freshStatus = await verifyStripeStatus();
         
         if (freshStatus) {
           console.log('[StripeConnect] Fresh status after return:', freshStatus);
           
-          if (freshStatus.onboardingCompleted && freshStatus.chargesEnabled && freshStatus.payoutsEnabled) {
+          if (freshStatus.chargesEnabled || freshStatus.onboardingCompleted) {
             toast.success('Stripe connected successfully!');
             onConnected?.();
-          } else if (freshStatus.connected && !freshStatus.onboardingCompleted) {
-            // Account exists but onboarding not complete - webhook might not have fired yet
-            // Wait a moment and try again
-            console.log('[StripeConnect] Onboarding incomplete, retrying in 2 seconds...');
+          } else if (freshStatus.connected) {
+            // Account exists but not fully set up yet - retry once more
+            console.log('[StripeConnect] Onboarding may still be processing, retrying in 3 seconds...');
             setTimeout(async () => {
-              const retryStatus = await checkStripeStatus();
-              if (retryStatus?.onboardingCompleted && retryStatus?.chargesEnabled && retryStatus?.payoutsEnabled) {
+              const retryStatus = await verifyStripeStatus();
+              if (retryStatus?.chargesEnabled || retryStatus?.onboardingCompleted) {
                 toast.success('Stripe connected successfully!');
                 onConnected?.();
               }
-            }, 2000);
+            }, 3000);
           }
         }
       };
       
       handleReturn();
     }
-  }, [userId, checkStripeStatus, onConnected]);
+  }, [userId, verifyStripeStatus, onConnected]);
 
   const handleConnectStripe = async () => {
     setConnecting(true);
