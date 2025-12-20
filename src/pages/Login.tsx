@@ -29,6 +29,9 @@ export default function Login() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            prompt: 'select_account',  // ← ADDED: Forces account picker
+          },
         },
       });
       if (error) throw error;
