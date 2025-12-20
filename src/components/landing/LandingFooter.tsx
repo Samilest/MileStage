@@ -34,14 +34,13 @@ export default function LandingFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">MileStage</span>
-            </div>
+            <img 
+              src="/assets/Footer_Logo.png" 
+              alt="MileStage" 
+              className="h-8 mb-4"
+            />
             <p className="text-gray-600 text-sm">
-              Simple milestone payment tracking for freelancers.
+              Stage-by-stage payment tracking for freelancers.
             </p>
           </div>
 
@@ -75,21 +74,6 @@ export default function LandingFooter() {
             <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
             <ul className="space-y-3">
               <li>
-                <a
-                  href="mailto:support@milestage.com"
-                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
-                >
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
-            <ul className="space-y-3">
-              <li>
                 <Link
                   to="/privacy"
                   className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
@@ -112,6 +96,30 @@ export default function LandingFooter() {
                 >
                   Refund Policy
                 </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-4">Support</h3>
+            <ul className="space-y-3">
+              <li>
+                <a
+                  href="mailto:support@milestage.com"
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
+                >
+                  support@milestage.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#faq"
+                  onClick={(e) => handleSectionClick(e, 'faq')}
+                  className="text-gray-600 hover:text-gray-900 text-sm transition-colors"
+                >
+                  FAQ
+                </a>
               </li>
             </ul>
           </div>
