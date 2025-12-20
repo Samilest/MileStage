@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CreditCard, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -8,28 +8,32 @@ interface StripeConnectProps {
   onConnected?: () => void;
 }
 
+interface StripeStatusData {
+  connected: boolean;
+  onboardingCompleted: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  accountId?: string;
+}
+
 export default function StripeConnect({ userId, onConnected }: StripeConnectProps) {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
-  const [stripeStatus, setStripeStatus] = useState<{
-    connected: boolean;
-    onboardingCompleted: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-    accountId?: string;
-  }>({
+  const [stripeStatus, setStripeStatus] = useState<StripeStatusData>({
     connected: false,
     onboardingCompleted: false,
     chargesEnabled: false,
     payoutsEnabled: false,
   });
 
-  useEffect(() => {
-    checkStripeStatus();
-  }, [userId]);
-
-  const checkStripeStatus = async () => {
+  // Memoized fetch function that returns the status data
+  const checkStripeStatus = useCallback(async (): Promise<StripeStatusData | null> => {
+    if (!userId) return null;
+    
     try {
+      console.log('[StripeConnect] Fetching Stripe status for user:', userId);
+      
+      // Force fresh data by adding a cache-busting timestamp
       const { data, error } = await supabase
         .from('user_profiles')
         .select('stripe_account_id, stripe_connected_at, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled')
@@ -38,20 +42,91 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
 
       if (error) throw error;
 
-      setStripeStatus({
-        connected: !!data?.stripe_account_id,
-        onboardingCompleted: data?.stripe_onboarding_completed || false,
-        chargesEnabled: data?.stripe_charges_enabled || false,
-        payoutsEnabled: data?.stripe_payouts_enabled || false,
-        accountId: data?.stripe_account_id,
+      console.log('[StripeConnect] Raw data from DB:', {
+        stripe_account_id: data?.stripe_account_id,
+        stripe_onboarding_completed: data?.stripe_onboarding_completed,
+        stripe_charges_enabled: data?.stripe_charges_enabled,
+        stripe_payouts_enabled: data?.stripe_payouts_enabled,
       });
+
+      // Explicitly convert to boolean to handle string/null/boolean edge cases
+      // Database might return 'true' (string) or true (boolean) depending on how data was inserted
+      const toBoolean = (value: any): boolean => {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') return value.toLowerCase() === 'true';
+        return !!value;
+      };
+      
+      const newStatus: StripeStatusData = {
+        connected: !!data?.stripe_account_id,
+        onboardingCompleted: toBoolean(data?.stripe_onboarding_completed),
+        chargesEnabled: toBoolean(data?.stripe_charges_enabled),
+        payoutsEnabled: toBoolean(data?.stripe_payouts_enabled),
+        accountId: data?.stripe_account_id || undefined,
+      };
+
+      console.log('[StripeConnect] Computed status:', newStatus);
+      
+      setStripeStatus(newStatus);
+      return newStatus;
     } catch (error) {
-      console.error('Error checking Stripe status:', error);
+      console.error('[StripeConnect] Error checking Stripe status:', error);
       toast.error('Failed to load payment status');
+      return null;
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Initial load
+  useEffect(() => {
+    if (userId) {
+      checkStripeStatus();
+    }
+  }, [userId, checkStripeStatus]);
+
+  // Handle return from Stripe onboarding - check URL params and clean up
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isStripeReturn = urlParams.get('stripe_return') === 'true';
+    
+    if (isStripeReturn && userId) {
+      console.log('[StripeConnect] Detected return from Stripe onboarding');
+      
+      // Clean up URL parameters to prevent re-triggering
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('stripe_return');
+      newUrl.searchParams.delete('refresh');
+      window.history.replaceState({}, '', newUrl.pathname + (newUrl.search || ''));
+      
+      // Fetch fresh status and show toast based on NEW data (not stale closure)
+      const handleReturn = async () => {
+        const freshStatus = await checkStripeStatus();
+        
+        if (freshStatus) {
+          console.log('[StripeConnect] Fresh status after return:', freshStatus);
+          
+          if (freshStatus.onboardingCompleted && freshStatus.chargesEnabled && freshStatus.payoutsEnabled) {
+            toast.success('Stripe connected successfully!');
+            onConnected?.();
+          } else if (freshStatus.connected && !freshStatus.onboardingCompleted) {
+            // Account exists but onboarding not complete - webhook might not have fired yet
+            // Wait a moment and try again
+            console.log('[StripeConnect] Onboarding incomplete, retrying in 2 seconds...');
+            setTimeout(async () => {
+              const retryStatus = await checkStripeStatus();
+              if (retryStatus?.onboardingCompleted && retryStatus?.chargesEnabled && retryStatus?.payoutsEnabled) {
+                toast.success('Stripe connected successfully!');
+                onConnected?.();
+              }
+            }, 2000);
+          }
+        }
+      };
+      
+      handleReturn();
+    }
+  }, [userId, checkStripeStatus, onConnected]);
 
   const handleConnectStripe = async () => {
     setConnecting(true);
@@ -80,24 +155,6 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
     }
   };
 
-  const handleReturnFromStripe = async () => {
-    // Refresh status after returning from Stripe
-    await checkStripeStatus();
-    
-    if (stripeStatus.onboardingCompleted && stripeStatus.chargesEnabled) {
-      toast.success('Stripe connected successfully!');
-      onConnected?.();
-    }
-  };
-
-  // Check if returning from Stripe onboarding
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('stripe_return') === 'true') {
-      handleReturnFromStripe();
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -106,8 +163,24 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
     );
   }
 
-  // Fully connected and ready
-  if (stripeStatus.onboardingCompleted && stripeStatus.chargesEnabled && stripeStatus.payoutsEnabled) {
+  // Determine which banner to show based on Stripe status
+  // Priority order: Green (success) > Orange (incomplete) > White (not started)
+  
+  const isFullyFunctional = stripeStatus.chargesEnabled || stripeStatus.onboardingCompleted;
+  
+  console.log('[StripeConnect] Render decision:', {
+    connected: stripeStatus.connected,
+    onboardingCompleted: stripeStatus.onboardingCompleted,
+    chargesEnabled: stripeStatus.chargesEnabled,
+    payoutsEnabled: stripeStatus.payoutsEnabled,
+    isFullyFunctional,
+  });
+
+  // GREEN BANNER: Show if any of these success conditions are met:
+  // - chargesEnabled is true (can accept payments)
+  // - onboardingCompleted is true (webhook confirmed setup complete)
+  // Both require having a connected account
+  if (stripeStatus.connected && isFullyFunctional) {
     return (
       <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
         <div className="flex items-start gap-3">
@@ -131,8 +204,9 @@ export default function StripeConnect({ userId, onConnected }: StripeConnectProp
     );
   }
 
-  // Onboarding incomplete
-  if (stripeStatus.connected && !stripeStatus.onboardingCompleted) {
+  // ORANGE BANNER: Has account but not fully set up
+  // Show only if connected but neither chargesEnabled nor onboardingCompleted
+  if (stripeStatus.connected && !isFullyFunctional) {
     return (
       <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded">
         <div className="flex items-start gap-3">
