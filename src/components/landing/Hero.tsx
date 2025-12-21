@@ -1,71 +1,51 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function Hero() {
-  const navigate = useNavigate();
-
   return (
-    <section className="relative bg-white pt-20 pb-32 lg:pt-32 lg:pb-48">
-      <div className="max-w-6xl mx-auto px-6 lg:px-12">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-          
-          {/* Left: Content */}
-          <div className="max-w-xl">
-            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-black leading-[1.1] tracking-tight mb-8">
-              Clients can't push "just one more tweak" if the stage is closed.
+    <section className="relative bg-white pt-20 pb-16 sm:pt-24 sm:pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left: Copy */}
+          <div>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight mb-6">
+              Stop Scope Creep.
+              <br />
+              Get Paid Per Stage.
             </h1>
             
-            <p className="text-xl lg:text-2xl text-gray-700 leading-relaxed mb-8">
-              MileStage locks project stages, revision limits, and payments—so boundaries are clear and payment delays disappear.
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
+              Clients can't push for "one more tweak" when the next stage is locked until payment clears.
             </p>
 
-            {/* Key Features - Outcome-focused */}
-            <div className="space-y-3 mb-10">
-              {[
-                'Stage locking prevents endless tweaks',
-                'Revision counters make limits visible',
-                'Payment gates stop unpaid work',
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-lg text-gray-700">{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-lg text-black font-medium mb-8">
-              The system enforces boundaries—not you.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              <button
-                onClick={() => navigate('/signup')}
-                className="group bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-4 rounded-xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg"
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center px-8 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30"
               >
-                <span>Start Free</span>
-                <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform duration-300">→</span>
-              </button>
-              <div className="text-sm text-gray-600">
-                <div>14-day trial</div>
-                <div>No credit card needed</div>
-              </div>
+                Start Free Trial →
+              </Link>
             </div>
+
+            <p className="text-sm text-gray-500">
+              No credit card • 14 days free • Cancel anytime
+            </p>
           </div>
 
-          {/* Right: Dashboard Screenshot */}
-          <div className="relative lg:ml-auto">
-            <div className="relative rounded-2xl shadow-2xl border border-gray-200 overflow-hidden bg-white transition-transform duration-500 hover:scale-[1.02]">
-              <img
-                src="/dashboard-screenshot.png"
-                alt="MileStage Dashboard - Track milestone payments"
-                className="w-full h-auto"
+          {/* Right: Screenshot */}
+          <div className="relative">
+            <div className="relative rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+              <img 
+                src="/assets/screenshots/hero-dashboard.png" 
+                alt="MileStage Dashboard showing multiple projects with different currencies"
+                className="w-full"
               />
             </div>
-            {/* Subtle accent */}
-            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-green-100 rounded-full -z-10 blur-3xl opacity-40 animate-pulse" />
+            {/* Floating badge */}
+            <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg px-6 py-3 border border-gray-200">
+              <p className="text-sm font-semibold text-gray-900">Multi-currency support</p>
+              <p className="text-xs text-gray-600">USD, EUR, GBP, CAD & more</p>
+            </div>
           </div>
-
         </div>
       </div>
     </section>
