@@ -28,7 +28,7 @@ export default function LandingFooter() {
           {/* Brand */}
           <div className="col-span-1">
             <img 
-              src="assets/Footer_Logo.png" 
+              src="/assets/Footer_Logo.png" 
               alt="MileStage" 
               className="h-8 mb-4"
             />

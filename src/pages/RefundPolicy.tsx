@@ -49,9 +49,19 @@ export default function RefundPolicy() {
                 <li>No charge from MileStage</li>
                 <li>Cancel anytime</li>
               </ul>
-              <p className="text-gray-700 mb-4">
-                To receive payments from clients, you'll connect your Stripe account (free, but requires bank details for payouts).
+              
+              <p className="text-gray-700 mb-2">
+                <strong>To receive payments from clients:</strong>
               </p>
+              <ul className="list-disc pl-6 text-gray-700 space-y-2 mb-4">
+                <li>
+                  <strong>Online payments:</strong> You can connect your Stripe account (free, but requires bank details for direct payouts)
+                </li>
+                <li>
+                  <strong>Offline payments:</strong> You can also receive payments via PayPal, bank transfer, or any other method you prefer, then mark stages as paid manually
+                </li>
+              </ul>
+              
               <p className="text-gray-700 mb-4">
                 Cancel anytime during the trial. No questions, no charges from MileStage.
               </p>
