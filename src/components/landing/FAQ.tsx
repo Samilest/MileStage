@@ -35,21 +35,24 @@ export default function FAQ() {
   ];
 
   return (
-    <section id="faq" className="py-20 bg-gray-50">
+    <section id="faq" className="py-16 bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
             Questions
           </h2>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            <div 
+              key={index} 
+              className="bg-white rounded-lg p-5 shadow-sm border border-gray-200 transition-all duration-300 hover:shadow-md hover:border-green-600 hover:-translate-y-1 cursor-pointer"
+            >
+              <h3 className="text-base font-semibold text-gray-900 mb-2">
                 {faq.question}
               </h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 text-sm leading-relaxed">
                 {faq.answer}
               </p>
             </div>
@@ -57,8 +60,8 @@ export default function FAQ() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
+        <div className="mt-10 text-center">
+          <p className="text-gray-600 mb-3">
             More questions?
           </p>
           <a 

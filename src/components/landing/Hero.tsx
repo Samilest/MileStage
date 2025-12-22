@@ -40,14 +40,14 @@ export default function Hero() {
             />
           </div>
           
-          {/* Floating badge - Multi-currency (MIDDLE LEFT) */}
-          <div className="absolute top-1/2 -translate-y-1/2 -left-4 bg-white rounded-lg shadow-xl px-6 py-4 border border-gray-200 hidden lg:block">
+          {/* Floating badge - Multi-currency (BOTTOM LEFT) */}
+          <div className="absolute bottom-8 left-8 bg-white rounded-lg shadow-xl px-6 py-4 border border-gray-200 hidden lg:block">
             <p className="text-sm font-semibold text-gray-900">Multi-currency support</p>
             <p className="text-xs text-gray-600">USD, EUR, GBP, CAD & more</p>
           </div>
 
-          {/* Floating badge - Zero fees (MIDDLE RIGHT) */}
-          <div className="absolute top-1/2 -translate-y-1/2 -right-4 bg-green-50 rounded-lg shadow-xl px-6 py-4 border-2 border-green-600 hidden lg:block">
+          {/* Floating badge - Zero fees (BOTTOM RIGHT - where red box is) */}
+          <div className="absolute bottom-8 right-8 bg-green-50 rounded-lg shadow-xl px-6 py-4 border-2 border-green-600 hidden lg:block">
             <p className="text-sm font-bold text-green-900">$0 Transaction Fees</p>
             <p className="text-xs text-green-700">Keep 100% of payments</p>
           </div>
