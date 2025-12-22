@@ -40,16 +40,19 @@ export default function Hero() {
             />
           </div>
           
-          {/* Floating badge - Multi-currency (BOTTOM LEFT) */}
-          <div className="absolute bottom-8 left-8 bg-white rounded-lg shadow-xl px-6 py-4 border border-gray-200 hidden lg:block">
-            <p className="text-sm font-semibold text-gray-900">Multi-currency support</p>
-            <p className="text-xs text-gray-600">USD, EUR, GBP, CAD & more</p>
-          </div>
+          {/* Floating badges - STACKED ON RIGHT SIDE */}
+          <div className="absolute bottom-8 right-8 hidden lg:flex flex-col gap-3">
+            {/* Multi-currency - TOP */}
+            <div className="bg-white rounded-lg shadow-xl px-6 py-4 border border-gray-200">
+              <p className="text-sm font-semibold text-gray-900">Multi-currency support</p>
+              <p className="text-xs text-gray-600">USD, EUR, GBP, CAD & more</p>
+            </div>
 
-          {/* Floating badge - Zero fees (BOTTOM RIGHT - where red box is) */}
-          <div className="absolute bottom-8 right-8 bg-green-50 rounded-lg shadow-xl px-6 py-4 border-2 border-green-600 hidden lg:block">
-            <p className="text-sm font-bold text-green-900">$0 Transaction Fees</p>
-            <p className="text-xs text-green-700">Keep 100% of payments</p>
+            {/* Zero fees - BOTTOM */}
+            <div className="bg-green-50 rounded-lg shadow-xl px-6 py-4 border-2 border-green-600">
+              <p className="text-sm font-bold text-green-900">$0 Transaction Fees</p>
+              <p className="text-xs text-green-700">Keep 100% of payments</p>
+            </div>
           </div>
         </div>
       </div>
