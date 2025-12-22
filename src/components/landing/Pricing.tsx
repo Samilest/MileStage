@@ -102,8 +102,8 @@ export default function Pricing() {
                 <li className="flex items-start gap-3">
                   <span className="text-green-600 mt-1 flex-shrink-0 text-xl">✓</span>
                   <div>
-                    <span className="text-gray-900 font-medium">Clean client portal</span>
-                    <p className="text-sm text-gray-600">Professional, no MileStage branding</p>
+                    <span className="text-gray-900 font-medium">Professional client portal</span>
+                    <p className="text-sm text-gray-600">Clean interface with minimal branding</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
