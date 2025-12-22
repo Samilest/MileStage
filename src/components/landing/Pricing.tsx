@@ -147,6 +147,18 @@ export default function Pricing() {
             <p className="text-center text-sm text-gray-600">
               14-day free trial • No credit card needed • Cancel anytime
             </p>
+
+            {/* 30-Day Guarantee */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-900 mb-2">
+                  30-Day Money-Back Guarantee
+                </p>
+                <p className="text-sm text-gray-600">
+                  Not happy? Email us for a full refund.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

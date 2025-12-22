@@ -5,12 +5,13 @@ export default function LandingNav() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo - CLICKABLE */}
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">M</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">MileStage</span>
+          {/* Logo - CLICKABLE with actual logo image */}
+          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+            <img 
+              src="/assets/Footer_Logo.png" 
+              alt="MileStage" 
+              className="h-8"
+            />
           </Link>
 
           {/* Nav Links */}
