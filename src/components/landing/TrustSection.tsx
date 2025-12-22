@@ -53,22 +53,13 @@ export default function TrustSection() {
           </div>
 
           <div className="relative">
-            {/* Image placeholder - replace with actual photo */}
+            {/* Human photo */}
             <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
-              {/* Option 1: Use Stripe screenshot */}
-              <img 
-                src="/assets/screenshots/stripe-connected.png" 
-                alt="Stripe Connected successfully"
-                className="w-full"
-              />
-              
-              {/* Option 2: Use human photo (uncomment when you have it)
               <img 
                 src="/assets/photos/freelancer-working.jpg" 
                 alt="Freelancer working confidently"
                 className="w-full h-[500px] object-cover"
               />
-              */}
             </div>
 
             {/* Trust badge overlay */}

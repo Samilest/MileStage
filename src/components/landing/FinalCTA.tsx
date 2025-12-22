@@ -44,31 +44,12 @@ export default function FinalCTA() {
 
           {/* Right: Human Photo */}
           <div className="relative">
-            {/* Image placeholder - replace with actual photo */}
             <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10">
-              {/* Placeholder - replace with actual human photo */}
-              <div className="bg-gradient-to-br from-green-600 to-green-800 aspect-square flex items-center justify-center">
-                <div className="text-center p-8">
-                  <p className="text-6xl mb-4">📸</p>
-                  <p className="text-white/80 text-sm">
-                    Replace with photo of:<br/>
-                    Relaxed freelancer working<br/>
-                    (not stressed about payments)
-                  </p>
-                  <p className="text-white/60 text-xs mt-4">
-                    Source: Unsplash<br/>
-                    Search: "freelancer laptop", "designer working"
-                  </p>
-                </div>
-              </div>
-              
-              {/* Uncomment when you have actual photo:
               <img 
                 src="/assets/photos/freelancer-relaxed.jpg" 
                 alt="Freelancer working without payment stress"
-                className="w-full h-full object-cover"
+                className="w-full aspect-square object-cover"
               />
-              */}
             </div>
 
             {/* Floating testimonial card (when you have real testimonials) */}
