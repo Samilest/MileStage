@@ -7,6 +7,7 @@ import Comparison from '../components/landing/Comparison';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
+import MidPageCTA from '../components/landing/MidPageCTA';
 import ClientApprovals from '../components/landing/ClientApprovals';
 import TrustSection from '../components/landing/TrustSection';
 import Pricing from '../components/landing/Pricing';
@@ -42,6 +43,7 @@ export default function LandingPage() {
       <Features />
       <HowItWorks />
       <ScopeCreepPrevention />
+      <MidPageCTA />
       <ClientApprovals />
       <TrustSection />
       <Pricing />
