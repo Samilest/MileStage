@@ -19,7 +19,7 @@ export default function ScopeCreepPrevention() {
                   "Can we start revisions while payment processes?"
                 </p>
                 <p className="text-gray-700">
-                  → Stage locked. Pay Stage 1 first.
+                  → Stage locked. Payment required first.
                 </p>
               </div>
 
@@ -28,16 +28,16 @@ export default function ScopeCreepPrevention() {
                   "Can we add one more round of changes?"
                 </p>
                 <p className="text-gray-700">
-                  → Revisions tracked. Extra rounds = extra stage = payment required.
+                  → Revisions tracked. Once included revisions are used, extra rounds require payment.
                 </p>
               </div>
 
               <div className="bg-red-50 border-l-4 border-red-600 p-6 rounded-r-lg">
                 <p className="font-semibold text-gray-900 mb-2">
-                  "Can we just do a quick extra thing?"
+                  "This is urgent—can we skip ahead to final delivery?"
                 </p>
                 <p className="text-gray-700">
-                  → New deliverable = new stage. Get paid first.
+                  → Each stage must be completed in order. No skipping ahead.
                 </p>
               </div>
             </div>
@@ -53,11 +53,11 @@ export default function ScopeCreepPrevention() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">✓</span>
-                  <span>Revisions tracked per stage (clients can purchase extra)</span>
+                  <span>Revisions tracked per stage</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">✓</span>
-                  <span>No awkward "that's extra" conversations</span>
+                  <span>Work progresses in order (no jumping ahead)</span>
                 </li>
               </ul>
             </div>
@@ -79,7 +79,7 @@ export default function ScopeCreepPrevention() {
               Revision Tracking Built-In
             </h3>
             <p className="text-gray-700 mb-4">
-              Each stage includes a set number of revisions. When clients request more, they can purchase additional rounds directly through the portal.
+              Each stage includes a set number of revisions. When clients exceed their limit, they can purchase additional rounds directly through the portal.
             </p>
             <p className="text-sm text-gray-600">
               No more "shadow work" through chat. Every revision is tracked and paid.

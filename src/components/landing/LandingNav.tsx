@@ -1,63 +1,57 @@
-import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/milestage-logo.png';
+import { Link } from 'react-router-dom';
 
 export default function LandingNav() {
-  const navigate = useNavigate();
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-      <div className="max-w-6xl mx-auto px-6 lg:px-12">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center hover:opacity-80 transition-opacity"
-          >
-            <img 
-              src={logo}
-              alt="MileStage" 
-              className="h-12"
-            />
-          </button>
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo - CLICKABLE */}
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">M</span>
+            </div>
+            <span className="text-xl font-bold text-gray-900">MileStage</span>
+          </Link>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <button
-              onClick={() => scrollToSection('pricing')}
-              className="text-gray-700 hover:text-black transition-colors font-medium"
+          {/* Nav Links */}
+          <div className="hidden md:flex items-center gap-8">
+            <a
+              href="#pricing"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               Pricing
-            </button>
-            <button
-              onClick={() => scrollToSection('faq')}
-              className="text-gray-700 hover:text-black transition-colors font-medium"
+            </a>
+            <a
+              href="#faq"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               FAQ
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-xl transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md"
+            </a>
+            <Link
+              to="/login"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              to="/signup"
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
               Start Free
-            </button>
-          </nav>
+            </Link>
+          </div>
 
-          {/* Mobile CTA */}
-          <button
-            onClick={() => navigate('/signup')}
-            className="md:hidden bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-all duration-200"
-          >
-            Start Free
-          </button>
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Link
+              to="/signup"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+            >
+              Start Free
+            </Link>
+          </div>
         </div>
       </div>
-    </header>
+    </nav>
   );
 }
