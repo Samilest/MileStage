@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import LandingNav from '../components/landing/LandingNav';
 import Hero from '../components/landing/Hero';
+import Comparison from '../components/landing/Comparison';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
@@ -35,6 +36,7 @@ export default function LandingPage() {
     <div className="bg-white">
       <LandingNav />
       <Hero />
+      <Comparison />
       <Features />
       <HowItWorks />
       <ScopeCreepPrevention />
