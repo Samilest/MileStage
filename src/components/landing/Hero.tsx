@@ -40,8 +40,8 @@ export default function Hero() {
             />
           </div>
           
-          {/* Floating badges - STACKED ON RIGHT SIDE */}
-          <div className="absolute bottom-8 right-8 hidden lg:flex flex-col gap-3">
+          {/* Floating badges - STACKED ON RIGHT, EXTENDING OUTSIDE */}
+          <div className="absolute bottom-8 -right-6 hidden lg:flex flex-col gap-3">
             {/* Multi-currency - TOP */}
             <div className="bg-white rounded-lg shadow-xl px-6 py-4 border border-gray-200">
               <p className="text-sm font-semibold text-gray-900">Multi-currency support</p>
