@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
+import StructuredData from '../components/StructuredData';
 import LandingNav from '../components/landing/LandingNav';
 import Hero from '../components/landing/Hero';
 import WhoItsFor from '../components/landing/WhoItsFor';
@@ -35,21 +37,29 @@ export default function LandingPage() {
   }, [location]);
 
   return (
-    <div className="bg-white">
-      <LandingNav />
-      <Hero />
-      <WhoItsFor />
-      <Comparison />
-      <Features />
-      <HowItWorks />
-      <ScopeCreepPrevention />
-      <MidPageCTA />
-      <ClientApprovals />
-      <TrustSection />
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
-      <LandingFooter />
-    </div>
+    <>
+      {/* SEO Meta Tags */}
+      <SEOHead />
+      
+      {/* Structured Data for Google */}
+      <StructuredData />
+      
+      <div className="bg-white">
+        <LandingNav />
+        <Hero />
+        <WhoItsFor />
+        <Comparison />
+        <Features />
+        <HowItWorks />
+        <ScopeCreepPrevention />
+        <MidPageCTA />
+        <ClientApprovals />
+        <TrustSection />
+        <Pricing />
+        <FAQ />
+        <FinalCTA />
+        <LandingFooter />
+      </div>
+    </>
   );
 }

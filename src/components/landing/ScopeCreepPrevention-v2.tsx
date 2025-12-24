@@ -7,7 +7,8 @@ export default function ScopeCreepPrevention() {
             Prevents Scope Creep Automatically
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            No awkward conversations. The system enforces boundaries for you.
+            No awkward conversations.
+            <br className="sm:hidden" /> The system enforces boundaries for you.
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { supabase } from './lib/supabase';
 import { useStore } from './store/useStore';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -224,36 +225,38 @@ function App() {
   }, [setUser, clearUser]);
 
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <AuthHandler />
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/portal/:shareCode" element={<ClientPortal />} />
-          <Route path="/project/:shareCode" element={<ClientPortal />} />
-          <Route path="/client/:shareCode" element={<ClientPortal />} />
-          <Route path="/projects/:shareCode/client" element={<ClientView />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/powered-by" element={<PoweredBy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/refund" element={<RefundPolicy />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+    <HelmetProvider>
+      <BrowserRouter>
+        <ScrollToTop />
+        <AuthHandler />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/portal/:shareCode" element={<ClientPortal />} />
+            <Route path="/project/:shareCode" element={<ClientPortal />} />
+            <Route path="/client/:shareCode" element={<ClientPortal />} />
+            <Route path="/projects/:shareCode/client" element={<ClientView />} />
+            <Route path="/payment" element={<Payment />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/powered-by" element={<PoweredBy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/refund" element={<RefundPolicy />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><TemplateSelection /></ProtectedRoute>} />
-          <Route path="/new-project" element={<ProtectedRoute><NewProject /></ProtectedRoute>} />
-          <Route path="/projects/:id/overview" element={<ProtectedRoute><ProjectOverview /></ProtectedRoute>} />
-          <Route path="/projects/:id/detail" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/templates" element={<ProtectedRoute><TemplateSelection /></ProtectedRoute>} />
+            <Route path="/new-project" element={<ProtectedRoute><NewProject /></ProtectedRoute>} />
+            <Route path="/projects/:id/overview" element={<ProtectedRoute><ProjectOverview /></ProtectedRoute>} />
+            <Route path="/projects/:id/detail" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 
