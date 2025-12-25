@@ -109,7 +109,7 @@ export default function LandingFooter() {
 
             {/* X (Twitter) */}
             <a 
-              href="https://twitter.com/milestage" 
+              href="https://x.com/TheMileStage" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-600 hover:text-gray-900 transition-colors"

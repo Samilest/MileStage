@@ -46,7 +46,7 @@ export default function StructuredData() {
     "logo": "https://milestage.com/assets/milestage-logo.png",
     "sameAs": [
       "https://www.linkedin.com/company/milestage",
-      "https://twitter.com/milestage"
+      "https://x.com/TheMileStage"
     ],
     "contactPoint": {
       "@type": "ContactPoint",
