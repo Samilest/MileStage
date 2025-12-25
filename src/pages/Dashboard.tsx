@@ -13,6 +13,8 @@ import PaymentTracker from '../components/PaymentTracker';
 import StripeConnect from '../components/StripeConnect';
 import WelcomeModal from '../components/WelcomeModal';
 import TrialBanner from '../components/TrialBanner';
+import TrialExpiredModal from '../components/TrialExpiredModal';
+import { useSubscription } from '../hooks/useSubscription';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
@@ -53,6 +55,10 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [archivingProjectId, setArchivingProjectId] = useState<string | null>(null);
   const [newCompletedCount, setNewCompletedCount] = useState(0);
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  
+  // Subscription check
+  const { subscription } = useSubscription();
   
   const fetchingRef = useRef(false);
   const userId = user?.id;
@@ -573,7 +579,14 @@ export default function Dashboard() {
                 <span className="sm:hidden">↻</span>
               </Button>
               <Button
-                onClick={() => navigate('/templates')}
+                onClick={() => {
+                  // Check subscription before creating project
+                  if (!subscription.canCreateProjects) {
+                    setShowTrialModal(true);
+                    return;
+                  }
+                  navigate('/templates');
+                }}
                 variant="primary"
                 className="flex-1 sm:flex-initial whitespace-nowrap"
               >
@@ -605,7 +618,14 @@ export default function Dashboard() {
               </p>
               <div className="flex justify-center">
                 <Button
-                  onClick={() => navigate('/templates')}
+                  onClick={() => {
+                    // Check subscription before creating project
+                    if (!subscription.canCreateProjects) {
+                      setShowTrialModal(true);
+                      return;
+                    }
+                    navigate('/templates');
+                  }}
                   className="px-8 py-4 text-base sm:text-lg min-h-[44px]"
                 >
                   Create Your First Project
@@ -907,6 +927,12 @@ export default function Dashboard() {
           </>
         )}
       </main>
+      
+      {/* Trial Expired Modal */}
+      <TrialExpiredModal 
+        isOpen={showTrialModal}
+        onClose={() => setShowTrialModal(false)}
+      />
     </div>
   );
 }
