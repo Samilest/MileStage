@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useStore } from '../store';
+import { useStore } from '../store/useStore';
 
 interface SubscriptionStatus {
   canCreateProjects: boolean;
