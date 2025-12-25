@@ -16,7 +16,7 @@ const PoweredBy = lazy(() => import('./pages/PoweredBy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
-const Dashboard = lazy(() => import('./pages/DashboardNew'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const TemplateSelection = lazy(() => import('./pages/TemplateSelection'));
 const NewProject = lazy(() => import('./pages/NewProject'));
