@@ -4,10 +4,24 @@ import { AlertCircle, Clock } from 'lucide-react';
 export default function TrialBanner() {
   const { subscription, loading } = useSubscription();
 
-  if (loading || !subscription.daysRemaining) return null;
+  console.log('[TrialBanner] Rendering - loading:', loading, 'subscription:', subscription);
+
+  if (loading) {
+    console.log('[TrialBanner] Still loading, returning null');
+    return null;
+  }
+
+  if (!subscription.daysRemaining) {
+    console.log('[TrialBanner] No daysRemaining, returning null');
+    return null;
+  }
+
+  console.log('[TrialBanner] Days remaining:', subscription.daysRemaining);
+  console.log('[TrialBanner] Is expired:', subscription.isTrialExpired);
 
   // Show warning when 3 days or less remaining
   if (subscription.daysRemaining <= 3 && subscription.daysRemaining > 0) {
+    console.log('[TrialBanner] Showing YELLOW warning banner');
     return (
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
         <div className="flex items-start">
@@ -30,6 +44,7 @@ export default function TrialBanner() {
 
   // Show if trial expired
   if (subscription.isTrialExpired) {
+    console.log('[TrialBanner] Showing RED expired banner');
     return (
       <div className="bg-red-50 border-l-4 border-red-400 p-4">
         <div className="flex items-start">
@@ -50,5 +65,6 @@ export default function TrialBanner() {
     );
   }
 
+  console.log('[TrialBanner] No conditions met, returning null');
   return null;
 }
