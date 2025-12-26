@@ -31,6 +31,7 @@ interface ProjectData {
     email: string;
     subscription_tier: string;
     stripe_account_id: string | null;
+    stripe_charges_enabled: boolean | null;
     manual_payment_instructions: string | null;
   };
   stages: Array<{
@@ -105,6 +106,7 @@ export default function ClientPortal() {
             email,
             subscription_tier,
             stripe_account_id,
+            stripe_charges_enabled,
             manual_payment_instructions
           ),
           stages (
@@ -426,7 +428,7 @@ export default function ClientPortal() {
           shareCode={shareCode}
           paymentMethods={projectData.payment_methods || {}}
           currency={projectData.currency || 'USD'}
-          freelancerStripeConnected={!!projectData.user_profiles?.stripe_account_id}
+          freelancerStripeConnected={!!projectData.user_profiles?.stripe_charges_enabled}
           manualPaymentInstructions={projectData.payment_methods?.offline_instructions || projectData.user_profiles?.manual_payment_instructions || null}
         />
       </main>
