@@ -617,89 +617,97 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
               </div>
               {!isPaid && (
-                freelancerStripeConnected ? (
-                  <button
-                    onClick={async () => {
-                    if (!shareCode) {
-                      alert('Invalid share code');
-                      return;
-                    }
-
-                    setCreatingPayment(true);
-                    try {
-                      const apiUrl = '/api/stripe/create-payment-intent';
-                      const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          stageId: stage.id,
-                          shareCode: shareCode,
-                        }),
-                      });
-
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || errorData.message || 'Failed to create payment');
+                <div className="flex flex-col gap-2">
+                  {/* Pay with Card - Show if Stripe connected */}
+                  {freelancerStripeConnected && (
+                    <button
+                      onClick={async () => {
+                      if (!shareCode) {
+                        alert('Invalid share code');
+                        return;
                       }
 
-                      const result = await response.json();
+                      setCreatingPayment(true);
+                      try {
+                        const apiUrl = '/api/stripe/create-payment-intent';
+                        const response = await fetch(apiUrl, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            stageId: stage.id,
+                            shareCode: shareCode,
+                          }),
+                        });
 
-                      if (result.error) {
-                        throw new Error(result.error);
-                      }
-
-                      if (result.clientSecret) {
-                        const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-                        if (!stripePublishableKey) {
-                          throw new Error('Stripe not configured');
+                        if (!response.ok) {
+                          const errorData = await response.json();
+                          throw new Error(errorData.error || errorData.message || 'Failed to create payment');
                         }
-                        
-                        sessionStorage.setItem('pendingPayment', JSON.stringify({
-                          clientSecret: result.clientSecret,
-                          stageId: stage.id,
-                          amount: stage.amount,
-                          stageName: stage.name,
-                          currency: currency,
-                          paymentMethods: paymentMethods || {},
-                        }));
-                        
-                        window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
+
+                        const result = await response.json();
+
+                        if (result.error) {
+                          throw new Error(result.error);
+                        }
+
+                        if (result.clientSecret) {
+                          const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+                          if (!stripePublishableKey) {
+                            throw new Error('Stripe not configured');
+                          }
+                          
+                          sessionStorage.setItem('pendingPayment', JSON.stringify({
+                            clientSecret: result.clientSecret,
+                            stageId: stage.id,
+                            amount: stage.amount,
+                            stageName: stage.name,
+                            currency: currency,
+                          }));
+                          
+                          window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
+                        }
+                      } catch (error: any) {
+                        console.error('Error creating payment:', error);
+                        alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
+                      } finally {
+                        setCreatingPayment(false);
                       }
-                    } catch (error: any) {
-                      console.error('Error creating payment:', error);
-                      alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
-                    } finally {
-                      setCreatingPayment(false);
-                    }
-                  }}
-                  disabled={creatingPayment}
-                  className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {creatingPayment ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Pay Now'
+                    }}
+                      disabled={creatingPayment}
+                      className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {creatingPayment ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        '💳 Pay with Card'
+                      )}
+                    </button>
                   )}
-                </button>
-              ) : manualPaymentInstructions ? (
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2"
-                >
-                  💳 View Payment Details
-                </button>
-              ) : (
-                <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                  <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
-                  <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
+                  
+                  {/* Pay Offline - Show if manual instructions exist */}
+                  {manualPaymentInstructions && (
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className={`px-6 py-2.5 ${freelancerStripeConnected ? 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50' : 'bg-green-500 text-white hover:bg-green-600'} rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2`}
+                    >
+                      🏦 Pay Offline
+                    </button>
+                  )}
+                  
+                  {/* No payment methods */}
+                  {!freelancerStripeConnected && !manualPaymentInstructions && (
+                    <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                      <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
+                      <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
+                    </div>
+                  )}
                 </div>
-              )
-            )}
+              )}
           </div>
         </div>
 
