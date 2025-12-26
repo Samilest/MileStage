@@ -655,25 +655,22 @@ export default function ProjectDetail() {
   };
 
   const rejectStagePayment = async (paymentId: string) => {
-    const reason = prompt('Why are you rejecting this payment? (This will be shown to the client)');
-    if (!reason) return;
-
     try {
       await supabase
         .from('stage_payments')
         .update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
-          rejection_reason: reason
+          rejection_reason: 'Payment not received'
         })
         .eq('id', paymentId);
 
-      setSuccessMessage('Payment marked as not received. Client will be notified.');
+      setSuccessMessage('Payment marked as not received.');
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err: any) {
-      alert('Failed to reject payment: ' + err.message);
+      alert('Failed to update payment status: ' + err.message);
     }
   };
 
@@ -1121,7 +1118,7 @@ export default function ProjectDetail() {
                   <p className="text-2xl font-bold text-green-600 mb-2">
                     {formatCurrency(payment.amount, project.currency || 'USD')}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mb-4">
                     {new Date(payment.marked_paid_at).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric', 
@@ -1131,16 +1128,16 @@ export default function ProjectDetail() {
                     })}
                   </p>
 
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={() => rejectStagePayment(payment.id)}
-                      className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-700 transition-colors"
+                      className="px-6 py-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-700 transition-colors"
                     >
                       Not Received
                     </button>
                     <button
                       onClick={() => verifyStagePayment(payment.id, stage.id)}
-                      className="flex-1 bg-green-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                      className="px-6 py-2.5 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors"
                     >
                       Confirm Received
                     </button>
