@@ -7,14 +7,13 @@ export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const shareCode = searchParams.get('share');
   const stageId = searchParams.get('stage');
+  const paymentIntentId = searchParams.get('payment_intent');
 
   useEffect(() => {
     // Clear any stored payment info
     sessionStorage.removeItem('pendingPayment');
 
     // Confirm payment with backend
-    const paymentIntentId = searchParams.get('payment_intent');
-    
     if (stageId && paymentIntentId) {
       console.log('[PaymentSuccess] Confirming payment:', { paymentIntentId, stageId });
       
@@ -27,7 +26,7 @@ export default function PaymentSuccess() {
         .then(data => console.log('[PaymentSuccess] Payment confirmed:', data))
         .catch(err => console.error('[PaymentSuccess] Confirmation error:', err));
     }
-  }, [searchParams, stageId]);
+  }, [searchParams, stageId, paymentIntentId]);
 
   return (
     <div className="min-h-screen bg-secondary-bg">
