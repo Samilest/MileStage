@@ -1,4 +1,4 @@
-// FORCE REBUILD v7 - payment_status='received' fix deployed
+// FORCE REBUILD v8 - portal modal fix
 import {
   Lock,
   Clock,
@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
@@ -714,10 +715,16 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
         )}
       </div>
 
-      {/* Payment Modal for Stage 0 - Outside card container to avoid overflow:hidden */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+      {/* Payment Modal for Stage 0 - Using Portal to render at body level */}
+      {showPaymentModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowPaymentModal(false)}
+          />
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-900">
                 Payment Details - {formatCurrency(stage.amount, currency)}
@@ -785,7 +792,8 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -1306,22 +1314,28 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
         />
       )}
 
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+      {showPaymentModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowPaymentModal(false)}
+          />
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-xl max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-gray-900">
                 Complete Payment - {formatCurrency(stage.amount, currency)}
               </h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="text-gray-600 hover:text-black"
+                className="text-gray-500 hover:text-gray-900 transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">
               <p className="font-semibold text-green-900">
                 ✅ You approved this stage's deliverables!
               </p>
@@ -1362,53 +1376,53 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             )}
 
             {/* Manual Payment Instructions */}
-            <div className="bg-gray-50 p-4 rounded mb-6">
-              <h3 className="font-semibold mb-3">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold mb-3 text-gray-900">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
               <p className="text-sm mb-4 text-gray-700">
                 Pay {formatCurrency(stage.amount, currency)} using one of these methods:
               </p>
 
               {/* Show manual_payment_instructions first if available */}
               {manualPaymentInstructions ? (
-                <div className="bg-white p-3 rounded border mb-3">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 mb-3">
                   <p className="font-medium text-sm mb-2">Payment Details:</p>
                   <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
                 </div>
               ) : paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
                 <div className="space-y-2">
                   {paymentMethods.paypal && (
-                    <div className="bg-white p-3 rounded border">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="font-medium text-sm">PayPal</p>
                       <p className="text-sm text-gray-900 font-mono">{paymentMethods.paypal}</p>
                     </div>
                   )}
                   {paymentMethods.venmo && (
-                    <div className="bg-white p-3 rounded border">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="font-medium text-sm">Venmo</p>
                       <p className="text-sm text-gray-900 font-mono">{paymentMethods.venmo}</p>
                     </div>
                   )}
                   {paymentMethods.bank_transfer && (
-                    <div className="bg-white p-3 rounded border">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="font-medium text-sm">Bank Transfer</p>
                       <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.bank_transfer}</p>
                     </div>
                   )}
                   {paymentMethods.other && (
-                    <div className="bg-white p-3 rounded border">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="font-medium text-sm">Other</p>
                       <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.other}</p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="bg-white p-3 rounded border">
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600">Contact the freelancer for payment details</p>
                 </div>
               )}
 
-              <div className="mt-4 p-3 bg-white rounded border-2 border-blue-300">
-                <p className="font-semibold text-sm">Reference Code:</p>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+                <p className="font-semibold text-sm text-gray-900">Reference Code:</p>
                 <p className="text-lg font-mono font-bold text-blue-600">
                   STAGE{stage.stage_number}-{stage.id.slice(0, 8).toUpperCase()}
                 </p>
@@ -1422,7 +1436,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               <button
                 onClick={handleMarkPaymentSent}
                 disabled={isMarkingPayment}
-                className="w-full bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isMarkingPayment ? 'Processing...' : '✅ I Paid Offline'}
@@ -1430,13 +1444,14 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
               >
                 Cancel
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {isRevisionModalOpen && (
