@@ -82,9 +82,10 @@ interface StageCardProps {
     bank_transfer?: string;
     other?: string;
   };
+  freelancerStripeConnected?: boolean;
+  manualPaymentInstructions?: string | null;
 }
-
-export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {} }: StageCardProps) {
+export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {}, freelancerStripeConnected = false, manualPaymentInstructions = null }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -613,76 +614,88 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
             </div>
             {!isPaid && (
-              <button
-                onClick={async () => {
-                  if (!shareCode) {
-                    alert('Invalid share code');
-                    return;
-                  }
-
-                  setCreatingPayment(true);
-                  try {
-                    const apiUrl = '/api/stripe/create-payment-intent';
-                    const response = await fetch(apiUrl, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        stageId: stage.id,
-                        shareCode: shareCode,
-                      }),
-                    });
-
-                    if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(errorData.error || errorData.message || 'Failed to create payment');
+              freelancerStripeConnected ? (
+                <button
+                  onClick={async () => {
+                    if (!shareCode) {
+                      alert('Invalid share code');
+                      return;
                     }
 
-                    const result = await response.json();
+                    setCreatingPayment(true);
+                    try {
+                      const apiUrl = '/api/stripe/create-payment-intent';
+                      const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          stageId: stage.id,
+                          shareCode: shareCode,
+                        }),
+                      });
 
-                    if (result.error) {
-                      throw new Error(result.error);
-                    }
-
-                    if (result.clientSecret) {
-                      // Redirect to Stripe checkout with the payment intent
-                      const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-                      if (!stripePublishableKey) {
-                        throw new Error('Stripe not configured');
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || errorData.message || 'Failed to create payment');
                       }
-                      
-                      // Store payment info and redirect to payment page
-                      sessionStorage.setItem('pendingPayment', JSON.stringify({
-                        clientSecret: result.clientSecret,
-                        stageId: stage.id,
-                        amount: stage.amount,
-                        stageName: stage.name,
-                        currency: currency,
-                        paymentMethods: paymentMethods || {},
-                      }));
-                      
-                      window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
+
+                      const result = await response.json();
+
+                      if (result.error) {
+                        throw new Error(result.error);
+                      }
+
+                      if (result.clientSecret) {
+                        const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+                        if (!stripePublishableKey) {
+                          throw new Error('Stripe not configured');
+                        }
+                        
+                        sessionStorage.setItem('pendingPayment', JSON.stringify({
+                          clientSecret: result.clientSecret,
+                          stageId: stage.id,
+                          amount: stage.amount,
+                          stageName: stage.name,
+                          currency: currency,
+                          paymentMethods: paymentMethods || {},
+                        }));
+                        
+                        window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
+                      }
+                    } catch (error: any) {
+                      console.error('Error creating payment:', error);
+                      alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
+                    } finally {
+                      setCreatingPayment(false);
                     }
-                  } catch (error: any) {
-                    console.error('Error creating payment:', error);
-                    alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
-                  } finally {
-                    setCreatingPayment(false);
-                  }
-                }}
-                disabled={creatingPayment}
-                className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {creatingPayment ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Pay Now'
-                )}
-              </button>
+                  }}
+                  disabled={creatingPayment}
+                  className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {creatingPayment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Pay Now'
+                  )}
+                </button>
+              ) : manualPaymentInstructions ? (
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2"
+                >
+                  💳 View Payment Details
+                </button>
+              ) : (
+                <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                  <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
+                  <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
+                </div>
+              )
             )}
           </div>
         </div>

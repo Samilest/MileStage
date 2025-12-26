@@ -25,10 +25,12 @@ interface ProjectData {
     bank_transfer?: string;
     other?: string;
   };
-  user_profiles: {
+user_profiles: {
     name: string;
     email: string;
     subscription_tier: string;
+    stripe_account_id: string | null;
+    manual_payment_instructions: string | null;
   };
   stages: Array<{
     id: string;
@@ -100,7 +102,9 @@ export default function ClientPortal() {
           user_profiles!projects_user_id_fkey (
             name,
             email,
-            subscription_tier
+            subscription_tier,
+            stripe_account_id,
+            manual_payment_instructions
           ),
           stages (
             *,
@@ -421,6 +425,8 @@ export default function ClientPortal() {
           shareCode={shareCode}
           paymentMethods={projectData.payment_methods || {}}
           currency={projectData.currency || 'USD'}
+          freelancerStripeConnected={!!projectData.user_profiles?.stripe_account_id}
+          manualPaymentInstructions={projectData.user_profiles?.manual_payment_instructions || null}
         />
       </main>
 

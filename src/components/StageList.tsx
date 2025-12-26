@@ -56,9 +56,10 @@ interface StageListProps {
     bank_transfer?: string;
     other?: string;
   };
+  freelancerStripeConnected?: boolean;
+  manualPaymentInstructions?: string | null;
 }
-
-export default function StageList({ stages, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, currency = 'USD', paymentMethods }: StageListProps) {
+export default function StageList({ stages, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, currency = 'USD', paymentMethods, freelancerStripeConnected = false, manualPaymentInstructions = null }: StageListProps) {
   if (!stages || stages.length === 0) {
     return (
       <div className="text-center py-12">
@@ -87,6 +88,8 @@ export default function StageList({ stages, readOnly = false, showNoteBox = fals
               shareCode={shareCode}
               currency={currency}
               paymentMethods={paymentMethods}
+              freelancerStripeConnected={freelancerStripeConnected}
+              manualPaymentInstructions={manualPaymentInstructions}
             />
           </div>
         ))}
