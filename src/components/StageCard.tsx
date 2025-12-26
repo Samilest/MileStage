@@ -617,96 +617,19 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
               </div>
               {!isPaid && (
-                <div className="flex flex-col gap-2">
-                  {/* Pay with Card - Show if Stripe connected */}
-                  {freelancerStripeConnected && (
-                    <button
-                      onClick={async () => {
-                      if (!shareCode) {
-                        alert('Invalid share code');
-                        return;
-                      }
-
-                      setCreatingPayment(true);
-                      try {
-                        const apiUrl = '/api/stripe/create-payment-intent';
-                        const response = await fetch(apiUrl, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            stageId: stage.id,
-                            shareCode: shareCode,
-                          }),
-                        });
-
-                        if (!response.ok) {
-                          const errorData = await response.json();
-                          throw new Error(errorData.error || errorData.message || 'Failed to create payment');
-                        }
-
-                        const result = await response.json();
-
-                        if (result.error) {
-                          throw new Error(result.error);
-                        }
-
-                        if (result.clientSecret) {
-                          const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-                          if (!stripePublishableKey) {
-                            throw new Error('Stripe not configured');
-                          }
-                          
-                          sessionStorage.setItem('pendingPayment', JSON.stringify({
-                            clientSecret: result.clientSecret,
-                            stageId: stage.id,
-                            amount: stage.amount,
-                            stageName: stage.name,
-                            currency: currency,
-                          }));
-                          
-                          window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
-                        }
-                      } catch (error: any) {
-                        console.error('Error creating payment:', error);
-                        alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
-                      } finally {
-                        setCreatingPayment(false);
-                      }
-                    }}
-                      disabled={creatingPayment}
-                      className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {creatingPayment ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        '💳 Pay with Card'
-                      )}
-                    </button>
-                  )}
-                  
-                  {/* Pay Offline - Show if manual instructions exist */}
-                  {manualPaymentInstructions && (
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      className={`px-6 py-2.5 ${freelancerStripeConnected ? 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50' : 'bg-green-500 text-white hover:bg-green-600'} rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2`}
-                    >
-                      🏦 Pay Offline
-                    </button>
-                  )}
-                  
-                  {/* No payment methods */}
-                  {!freelancerStripeConnected && !manualPaymentInstructions && (
-                    <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                      <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
-                      <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
-                    </div>
-                  )}
-                </div>
+                (freelancerStripeConnected || manualPaymentInstructions) ? (
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-2"
+                  >
+                    💳 Pay Now
+                  </button>
+                ) : (
+                  <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
+                    <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
+                  </div>
+                )
               )}
           </div>
         </div>
@@ -735,7 +658,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           <div className="relative bg-white rounded-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-900">
-                Payment Details - {formatCurrency(stage.amount, currency)}
+                Complete Payment - {formatCurrency(stage.amount, currency)}
               </h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -754,51 +677,76 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               </p>
             </div>
 
-            {/* Manual Payment Instructions */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-3 text-gray-900">Payment Instructions:</h3>
-              <p className="text-sm mb-4 text-gray-700">
-                Pay {formatCurrency(stage.amount, currency)} using the method below:
-              </p>
+            {/* Stripe Payment Button - Only show if Stripe is connected */}
+            {freelancerStripeConnected && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
+                <StripePaymentButton
+                  stageId={stage.id}
+                  stageName={stage.name}
+                  stageNumber={stage.stage_number}
+                  amount={stage.amount}
+                  currency={currency}
+                  shareCode={shareCode || ''}
+                  onSuccess={() => {
+                    setShowPaymentModal(false);
+                    setTimeout(() => window.location.reload(), 1000);
+                  }}
+                />
+              </div>
+            )}
 
-              {manualPaymentInstructions ? (
+            {/* Divider - Only show if both methods available */}
+            {freelancerStripeConnected && manualPaymentInstructions && (
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
+                </div>
+              </div>
+            )}
+
+            {/* Manual Payment Instructions - Only show if available */}
+            {manualPaymentInstructions && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 className="font-semibold mb-3 text-gray-900">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
+                <p className="text-sm mb-4 text-gray-700">
+                  Pay {formatCurrency(stage.amount, currency)} using the method below:
+                </p>
+
                 <div className="bg-white p-4 rounded-lg border border-gray-200 mb-3">
                   <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
                 </div>
-              ) : (
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600">Contact the freelancer for payment details</p>
+
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+                  <p className="font-semibold text-sm text-gray-900">Reference Code:</p>
+                  <p className="text-lg font-mono font-bold text-blue-600">
+                    STAGE0-{stage.id.slice(0, 8).toUpperCase()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Include this code with your payment
+                  </p>
                 </div>
-              )}
 
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-                <p className="font-semibold text-sm text-gray-900">Reference Code:</p>
-                <p className="text-lg font-mono font-bold text-blue-600">
-                  STAGE0-{stage.id.slice(0, 8).toUpperCase()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Include this code with your payment
-                </p>
+                <button
+                  onClick={handleMarkPaymentSent}
+                  disabled={isMarkingPayment}
+                  className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
+                  {isMarkingPayment ? 'Processing...' : '✅ I\'ve Sent Payment'}
+                </button>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-3">
-              <button
-                onClick={handleMarkPaymentSent}
-                disabled={isMarkingPayment}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
-                {isMarkingPayment ? 'Processing...' : '✅ I\'ve Sent Payment'}
-              </button>
-
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => setShowPaymentModal(false)}
+              className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
+            >
+              Cancel
+            </button>
           </div>
         </div>,
         document.body
