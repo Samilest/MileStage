@@ -1,16 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import Button from '../components/Button';
+import PaymentSetupModal from '../components/PaymentSetupModal';
+import ManualPaymentSetup from '../components/ManualPaymentSetup';
 import { TEMPLATES } from '../lib/templates';
 import { Plus, Minus, ArrowLeft, Settings } from 'lucide-react';
+import { useStore } from '../store/useStore';
+import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function TemplateSelection() {
   const navigate = useNavigate();
+  const user = useStore((state) => state.user);
   const [showCustomSetup, setShowCustomSetup] = useState(false);
   const [customStages, setCustomStages] = useState(3);
+  const [showPaymentSetupModal, setShowPaymentSetupModal] = useState(false);
+  const [showManualPaymentSetup, setShowManualPaymentSetup] = useState(false);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(true);
+
+  // Check payment setup on mount
+  useEffect(() => {
+    const checkPaymentSetup = async () => {
+      if (!user?.id) {
+        navigate('/dashboard');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('stripe_account_id, manual_payment_instructions')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        const hasStripe = !!data?.stripe_account_id;
+        const hasManual = !!data?.manual_payment_instructions?.trim();
+        
+        setHasPaymentMethod(hasStripe || hasManual);
+
+        // If no payment method, show modal immediately
+        if (!hasStripe && !hasManual) {
+          setShowPaymentSetupModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking payment setup:', error);
+      } finally {
+        setCheckingPayment(false);
+      }
+    };
+
+    checkPaymentSetup();
+  }, [user?.id, navigate]);
+
+  const handleConnectStripe = () => {
+    setShowPaymentSetupModal(false);
+    toast.success('Please complete Stripe setup, then return here');
+    navigate('/dashboard');
+  };
+
+  const handleSetupManual = () => {
+    setShowPaymentSetupModal(false);
+    setShowManualPaymentSetup(true);
+  };
+
+  const handleManualPaymentSaved = () => {
+    setHasPaymentMethod(true);
+    toast.success('Payment instructions saved! You can now create projects.');
+  };
 
   const handleTemplateSelect = (templateId: string) => {
+    // Check payment setup before proceeding
+    if (!hasPaymentMethod) {
+      setShowPaymentSetupModal(true);
+      return;
+    }
     navigate(`/new-project?template=${templateId}`);
   };
 
@@ -19,6 +86,11 @@ export default function TemplateSelection() {
   };
 
   const handleCustomProjectContinue = () => {
+    // Check payment setup before proceeding
+    if (!hasPaymentMethod) {
+      setShowPaymentSetupModal(true);
+      return;
+    }
     navigate(`/new-project?custom=${customStages}`);
   };
 
@@ -153,6 +225,28 @@ export default function TemplateSelection() {
           </div>
         )}
       </main>
+
+      {/* Payment Setup Modal */}
+      <PaymentSetupModal
+        isOpen={showPaymentSetupModal}
+        onClose={() => {
+          setShowPaymentSetupModal(false);
+          // If they close without setting up, redirect to dashboard
+          if (!hasPaymentMethod) {
+            navigate('/dashboard');
+          }
+        }}
+        onConnectStripe={handleConnectStripe}
+        onSetupManual={handleSetupManual}
+      />
+
+      {/* Manual Payment Setup */}
+      <ManualPaymentSetup
+        isOpen={showManualPaymentSetup}
+        onClose={() => setShowManualPaymentSetup(false)}
+        userId={user!.id}
+        onSaved={handleManualPaymentSaved}
+      />
     </div>
   );
 }
