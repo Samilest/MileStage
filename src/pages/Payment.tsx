@@ -209,6 +209,20 @@ export default function Payment() {
     try {
       const payment = JSON.parse(storedPayment);
       setPaymentInfo(payment);
+      
+      // Auto-select payment method if only one is available
+      const hasStripe = !!payment.clientSecret;
+      const hasOffline = payment.paymentMethods?.offline_instructions && payment.paymentMethods.offline_instructions.trim() !== '';
+      
+      if (hasStripe && !hasOffline) {
+        // Only Stripe available - auto-select it
+        setPaymentMethod('stripe');
+      } else if (!hasStripe && hasOffline) {
+        // Only offline available - auto-select it
+        setPaymentMethod('offline');
+      }
+      // If both available, let user choose (paymentMethod stays null)
+      
     } catch (err) {
       console.error('Error parsing payment info:', err);
       navigate(`/project/${shareCode}`);
@@ -222,10 +236,17 @@ export default function Payment() {
     navigate(`/payment-success?stage=${stageId}&share=${shareCode}`);
   };
 
+  // Check what payment methods are available
+  const hasStripe = paymentInfo?.clientSecret;
+  const hasOffline = paymentInfo?.paymentMethods?.offline_instructions && paymentInfo.paymentMethods.offline_instructions.trim() !== '';
+  const hasBothMethods = hasStripe && hasOffline;
+
   const handleBack = () => {
-    if (paymentMethod) {
+    if (paymentMethod && hasBothMethods) {
+      // If both methods available, go back to selection
       setPaymentMethod(null);
     } else {
+      // Otherwise go back to project
       navigate(`/project/${shareCode}`);
     }
   };
@@ -278,7 +299,7 @@ export default function Payment() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" />
-              {paymentMethod ? 'Back' : 'Back to Project'}
+              {paymentMethod && hasBothMethods ? 'Back' : 'Back to Project'}
             </button>
           </div>
         </div>
@@ -288,7 +309,7 @@ export default function Payment() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-green-50 border-b border-green-100 px-6 py-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {paymentMethod ? 'Complete Payment' : 'Choose Payment Method'}
+              {!paymentMethod && hasBothMethods ? 'Choose Payment Method' : 'Complete Payment'}
             </h1>
             <p className="text-gray-600 mb-4">{paymentInfo.stageName}</p>
             <div className="text-3xl font-bold text-green-600">
@@ -297,8 +318,10 @@ export default function Payment() {
           </div>
 
           <div className="p-6">
-            {!paymentMethod ? (
+            {/* Show selection only if both methods available AND none selected yet */}
+            {!paymentMethod && hasBothMethods ? (
               <div className="space-y-4">
+                {/* Pay with Card */}
                 <button
                   onClick={() => setPaymentMethod('stripe')}
                   className="w-full bg-white border-2 border-gray-200 hover:border-green-500 rounded-xl p-6 text-left transition-all group"
@@ -322,6 +345,7 @@ export default function Payment() {
                   </div>
                 </button>
 
+                {/* Pay Offline */}
                 <button
                   onClick={() => setPaymentMethod('offline')}
                   className="w-full bg-white border-2 border-gray-200 hover:border-green-500 rounded-xl p-6 text-left transition-all group"
@@ -344,7 +368,7 @@ export default function Payment() {
                   </div>
                 </button>
               </div>
-            ) : paymentMethod === 'stripe' ? (
+            ) : paymentMethod === 'stripe' && hasStripe ? (
               <Elements stripe={stripePromise} options={stripeOptions}>
                 <StripePaymentForm 
                   clientSecret={paymentInfo.clientSecret} 
@@ -353,18 +377,31 @@ export default function Payment() {
                   onSuccess={handleSuccess} 
                 />
               </Elements>
-            ) : (
+            ) : paymentMethod === 'offline' && hasOffline ? (
               <OfflinePaymentInstructions
                 paymentMethods={paymentInfo.paymentMethods || {}}
                 amount={paymentInfo.amount}
                 currency={paymentInfo.currency || 'USD'}
-                onClose={() => setPaymentMethod(null)}
+                onClose={() => hasBothMethods ? setPaymentMethod(null) : navigate(`/project/${shareCode}`)}
               />
+            ) : (
+              // Fallback - no payment methods available
+              <div className="text-center py-8">
+                <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">No payment methods available</p>
+                <p className="text-sm text-gray-500 mb-4">Please contact the freelancer for payment details.</p>
+                <button
+                  onClick={() => navigate(`/project/${shareCode}`)}
+                  className="text-green-600 hover:text-green-700 font-medium"
+                >
+                  Back to Project
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        {!paymentMethod && (
+        {!paymentMethod && hasBothMethods && (
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>🔒 Your payment information is secure and encrypted</p>
             <p className="mt-2">MileStage never stores your card details</p>
