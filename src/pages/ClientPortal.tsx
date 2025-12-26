@@ -25,7 +25,7 @@ interface ProjectData {
     bank_transfer?: string;
     other?: string;
   };
-user_profiles: {
+  user_profiles: {
     name: string;
     email: string;
     subscription_tier: string;

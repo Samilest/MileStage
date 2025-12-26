@@ -9,7 +9,7 @@ import Button from '../components/Button';
 import { TEMPLATES, generateShareCode, Template } from '../lib/templates';
 import { EditableStage, calculateTotal, getBudgetMatchStatus } from '../lib/stageCalculations';
 import { CURRENCIES, formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
-import { ArrowLeft, Plus, Minus, Check, AlertTriangle, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Check, AlertTriangle, X, Loader2, CreditCard, AlertCircle } from 'lucide-react';
 
 export default function NewProject() {
   const navigate = useNavigate();
@@ -34,6 +34,9 @@ export default function NewProject() {
   const [offlinePaymentInstructions, setOfflinePaymentInstructions] = useState('');
   const [stripeAccountCurrency, setStripeAccountCurrency] = useState<string | null>(null);
   const [stripeConnected, setStripeConnected] = useState(false);
+  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null);
+  const [showPaymentSetupModal, setShowPaymentSetupModal] = useState(false);
+  const [manualPaymentInstructions, setManualPaymentInstructions] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({
@@ -61,21 +64,36 @@ export default function NewProject() {
       return;
     }
 
-    // Fetch Stripe currency
-    const fetchStripeCurrency = async () => {
+    // Fetch Stripe currency AND payment method status
+    const fetchUserPaymentInfo = async () => {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('stripe_account_currency, stripe_charges_enabled')
+        .select('stripe_account_currency, stripe_charges_enabled, stripe_account_id, manual_payment_instructions')
         .eq('id', user.id)
         .single();
 
       if (!error && data) {
         setStripeAccountCurrency(data.stripe_account_currency);
         setStripeConnected(!!data.stripe_charges_enabled);
+        setManualPaymentInstructions(data.manual_payment_instructions);
+        
+        // Check if user has ANY payment method set up
+        const hasStripe = !!data.stripe_account_id && !!data.stripe_charges_enabled;
+        const hasManual = !!data.manual_payment_instructions && data.manual_payment_instructions.trim().length > 0;
+        const hasMethod = hasStripe || hasManual;
+        
+        setHasPaymentMethod(hasMethod);
+        
+        console.log('[NewProject] Payment method check:', { hasStripe, hasManual, hasMethod });
+        
+        // Show modal if no payment method
+        if (!hasMethod) {
+          setShowPaymentSetupModal(true);
+        }
       }
     };
 
-    fetchStripeCurrency();
+    fetchUserPaymentInfo();
 
     if (templateId) {
       const template = TEMPLATES.find((t) => t.id === templateId);
@@ -256,6 +274,15 @@ export default function NewProject() {
     console.log('[NewProject] Include Down Payment:', includeDownPayment);
     console.log('[NewProject] Can Submit:', canSubmit);
     console.log('[NewProject] Has Validation Errors:', hasValidationErrors);
+    console.log('[NewProject] Has Payment Method:', hasPaymentMethod);
+
+    // BLOCK: No payment method configured
+    if (!hasPaymentMethod) {
+      console.error('[NewProject] ERROR: No payment method configured');
+      setShowPaymentSetupModal(true);
+      toast.error('Please set up a payment method first');
+      return;
+    }
 
     if (!user?.id) {
       console.error('[NewProject] ERROR: No user ID found!');
@@ -486,7 +513,8 @@ export default function NewProject() {
     clientEmail.includes('@') &&
     projectTotal > 0 &&
     stages.every(s => s.amount > 0) &&
-    (isCustomProject || matchStatus !== 'far');
+    (isCustomProject || matchStatus !== 'far') &&
+    hasPaymentMethod === true;
 
   const getProjectNamePlaceholder = (): string => {
     if (!selectedTemplate) return 'My Project';
@@ -507,6 +535,61 @@ export default function NewProject() {
   return (
     <div className="min-h-screen bg-secondary-bg">
       <Navigation />
+      
+      {/* Payment Setup Modal */}
+      {showPaymentSetupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Method Required</h2>
+              <p className="text-gray-600">
+                To create projects and receive payments from clients, you need to set up at least one payment method.
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <button
+                onClick={() => navigate('/dashboard?setup=stripe')}
+                className="w-full flex items-center gap-3 p-4 border-2 border-green-200 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                <div className="bg-green-500 p-2 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">Connect Stripe</div>
+                  <div className="text-sm text-gray-600">Accept card payments (recommended)</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate('/dashboard?setup=manual')}
+                className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="bg-gray-500 p-2 rounded-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-gray-900">Add Manual Payment Info</div>
+                  <div className="text-sm text-gray-600">PayPal, Venmo, bank transfer, etc.</div>
+                </div>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowPaymentSetupModal(false)}
+              className="w-full py-3 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+            >
+              I'll set this up later
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-2xl mx-auto px-4 sm:px-8 py-4 sm:py-6 space-y-8">
         <button
           onClick={() => navigate('/templates')}
@@ -515,6 +598,27 @@ export default function NewProject() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Templates
         </button>
+
+        {/* Payment Method Warning Banner */}
+        {hasPaymentMethod === false && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-yellow-900">Payment method required</h3>
+                <p className="text-sm text-yellow-800 mt-1">
+                  You need to connect Stripe or add manual payment instructions before creating projects.
+                </p>
+                <button
+                  onClick={() => setShowPaymentSetupModal(true)}
+                  className="mt-2 text-sm font-semibold text-yellow-900 hover:text-yellow-700 underline"
+                >
+                  Set up payment method →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Card>
           <div className="mb-6">
@@ -943,6 +1047,12 @@ Zelle: (555) 123-4567"
                     Please complete the following:
                   </p>
                   <ul className="text-sm text-yellow-800 space-y-1.5">
+                    {hasPaymentMethod === false && (
+                      <li className="flex items-center gap-2">
+                        <span className="text-yellow-600">•</span>
+                        Set up a payment method (Stripe or manual instructions)
+                      </li>
+                    )}
                     {projectName.length < 3 && (
                       <li className="flex items-center gap-2">
                         <span className="text-yellow-600">•</span>

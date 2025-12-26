@@ -85,6 +85,7 @@ interface StageCardProps {
   freelancerStripeConnected?: boolean;
   manualPaymentInstructions?: string | null;
 }
+
 export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {}, freelancerStripeConnected = false, manualPaymentInstructions = null }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
@@ -1253,41 +1254,51 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               </p>
             </div>
 
-            {/* Stripe Payment Button */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
-              <StripePaymentButton
-                stageId={stage.id}
-                stageName={stage.name}
-                stageNumber={stage.stage_number}
-                amount={stage.amount}
-                currency={currency}
-                shareCode={shareCode || ''}
-                onSuccess={() => {
-                  setShowPaymentModal(false);
-                  setTimeout(() => window.location.reload(), 1000);
-                }}
-              />
-            </div>
+            {/* Stripe Payment Button - Only show if Stripe is connected */}
+            {freelancerStripeConnected && (
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
+                <StripePaymentButton
+                  stageId={stage.id}
+                  stageName={stage.name}
+                  stageNumber={stage.stage_number}
+                  amount={stage.amount}
+                  currency={currency}
+                  shareCode={shareCode || ''}
+                  onSuccess={() => {
+                    setShowPaymentModal(false);
+                    setTimeout(() => window.location.reload(), 1000);
+                  }}
+                />
+              </div>
+            )}
 
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+            {/* Divider - Only show if Stripe is connected */}
+            {freelancerStripeConnected && (
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
-              </div>
-            </div>
+            )}
 
             {/* Manual Payment Instructions */}
             <div className="bg-gray-50 p-4 rounded mb-6">
-              <h3 className="font-semibold mb-3">Manual Payment Instructions:</h3>
+              <h3 className="font-semibold mb-3">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
               <p className="text-sm mb-4 text-gray-700">
                 Pay {formatCurrency(stage.amount, currency)} using one of these methods:
               </p>
 
-              {paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
+              {/* Show manual_payment_instructions first if available */}
+              {manualPaymentInstructions ? (
+                <div className="bg-white p-3 rounded border mb-3">
+                  <p className="font-medium text-sm mb-2">Payment Details:</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
+                </div>
+              ) : paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
                 <div className="space-y-2">
                   {paymentMethods.paypal && (
                     <div className="bg-white p-3 rounded border">

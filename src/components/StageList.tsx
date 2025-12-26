@@ -59,6 +59,7 @@ interface StageListProps {
   freelancerStripeConnected?: boolean;
   manualPaymentInstructions?: string | null;
 }
+
 export default function StageList({ stages, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, currency = 'USD', paymentMethods, freelancerStripeConnected = false, manualPaymentInstructions = null }: StageListProps) {
   if (!stages || stages.length === 0) {
     return (
