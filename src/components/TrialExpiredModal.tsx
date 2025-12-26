@@ -1,4 +1,4 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, CreditCard } from 'lucide-react';
 
 interface TrialExpiredModalProps {
@@ -7,7 +7,14 @@ interface TrialExpiredModalProps {
 }
 
 export default function TrialExpiredModal({ isOpen, onClose }: TrialExpiredModalProps) {
+  const navigate = useNavigate();
+
   if (!isOpen) return null;
+
+  const handleUpgrade = () => {
+    onClose();
+    navigate('/upgrade');
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -47,13 +54,14 @@ export default function TrialExpiredModal({ isOpen, onClose }: TrialExpiredModal
           </ul>
         </div>
 
-        {/* Pricing */}
+        {/* Pricing preview */}
         <div className="border-2 border-green-600 rounded-lg p-6 mb-6">
           <div className="text-center">
             <h3 className="font-bold text-lg text-gray-900">MileStage Pro</h3>
             <div className="mt-2 mb-4">
-              <span className="text-4xl font-bold text-gray-900">$19</span>
+              <span className="text-4xl font-bold text-gray-900">$12</span>
               <span className="text-gray-600">/month</span>
+              <p className="text-sm text-green-600 font-medium">when billed annually</p>
             </div>
             <ul className="text-sm text-left space-y-2 mb-4">
               <li className="flex items-start">
@@ -79,10 +87,7 @@ export default function TrialExpiredModal({ isOpen, onClose }: TrialExpiredModal
         {/* CTA Buttons */}
         <div className="space-y-3">
           <button 
-            onClick={() => {
-              // TODO: Add Stripe checkout here later
-              alert('Stripe checkout coming soon! For now, contact hey@milestage.com');
-            }}
+            onClick={handleUpgrade}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Upgrade Now
@@ -98,7 +103,7 @@ export default function TrialExpiredModal({ isOpen, onClose }: TrialExpiredModal
 
         {/* Fine print */}
         <p className="text-xs text-gray-500 text-center mt-4">
-          No automatic charges. Cancel anytime.
+          30-day money-back guarantee. Cancel anytime.
         </p>
       </div>
     </div>

@@ -1,7 +1,9 @@
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../hooks/useSubscription';
 import { AlertCircle, Clock, CheckCircle } from 'lucide-react';
 
 export default function TrialBanner() {
+  const navigate = useNavigate();
   const { subscription, loading } = useSubscription();
 
   console.log('[TrialBanner] Rendering - loading:', loading, 'subscription:', subscription);
@@ -25,6 +27,8 @@ export default function TrialBanner() {
     return null;
   }
 
+  const handleUpgrade = () => navigate('/upgrade');
+
   // PRIORITY 1: Show RED banner if trial is expired
   if (isTrialExpired === true) {
     console.log('[TrialBanner] Showing RED expired banner');
@@ -38,7 +42,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = '/pricing'}
+            onClick={handleUpgrade}
             className="ml-4 px-4 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now
@@ -61,7 +65,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = '/pricing'}
+            onClick={handleUpgrade}
             className="ml-4 px-4 py-1.5 bg-yellow-600 text-white text-sm font-semibold rounded-lg hover:bg-yellow-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now
@@ -84,7 +88,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = '/pricing'}
+            onClick={handleUpgrade}
             className="ml-4 px-4 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now

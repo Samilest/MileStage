@@ -1,10 +1,9 @@
 // api/stripe/subscription-webhook.js
-// Fixed webhook - uses correct column names
+// Handles Stripe subscription events (checkout completed, subscription updated/canceled)
 
-import Stripe from 'stripe';
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
+// Disable body parsing - we need raw body for webhook signature verification
 export const config = {
   api: {
     bodyParser: false,
@@ -19,159 +18,183 @@ async function buffer(readable) {
   return Buffer.concat(chunks);
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const buf = await buffer(req);
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
 
+  if (!webhookSecret) {
+    console.error('[SubWebhook] Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
   let event;
+  let buf;
 
   try {
+    buf = await buffer(req);
     event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
+    console.error(`[SubWebhook] Signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log(`[Webhook] Received event: ${event.type}`);
+  console.log(`[SubWebhook] Received event: ${event.type}`);
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[SubWebhook] Missing Supabase credentials');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
 
   try {
     switch (event.type) {
+      // User completed checkout and paid
       case 'checkout.session.completed': {
         const session = event.data.object;
-        
-        if (session.mode === 'subscription') {
-          const customerId = session.customer;
-          const subscriptionId = session.subscription;
-          const customerEmail = session.customer_details?.email || session.customer_email;
+        const userId = session.metadata?.userId;
+        const customerId = session.customer;
+        const subscriptionId = session.subscription;
 
-          console.log(`[Webhook] Checkout completed - Customer: ${customerId}, Email: ${customerEmail}, Subscription: ${subscriptionId}`);
+        console.log(`[SubWebhook] Checkout completed for user: ${userId}`);
 
-          if (!customerEmail) {
-            console.error('[Webhook] No customer email found in session');
-            break;
-          }
-
-          // Update user_profiles - find by EMAIL since stripe_customer_id might be NULL
-          const supabaseUrl = process.env.VITE_SUPABASE_URL;
-          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-          const response = await fetch(
-            `${supabaseUrl}/rest/v1/user_profiles?email=eq.${encodeURIComponent(customerEmail)}`,
-            {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Prefer': 'return=minimal',
-              },
-              body: JSON.stringify({
-                subscription_status: 'active',
-                stripe_customer_id: customerId,
-                stripe_subscription_id: subscriptionId,
-                trial_ends_at: null,
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            console.error(`[Webhook] Failed to update user: ${response.statusText}`);
-          } else {
-            console.log(`[Webhook] User updated to active status for email: ${customerEmail}`);
-          }
+        if (!userId) {
+          console.error('[SubWebhook] No userId in session metadata');
+          break;
         }
-        break;
-      }
 
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object;
-        const customerId = subscription.customer;
-        const status = subscription.status;
-
-        console.log(`[Webhook] Subscription updated - Customer: ${customerId}, Status: ${status}`);
-
-        // Map Stripe status to our status
-        let ourStatus = 'trialing';
-        if (status === 'active') ourStatus = 'active';
-        else if (status === 'past_due') ourStatus = 'past_due';
-        else if (status === 'canceled') ourStatus = 'canceled';
-        else if (status === 'unpaid') ourStatus = 'past_due';
-        else if (status === 'trialing') ourStatus = 'trialing';
-
-        const supabaseUrl = process.env.VITE_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        // Update user profile to active subscription
+        const updateData = {
+          subscription_status: 'active',
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          subscription_updated_at: new Date().toISOString(),
+        };
 
         const response = await fetch(
-          `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+          `${supabaseUrl}/rest/v1/user_profiles?id=eq.${userId}`,
           {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=minimal',
+              'Prefer': 'return=representation',
             },
-            body: JSON.stringify({
-              subscription_status: ourStatus,
-              stripe_subscription_id: subscription.id,
-            }),
+            body: JSON.stringify(updateData),
           }
         );
 
         if (!response.ok) {
-          console.error(`[Webhook] Failed to update user: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error(`[SubWebhook] Failed to update user: ${response.status} - ${errorText}`);
         } else {
-          console.log(`[Webhook] User subscription status updated to: ${ourStatus}`);
+          console.log(`[SubWebhook] ✅ User ${userId} upgraded to active subscription`);
         }
         break;
       }
 
-      case 'customer.subscription.deleted': {
+      // Subscription renewed or updated
+      case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        const customerId = subscription.customer;
+        const userId = subscription.metadata?.userId;
+        const status = subscription.status;
 
-        console.log(`[Webhook] Subscription deleted - Customer: ${customerId}`);
+        console.log(`[SubWebhook] Subscription updated: ${subscription.id}, status: ${status}`);
 
-        const supabaseUrl = process.env.VITE_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!userId) {
+          console.log('[SubWebhook] No userId in subscription metadata, skipping');
+          break;
+        }
+
+        // Map Stripe status to our status
+        let subscriptionStatus = 'trialing';
+        if (status === 'active') {
+          subscriptionStatus = 'active';
+        } else if (status === 'past_due' || status === 'unpaid') {
+          subscriptionStatus = 'past_due';
+        } else if (status === 'canceled') {
+          subscriptionStatus = 'canceled';
+        }
 
         const response = await fetch(
-          `${supabaseUrl}/rest/v1/user_profiles?stripe_customer_id=eq.${customerId}`,
+          `${supabaseUrl}/rest/v1/user_profiles?id=eq.${userId}`,
           {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              subscription_status: subscriptionStatus,
+              subscription_updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+
+        if (response.ok) {
+          console.log(`[SubWebhook] Updated user ${userId} status to: ${subscriptionStatus}`);
+        }
+        break;
+      }
+
+      // Subscription canceled
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        const userId = subscription.metadata?.userId;
+
+        console.log(`[SubWebhook] Subscription deleted: ${subscription.id}`);
+
+        if (!userId) {
+          console.log('[SubWebhook] No userId in subscription metadata, skipping');
+          break;
+        }
+
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/user_profiles?id=eq.${userId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
             },
             body: JSON.stringify({
               subscription_status: 'canceled',
-              stripe_subscription_id: null,
+              subscription_updated_at: new Date().toISOString(),
             }),
           }
         );
 
-        if (!response.ok) {
-          console.error(`[Webhook] Failed to update user: ${response.statusText}`);
-        } else {
-          console.log(`[Webhook] User subscription canceled`);
+        if (response.ok) {
+          console.log(`[SubWebhook] User ${userId} subscription canceled`);
         }
+        break;
+      }
+
+      // Payment failed
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const subscriptionId = invoice.subscription;
+
+        console.log(`[SubWebhook] Payment failed for subscription: ${subscriptionId}`);
+        // You could send an email notification here
         break;
       }
 
       default:
-        console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        console.log(`[SubWebhook] Unhandled event type: ${event.type}`);
     }
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error(`[Webhook] Error processing event:`, error);
-    res.status(500).json({ error: 'Webhook handler failed' });
+    console.error(`[SubWebhook] Error processing event: ${error.message}`);
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
-}
+};
