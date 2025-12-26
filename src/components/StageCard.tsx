@@ -711,6 +711,80 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </div>
           </div>
         )}
+
+        {/* Payment Modal for Stage 0 */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">
+                  Payment Details - {formatCurrency(stage.amount, currency)}
+                </h2>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-gray-600 hover:text-black"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <p className="font-semibold text-yellow-900">
+                  💰 Down Payment Required
+                </p>
+                <p className="text-sm text-yellow-800 mt-1">
+                  Pay the down payment to unlock the project stages.
+                </p>
+              </div>
+
+              {/* Manual Payment Instructions */}
+              <div className="bg-gray-50 p-4 rounded mb-6">
+                <h3 className="font-semibold mb-3">Payment Instructions:</h3>
+                <p className="text-sm mb-4 text-gray-700">
+                  Pay {formatCurrency(stage.amount, currency)} using the method below:
+                </p>
+
+                {manualPaymentInstructions ? (
+                  <div className="bg-white p-3 rounded border mb-3">
+                    <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
+                  </div>
+                ) : (
+                  <div className="bg-white p-3 rounded border">
+                    <p className="text-sm text-gray-600">Contact the freelancer for payment details</p>
+                  </div>
+                )}
+
+                <div className="mt-4 p-3 bg-white rounded border-2 border-blue-300">
+                  <p className="font-semibold text-sm">Reference Code:</p>
+                  <p className="text-lg font-mono font-bold text-blue-600">
+                    STAGE0-{stage.id.slice(0, 8).toUpperCase()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Include this code with your payment
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleMarkPaymentSent}
+                  disabled={isMarkingPayment}
+                  className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
+                  {isMarkingPayment ? 'Processing...' : '✅ I\'ve Sent Payment'}
+                </button>
+
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
