@@ -56,6 +56,7 @@ interface Project {
   total_amount: number;
   status: string;
   currency: CurrencyCode;
+  offline_payment_instructions?: string;
 }
 
 export default function ProjectDetail() {
@@ -1115,9 +1116,24 @@ export default function ProjectDetail() {
                   <p className="text-lg font-semibold text-gray-900 mb-1">
                     {project.client_name} marked <span className="text-blue-600">{stage.name}</span> as paid
                   </p>
-                  <p className="text-2xl font-bold text-green-600 mb-2">
+                  <p className="text-2xl font-bold text-green-600 mb-3">
                     {formatCurrency(payment.amount, project.currency || 'USD')}
                   </p>
+                  
+                  {/* Payment details */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
+                    {project.offline_payment_instructions && (
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Sent to</p>
+                        <p className="text-sm text-gray-900">{project.offline_payment_instructions}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Reference Code</p>
+                      <p className="text-sm font-mono font-semibold text-blue-600">{payment.reference_code}</p>
+                    </div>
+                  </div>
+                  
                   <p className="text-sm text-gray-500 mb-4">
                     {new Date(payment.marked_paid_at).toLocaleDateString('en-US', { 
                       month: 'short', 
