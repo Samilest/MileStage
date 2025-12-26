@@ -39,9 +39,41 @@ function LoadingFallback() {
   );
 }
 
+// Session timeout: 7 days in milliseconds
+const SESSION_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
+const LAST_ACTIVITY_KEY = 'milestage_last_activity';
+
+// Update last activity timestamp
+function updateLastActivity() {
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+}
+
+// Check if session has expired due to inactivity
+function isSessionExpiredByInactivity() {
+  const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+  if (!lastActivity) return false; // First visit, not expired
+  
+  const timeSinceActivity = Date.now() - parseInt(lastActivity, 10);
+  return timeSinceActivity > SESSION_TIMEOUT_MS;
+}
+
+// Clear all session data
+function clearSessionData() {
+  const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
+  localStorage.removeItem(storageKey);
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
+}
+
 // Helper to get session from localStorage (fallback when Supabase client hangs)
 function getSessionFromStorage() {
   try {
+    // Check for 7-day inactivity timeout
+    if (isSessionExpiredByInactivity()) {
+      console.log('[App] Session expired due to 7-day inactivity');
+      clearSessionData();
+      return null;
+    }
+
     const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
     const sessionStr = localStorage.getItem(storageKey);
     if (sessionStr) {
@@ -50,6 +82,8 @@ function getSessionFromStorage() {
         // Check if token is expired
         const expiresAt = session.expires_at;
         if (expiresAt && Date.now() / 1000 < expiresAt) {
+          // Session valid - update last activity
+          updateLastActivity();
           return session;
         }
       }
@@ -168,6 +202,9 @@ function App() {
           const userId = session.user.id;
           const userEmail = session.user.email || '';
           const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+
+          // Update last activity for session timeout tracking
+          updateLastActivity();
 
           // Store in localStorage for future page loads
           const storageKey = 'sb-pkubmisamfhmtirhsyqv-auth-token';
