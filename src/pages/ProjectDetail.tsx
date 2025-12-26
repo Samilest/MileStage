@@ -1108,45 +1108,41 @@ export default function ProjectDetail() {
         />
 
         {pendingStagePayments.length > 0 && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-            <h3 className="font-bold text-lg mb-3">
-              💰 Stage Payment Pending Verification
-            </h3>
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg">
             {pendingStagePayments.map(payment => {
               const stage = stages.find(s => s.id === payment.stage_id);
               if (!stage) return null;
 
               return (
-                <div key={payment.id} className="bg-white p-4 rounded mb-3 border">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-bold text-lg text-gray-900">
-                        Stage {stage.stage_number}: {stage.name}
-                      </p>
-                      <p className="text-2xl font-bold text-green-600 mt-1">
-                        {formatCurrency(payment.amount, project.currency || 'USD')}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-2">
-                        Reference: {payment.reference_code}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Marked paid: {new Date(payment.marked_paid_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
+                <div key={payment.id} className="bg-white p-5 rounded-lg border border-blue-200 mb-3 last:mb-0">
+                  <p className="text-lg font-semibold text-gray-900 mb-1">
+                    {project.client_name} marked <span className="text-blue-600">{stage.name}</span> as paid
+                  </p>
+                  <p className="text-2xl font-bold text-green-600 mb-2">
+                    {formatCurrency(payment.amount, project.currency || 'USD')}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(payment.marked_paid_at).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit'
+                    })}
+                  </p>
 
-                  <div className="flex gap-3 mt-4 justify-end">
+                  <div className="flex gap-3 mt-4">
                     <button
                       onClick={() => rejectStagePayment(payment.id)}
-                      className="px-4 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold"
+                      className="flex-1 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-700 transition-colors"
                     >
-                      ❌ Not Received
+                      Not Received
                     </button>
                     <button
                       onClick={() => verifyStagePayment(payment.id, stage.id)}
-                      className="bg-green-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-600"
+                      className="flex-1 bg-green-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
                     >
-                      ✅ Verify Payment Received
+                      Confirm Received
                     </button>
                   </div>
                 </div>
@@ -1301,6 +1297,10 @@ export default function ProjectDetail() {
                             <CheckCircle className="w-5 h-5 text-green-600" />
                             <span className="font-semibold text-green-700">Paid ✓</span>
                           </div>
+                        ) : pendingStagePayments.some(p => p.stage_id === stage.id) ? (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-blue-400 rounded-lg">
+                            <span className="font-semibold text-blue-700">Pending Verification</span>
+                          </div>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-sm font-semibold rounded-full text-center">
@@ -1399,34 +1399,44 @@ export default function ProjectDetail() {
                   deliverablesCount={stage.deliverables.length}
                 />
 
-                {/* Payment Status Display with Mark as Paid Button */}
+                {/* Payment Status Display - Only show status badge if pending verification is shown above */}
                 {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
-                  <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
-                          Unpaid
+                  pendingStagePayments.some(p => p.stage_id === stage.id) ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
+                          Payment Pending Verification
                         </span>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Client has marked payment as sent
-                        </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        setSelectedStageForPayment(stage);
-                        setShowMarkPaidModal(true);
-                      }}
-                      className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
-                    >
-                      Mark as Paid
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
+                            Unpaid
+                          </span>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Client has marked payment as sent
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedStageForPayment(stage);
+                          setShowMarkPaidModal(true);
+                        }}
+                        className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
+                      >
+                        Mark as Paid
+                      </button>
+                    </div>
+                  )
                 )}
 
                 {stage.revisions_used > 0 && (
