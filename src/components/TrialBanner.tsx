@@ -38,7 +38,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = 'mailto:hey@milestage.com?subject=Upgrade to MileStage Pro'}
+            onClick={() => window.location.href = '/pricing'}
             className="ml-4 px-4 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now
@@ -61,7 +61,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = 'mailto:hey@milestage.com?subject=Upgrade to MileStage Pro'}
+            onClick={() => window.location.href = '/pricing'}
             className="ml-4 px-4 py-1.5 bg-yellow-600 text-white text-sm font-semibold rounded-lg hover:bg-yellow-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now
@@ -84,7 +84,7 @@ export default function TrialBanner() {
             </p>
           </div>
           <button 
-            onClick={() => window.location.href = 'mailto:hey@milestage.com?subject=Upgrade to MileStage Pro'}
+            onClick={() => window.location.href = '/pricing'}
             className="ml-4 px-4 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
           >
             Upgrade Now
