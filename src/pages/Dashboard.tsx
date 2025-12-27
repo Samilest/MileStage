@@ -215,6 +215,42 @@ export default function Dashboard() {
         };
       }) || [];
 
+      // Check for pending extension purchases across all projects
+      const allStageIds = projectsData?.flatMap((p: any) => p.stages?.map((s: any) => s.id) || []) || [];
+      
+      if (allStageIds.length > 0) {
+        const { data: pendingExtensions } = await supabase
+          .from('extensions')
+          .select('stage_id')
+          .in('stage_id', allStageIds)
+          .eq('status', 'marked_paid');
+
+        if (pendingExtensions && pendingExtensions.length > 0) {
+          // Get stage_id to project_id mapping
+          const stageToProject: Record<string, string> = {};
+          projectsData?.forEach((p: any) => {
+            p.stages?.forEach((s: any) => {
+              stageToProject[s.id] = p.id;
+            });
+          });
+
+          // Mark projects with pending extensions
+          const projectsWithPendingExtensions = new Set(
+            pendingExtensions.map(ext => stageToProject[ext.stage_id])
+          );
+
+          // Update projects with extension notification
+          projectsWithStats.forEach(project => {
+            if (projectsWithPendingExtensions.has(project.id)) {
+              project.has_unread_actions = true;
+              if (!project.primary_notification) {
+                project.primary_notification = '💎 Extension Purchased';
+              }
+            }
+          });
+        }
+      }
+
       console.log('[Dashboard] Loaded', projectsWithStats.length, 'projects');
       setProjects(projectsWithStats);
 
