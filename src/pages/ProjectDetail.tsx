@@ -317,17 +317,25 @@ export default function ProjectDetail() {
 
   const markStagesAsViewed = async (stages: any[]) => {
     try {
-      // Only mark stages as viewed if they have been approved
-      const approvedStageIds = stages
-        .filter(s => s.approved_at && !s.viewed_by_freelancer_at)
+      // Mark stages as viewed if they have been approved OR have received payment
+      const stageIdsToMark = stages
+        .filter(s => (s.approved_at || s.payment_received_at) && !s.viewed_by_freelancer_at)
         .map(s => s.id);
       
-      if (approvedStageIds.length > 0) {
+      // Also mark stages where payment was received AFTER last view
+      const stageIdsWithNewPayment = stages
+        .filter(s => s.payment_received_at && s.viewed_by_freelancer_at && 
+          new Date(s.payment_received_at) > new Date(s.viewed_by_freelancer_at))
+        .map(s => s.id);
+      
+      const allStageIdsToMark = [...new Set([...stageIdsToMark, ...stageIdsWithNewPayment])];
+      
+      if (allStageIdsToMark.length > 0) {
         await supabase
           .from('stages')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
-          .in('id', approvedStageIds);
-        console.log(`✅ Marked ${approvedStageIds.length} approved stages as viewed`);
+          .in('id', allStageIdsToMark);
+        console.log(`✅ Marked ${allStageIdsToMark.length} stages as viewed`);
       }
 
       // Mark all unviewed revisions as viewed
