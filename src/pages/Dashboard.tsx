@@ -13,10 +13,6 @@ import PaymentTracker from '../components/PaymentTracker';
 import StripeConnect from '../components/StripeConnect';
 import WelcomeModal from '../components/WelcomeModal';
 import TrialBanner from '../components/TrialBanner';
-import TrialExpiredModal from '../components/TrialExpiredModal';
-import PaymentSetupModal from '../components/PaymentSetupModal';
-import ManualPaymentSetup from '../components/ManualPaymentSetup';
-import { useSubscription } from '../hooks/useSubscription';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
@@ -57,14 +53,6 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [archivingProjectId, setArchivingProjectId] = useState<string | null>(null);
   const [newCompletedCount, setNewCompletedCount] = useState(0);
-  const [showTrialModal, setShowTrialModal] = useState(false);
-  const [showPaymentSetupModal, setShowPaymentSetupModal] = useState(false);
-  const [showManualPaymentSetup, setShowManualPaymentSetup] = useState(false);
-  const [hasPaymentMethod, setHasPaymentMethod] = useState(false);
-  const [checkingPayment, setCheckingPayment] = useState(true);
-  
-  // Subscription check
-  const { subscription } = useSubscription();
   
   const fetchingRef = useRef(false);
   const userId = user?.id;
@@ -142,6 +130,12 @@ export default function Dashboard() {
                   author_type,
                   viewed_by_freelancer_at,
                   created_at
+                ),
+                extensions (
+                  id,
+                  status,
+                  marked_paid_at,
+                  viewed_by_freelancer_at
                 )
               )
             `)
@@ -190,7 +184,13 @@ export default function Dashboard() {
             note.author_type === 'client' && !note.viewed_by_freelancer_at
           ).length || 0;
 
-          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
+          const hasUnreadExtension = stage.extensions?.some((ext: any) =>
+            ext.status === 'marked_paid' &&
+            ext.marked_paid_at &&
+            !ext.viewed_by_freelancer_at
+          ) || false;
+
+          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0 || hasUnreadExtension;
 
           if (stageHasUnread) {
             hasUnreadActions = true;
@@ -201,7 +201,8 @@ export default function Dashboard() {
                   hasUnviewedPayment: hasUnreadPayment,
                   hasUnviewedRevision: hasUnreadRevision,
                   hasUnviewedApproval: hasUnreadApproval,
-                  unreadMessageCount: unreadMessageCount
+                  unreadMessageCount: unreadMessageCount,
+                  hasUnviewedExtension: hasUnreadExtension
                 },
                 ''
               );
@@ -313,24 +314,6 @@ export default function Dashboard() {
     }
   };
 
-  // Payment setup handlers
-  const handleConnectStripe = () => {
-    setShowPaymentSetupModal(false);
-    // The StripeConnect component handles the actual connection
-    // Just close the modal - user can click the Stripe Connect banner
-    toast.success('Please complete Stripe setup using the banner above');
-  };
-
-  const handleSetupManual = () => {
-    setShowPaymentSetupModal(false);
-    setShowManualPaymentSetup(true);
-  };
-
-  const handleManualPaymentSaved = () => {
-    setHasPaymentMethod(true);
-    toast.success('Payment instructions saved! You can now share projects with clients.');
-  };
-
   // Filter and sort projects
   const filteredProjects = useMemo(() => {
     let filtered = [...projects];
@@ -429,39 +412,14 @@ export default function Dashboard() {
     }
   }, [userId]);
 
-  const checkPaymentSetup = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('stripe_account_id, manual_payment_instructions')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-
-      // User has payment method if EITHER Stripe connected OR manual instructions exist
-      const hasStripe = !!data?.stripe_account_id;
-      const hasManual = !!data?.manual_payment_instructions?.trim();
-      
-      setHasPaymentMethod(hasStripe || hasManual);
-    } catch (error) {
-      console.error('[Dashboard] Error checking payment setup:', error);
-    } finally {
-      setCheckingPayment(false);
-    }
-  }, [userId]);
-
   // Separate effect for initial load
   useEffect(() => {
     if (userId) {
       fetchProjects();
       checkStripeStatus();
       checkWelcomeModal();
-      checkPaymentSetup();
     }
-  }, [userId, fetchProjects, checkStripeStatus, checkWelcomeModal, checkPaymentSetup]);
+  }, [userId, fetchProjects, checkStripeStatus, checkWelcomeModal]);
 
   // Separate effect for realtime subscription (doesn't depend on projects array)
   useEffect(() => {
@@ -628,21 +586,7 @@ export default function Dashboard() {
                 <span className="sm:hidden">↻</span>
               </Button>
               <Button
-                onClick={() => {
-                  // Check subscription first
-                  if (!subscription.canCreateProjects) {
-                    setShowTrialModal(true);
-                    return;
-                  }
-                  
-                  // Check payment setup before creating project
-                  if (!hasPaymentMethod && !checkingPayment) {
-                    setShowPaymentSetupModal(true);
-                    return;
-                  }
-                  
-                  navigate('/templates');
-                }}
+                onClick={() => navigate('/templates')}
                 variant="primary"
                 className="flex-1 sm:flex-initial whitespace-nowrap"
               >
@@ -674,21 +618,7 @@ export default function Dashboard() {
               </p>
               <div className="flex justify-center">
                 <Button
-                  onClick={() => {
-                    // Check subscription first
-                    if (!subscription.canCreateProjects) {
-                      setShowTrialModal(true);
-                      return;
-                    }
-                    
-                    // Check payment setup before creating project
-                    if (!hasPaymentMethod && !checkingPayment) {
-                      setShowPaymentSetupModal(true);
-                      return;
-                    }
-                    
-                    navigate('/templates');
-                  }}
+                  onClick={() => navigate('/templates')}
                   className="px-8 py-4 text-base sm:text-lg min-h-[44px]"
                 >
                   Create Your First Project
@@ -990,28 +920,6 @@ export default function Dashboard() {
           </>
         )}
       </main>
-      
-      {/* Trial Expired Modal */}
-      <TrialExpiredModal 
-        isOpen={showTrialModal}
-        onClose={() => setShowTrialModal(false)}
-      />
-      
-      {/* Payment Setup Modal */}
-      <PaymentSetupModal
-        isOpen={showPaymentSetupModal}
-        onClose={() => setShowPaymentSetupModal(false)}
-        onConnectStripe={handleConnectStripe}
-        onSetupManual={handleSetupManual}
-      />
-
-      {/* Manual Payment Setup */}
-      <ManualPaymentSetup
-        isOpen={showManualPaymentSetup}
-        onClose={() => setShowManualPaymentSetup(false)}
-        userId={userId!}
-        onSaved={handleManualPaymentSaved}
-      />
     </div>
   );
 }

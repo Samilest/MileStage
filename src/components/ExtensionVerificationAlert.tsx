@@ -74,13 +74,12 @@ export default function ExtensionVerificationAlert({
         .update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
-          rejection_reason: 'Payment not received',
         })
         .eq('id', extensionId);
 
       if (error) throw error;
 
-      alert('❌ Extension payment marked as not received. Client will be notified.');
+      alert('Extension payment marked as not received. Client will be notified.');
       onVerified();
     } catch (error: any) {
       console.error('Error rejecting extension:', error);

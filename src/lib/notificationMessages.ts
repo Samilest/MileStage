@@ -4,13 +4,15 @@ export interface StageNotificationData {
   hasUnviewedRevision: boolean;
   hasUnviewedApproval: boolean;
   unreadMessageCount: number;
+  hasUnviewedExtension?: boolean;
 }
 
 // Priority order for notifications:
 // 1. Revision Request (highest priority - client needs something)
 // 2. Payment Pending (money matters)
-// 3. Approval (stage completed)
-// 4. Messages (lowest priority)
+// 3. Extension Pending (client bought extra revision)
+// 4. Approval (stage completed)
+// 5. Messages (lowest priority)
 export function getPrimaryNotification(data: StageNotificationData, stageName: string): string {
   // ⚠️ REVISION REQUEST - Highest Priority
   if (data.hasUnviewedRevision) {
@@ -22,7 +24,12 @@ export function getPrimaryNotification(data: StageNotificationData, stageName: s
     return `💰 Payment Pending`;
   }
   
-  // ✅ APPROVAL - Third Priority
+  // 💎 EXTENSION - Third Priority
+  if (data.hasUnviewedExtension) {
+    return `💎 Extension Purchased`;
+  }
+  
+  // ✅ APPROVAL - Fourth Priority
   if (data.hasUnviewedApproval) {
     return `✅ Approved`;
   }
