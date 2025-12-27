@@ -134,20 +134,22 @@ export default function ClientPortal() {
 
       // Record that client viewed the portal (only if not logged in as freelancer)
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[ClientPortal] Session check:', session ? 'Logged in' : 'Not logged in');
+      
       if (!session) {
         // No logged-in user = this is a client viewing
-        supabase
+        console.log('[ClientPortal] Attempting to update client_last_viewed_at...');
+        const { data: updateData, error: updateError } = await supabase
           .from('projects')
           .update({ client_last_viewed_at: new Date().toISOString() })
           .eq('share_code', shareCode)
-          .select()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error('[ClientPortal] Failed to record view:', error);
-            } else {
-              console.log('[ClientPortal] Recorded client view:', data);
-            }
-          });
+          .select();
+        
+        if (updateError) {
+          console.error('[ClientPortal] Failed to record view:', updateError);
+        } else {
+          console.log('[ClientPortal] Recorded client view:', updateData);
+        }
       } else {
         console.log('[ClientPortal] Freelancer viewing - not updating client_last_viewed_at');
       }
