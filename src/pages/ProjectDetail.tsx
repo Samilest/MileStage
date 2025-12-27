@@ -1413,6 +1413,74 @@ export default function ProjectDetail() {
                   deliverablesCount={stage.deliverables.length}
                 />
 
+                {/* Pending Extension Alert - Show inline in relevant stage */}
+                {(() => {
+                  const stageExtensions = pendingExtensions.filter(ext => ext.stage_id === stage.id);
+                  if (stageExtensions.length === 0) return null;
+                  
+                  return (
+                    <div className="bg-purple-50 border-l-4 border-purple-400 rounded-r-lg p-4 mb-6">
+                      <p className="font-semibold text-purple-900 mb-1 flex items-center gap-2">
+                        💎 Extension Payment Pending
+                      </p>
+                      {stageExtensions.map(ext => (
+                        <div key={ext.id} className="mt-2">
+                          <p className="text-sm text-purple-800">
+                            {project.client_name} purchased an extra revision for <strong>{formatCurrency(ext.amount, project.currency || 'USD')}</strong>
+                          </p>
+                          <p className="text-xs text-purple-600 mt-1">
+                            Reference: <span className="font-mono">{ext.reference_code}</span>
+                          </p>
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Confirm that you have NOT received this payment?')) return;
+                                try {
+                                  await supabase.from('extensions').update({
+                                    status: 'rejected',
+                                    rejected_at: new Date().toISOString(),
+                                  }).eq('id', ext.id);
+                                  alert('Extension payment marked as not received.');
+                                  loadPendingExtensions();
+                                } catch (err: any) {
+                                  alert('Failed: ' + err.message);
+                                }
+                              }}
+                              className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
+                            >
+                              Not Received
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await supabase.from('extensions').update({
+                                    status: 'verified',
+                                    verified_at: new Date().toISOString(),
+                                  }).eq('id', ext.id);
+                                  
+                                  // Increment revisions_included
+                                  await supabase.from('stages').update({
+                                    revisions_included: (stage.revisions_included || 2) + 1,
+                                  }).eq('id', stage.id);
+                                  
+                                  alert('✅ Extension verified! Client can now request 1 more revision.');
+                                  loadProjectData();
+                                  loadPendingExtensions();
+                                } catch (err: any) {
+                                  alert('Failed: ' + err.message);
+                                }
+                              }}
+                              className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                            >
+                              Confirm Received
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {/* Payment Status Display - Show full details inline */}
                 {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (() => {
                   const pendingPayment = pendingStagePayments.find(p => p.stage_id === stage.id);
