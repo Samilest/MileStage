@@ -82,9 +82,10 @@ interface StageCardProps {
     bank_transfer?: string;
     other?: string;
   };
+  manualPaymentInstructions?: string | null;
 }
 
-export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {} }: StageCardProps) {
+export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {}, manualPaymentInstructions }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

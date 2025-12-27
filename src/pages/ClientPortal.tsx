@@ -19,7 +19,6 @@ interface ProjectData {
   share_code: string;
   created_at: string;
   currency: CurrencyCode;
-  offline_instructions?: string;
   payment_methods: {
     paypal?: string;
     venmo?: string;
@@ -31,9 +30,6 @@ interface ProjectData {
     name: string;
     email: string;
     subscription_tier: string;
-    stripe_account_id: string | null;
-    stripe_charges_enabled: boolean | null;
-    manual_payment_instructions: string | null;
   };
   stages: Array<{
     id: string;
@@ -105,10 +101,7 @@ export default function ClientPortal() {
           user_profiles!projects_user_id_fkey (
             name,
             email,
-            subscription_tier,
-            stripe_account_id,
-            stripe_charges_enabled,
-            manual_payment_instructions
+            subscription_tier
           ),
           stages (
             *,
@@ -429,8 +422,7 @@ export default function ClientPortal() {
           shareCode={shareCode}
           paymentMethods={projectData.payment_methods || {}}
           currency={projectData.currency || 'USD'}
-          freelancerStripeConnected={!!projectData.user_profiles?.stripe_charges_enabled}
-          manualPaymentInstructions={projectData.payment_methods?.offline_instructions || projectData.offline_instructions || projectData.user_profiles?.manual_payment_instructions || null}
+          manualPaymentInstructions={projectData.payment_methods?.offline_instructions}
         />
       </main>
 
