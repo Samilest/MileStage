@@ -257,7 +257,7 @@ export default function Dashboard() {
             if (projectsWithPendingExtensions.has(project.id)) {
               project.has_unread_actions = true;
               if (!project.primary_notification) {
-                project.primary_notification = '💎 Extension Purchased';
+                project.primary_notification = '💎 Extra Revision Purchased';
               }
             }
           });

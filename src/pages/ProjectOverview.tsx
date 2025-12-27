@@ -594,11 +594,11 @@ export default function ProjectOverview() {
                         </div>
                       )}
 
-                      {/* Extension Purchased notification */}
+                      {/* Extra Revision Purchased notification */}
                       {pendingExtensions.some(ext => ext.stage_id === stage.id) && (
                         <div className="mt-2 pt-2 border-t border-yellow-200">
                           <p className="text-sm text-gray-700 font-medium flex items-center gap-1">
-                            💎 Extension Purchased - Verify payment in Manage Details
+                            💎 Extra Revision Purchased - Verify payment in Manage Details
                           </p>
                         </div>
                       )}
