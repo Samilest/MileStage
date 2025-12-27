@@ -19,12 +19,12 @@ interface ProjectData {
   share_code: string;
   created_at: string;
   currency: CurrencyCode;
+  offline_instructions?: string;
   payment_methods: {
     paypal?: string;
     venmo?: string;
     bank_transfer?: string;
     other?: string;
-    offline_instructions?: string;
   };
   user_profiles: {
     name: string;
@@ -429,7 +429,7 @@ export default function ClientPortal() {
           paymentMethods={projectData.payment_methods || {}}
           currency={projectData.currency || 'USD'}
           freelancerStripeConnected={!!projectData.user_profiles?.stripe_charges_enabled}
-          manualPaymentInstructions={projectData.payment_methods?.offline_instructions || projectData.user_profiles?.manual_payment_instructions || null}
+          manualPaymentInstructions={projectData.offline_instructions || projectData.user_profiles?.manual_payment_instructions || null}
         />
       </main>
 
