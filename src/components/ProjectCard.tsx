@@ -88,7 +88,7 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
           </p>
           {project.client_last_viewed_at && (
             <p className="text-xs text-gray-400 mt-0.5">
-              Viewed {formatRelativeTime(project.client_last_viewed_at)}
+              Client viewed {formatRelativeTime(project.client_last_viewed_at)}
             </p>
           )}
         </div>
