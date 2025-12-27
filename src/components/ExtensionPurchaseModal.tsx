@@ -12,6 +12,7 @@ interface ExtensionPurchaseModalProps {
     bank_transfer?: string;
     other?: string;
   };
+  manualPaymentInstructions?: string | null;
   onClose: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function ExtensionPurchaseModal({
   stageName,
   extensionPrice,
   paymentMethods,
+  manualPaymentInstructions,
   onClose,
 }: ExtensionPurchaseModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +119,12 @@ export default function ExtensionPurchaseModal({
             </p>
 
             <div className="space-y-3">
-              {paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
+              {manualPaymentInstructions ? (
+                <div className="bg-white p-4 rounded-lg border border-blue-200">
+                  <p className="font-semibold text-gray-900 mb-2">Payment Details:</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
+                </div>
+              ) : paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
                 <>
                   {paymentMethods.paypal && (
                     <div className="bg-white p-4 rounded-lg border border-blue-200">

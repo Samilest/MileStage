@@ -1266,6 +1266,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           extensionPrice={stage.extension_price}
           currency={currency}
           paymentMethods={paymentMethods}
+          manualPaymentInstructions={manualPaymentInstructions}
           onClose={() => setIsExtensionModalOpen(false)}
         />
       )}

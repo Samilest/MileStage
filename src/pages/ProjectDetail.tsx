@@ -1076,6 +1076,7 @@ export default function ProjectDetail() {
   onClick={() => {
     loadProjectData();
     loadPendingStagePayments();
+    loadPendingExtensions();
   }}
   className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
   title="Refresh"
