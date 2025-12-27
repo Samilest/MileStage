@@ -61,6 +61,12 @@ export default function ProjectOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [pendingExtensions, setPendingExtensions] = useState<Array<{
+    id: string;
+    stage_id: string;
+    amount: number;
+    reference_code: string;
+  }>>([]);
 
   useEffect(() => {
     if (!user?.id || !id) return;
@@ -144,6 +150,18 @@ export default function ProjectOverview() {
 
       if (data?.stages) {
         data.stages.sort((a: any, b: any) => a.stage_number - b.stage_number);
+        
+        // Load pending extensions for all stages
+        const stageIds = data.stages.map((s: any) => s.id);
+        if (stageIds.length > 0) {
+          const { data: extensions } = await supabase
+            .from('extensions')
+            .select('id, stage_id, amount, reference_code')
+            .in('stage_id', stageIds)
+            .eq('status', 'marked_paid');
+          
+          setPendingExtensions(extensions || []);
+        }
       }
 
       console.log('[ProjectOverview] Project loaded:', data?.project_name);
@@ -572,6 +590,15 @@ export default function ProjectOverview() {
                               hasUnviewedApproval: (stage.approved_at && !stage.viewed_by_freelancer_at) || false,
                               unreadMessageCount: getUnreadMessageCount(stage)
                             })}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Extension Purchased notification */}
+                      {pendingExtensions.some(ext => ext.stage_id === stage.id) && (
+                        <div className="mt-2 pt-2 border-t border-purple-200">
+                          <p className="text-sm text-purple-700 font-medium flex items-center gap-1">
+                            💎 Extension Purchased - Verify payment in Manage Details
                           </p>
                         </div>
                       )}
