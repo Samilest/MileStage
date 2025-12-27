@@ -93,12 +93,12 @@ export default function ExtensionVerificationAlert({
     <div className="bg-blue-50 border-l-4 border-blue-400 p-6 mb-6">
       <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
         <DollarSign className="w-6 h-6 text-blue-600" />
-        Extension Payment Pending
+        Extra Revision Payment Pending
       </h3>
       {extensions.map((ext) => (
         <div key={ext.id} className="bg-white p-4 rounded-lg mb-3 shadow-sm border border-blue-200">
           <p className="font-semibold text-gray-900 text-lg mb-2">
-            Client purchased extension for ${ext.amount}
+            Client purchased extra revision for ${ext.amount}
           </p>
           <p className="text-sm text-gray-600 mb-1">
             <strong>Reference:</strong> {ext.reference_code}
