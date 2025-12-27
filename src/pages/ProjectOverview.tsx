@@ -596,8 +596,8 @@ export default function ProjectOverview() {
 
                       {/* Extension Purchased notification */}
                       {pendingExtensions.some(ext => ext.stage_id === stage.id) && (
-                        <div className="mt-2 pt-2 border-t border-purple-200">
-                          <p className="text-sm text-purple-700 font-medium flex items-center gap-1">
+                        <div className="mt-2 pt-2 border-t border-yellow-200">
+                          <p className="text-sm text-gray-700 font-medium flex items-center gap-1">
                             💎 Extension Purchased - Verify payment in Manage Details
                           </p>
                         </div>

@@ -1419,16 +1419,16 @@ export default function ProjectDetail() {
                   if (stageExtensions.length === 0) return null;
                   
                   return (
-                    <div className="bg-purple-50 border-l-4 border-purple-400 rounded-r-lg p-4 mb-6">
-                      <p className="font-semibold text-purple-900 mb-1 flex items-center gap-2">
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-4 mb-6">
+                      <p className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
                         💎 Extension Payment Pending
                       </p>
                       {stageExtensions.map(ext => (
                         <div key={ext.id} className="mt-2">
-                          <p className="text-sm text-purple-800">
+                          <p className="text-sm text-gray-700">
                             {project.client_name} purchased an extra revision for <strong>{formatCurrency(ext.amount, project.currency || 'USD')}</strong>
                           </p>
-                          <p className="text-xs text-purple-600 mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             Reference: <span className="font-mono">{ext.reference_code}</span>
                           </p>
                           <div className="flex gap-2 mt-3">
