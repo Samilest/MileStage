@@ -32,6 +32,7 @@ interface Project {
   currency: CurrencyCode;
   share_code: string;
   archived_at?: string | null;
+  client_last_viewed_at?: string | null;
 }
 
 type FilterOption = 'active' | 'completed' | 'archived' | 'all';
@@ -106,6 +107,7 @@ export default function Dashboard() {
               currency,
               share_code,
               archived_at,
+              client_last_viewed_at,
               stages (
                 id,
                 stage_number,
@@ -225,6 +227,7 @@ export default function Dashboard() {
           currency: project.currency || 'USD',
           share_code: project.share_code,
           archived_at: project.archived_at,
+          client_last_viewed_at: project.client_last_viewed_at,
         };
       }) || [];
 

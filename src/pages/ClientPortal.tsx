@@ -132,6 +132,14 @@ export default function ClientPortal() {
       setProjectData(project as ProjectData);
       console.log('[ClientPortal] Project loaded successfully');
 
+      // Record that client viewed the portal (fire and forget - don't block on this)
+      supabase
+        .from('projects')
+        .update({ client_last_viewed_at: new Date().toISOString() })
+        .eq('share_code', shareCode)
+        .then(() => console.log('[ClientPortal] Recorded client view'))
+        .catch((err) => console.error('[ClientPortal] Failed to record view:', err));
+
       if (isRefresh) {
         toast.success('Refreshed!');
       }

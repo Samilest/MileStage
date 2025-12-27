@@ -16,6 +16,7 @@ interface ProjectCardProps {
     currency: CurrencyCode;
     share_code: string;
     archived_at?: string | null;
+    client_last_viewed_at?: string | null;
   };
   onNavigate: (projectId: string) => void;
   getStatusColor: (status: string, completedStages: number, totalStages: number, hasUnreadActions: boolean, isArchived?: boolean) => string;
@@ -34,6 +35,22 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
   const isCompleted = statusLabel.includes('Complete');
   const isArchivedStatus = statusLabel.includes('Archived');
   const needsAttention = project.has_unread_actions && !isCompleted;
+
+  // Format relative time for "last viewed"
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   const getProgressBarColor = () => {
     if (isCompleted) return 'bg-green-500';
@@ -69,6 +86,11 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
           <p className="text-sm text-gray-500 truncate">
             {project.client_name}
           </p>
+          {project.client_last_viewed_at && (
+            <p className="text-xs text-gray-400 mt-0.5">
+              Viewed {formatRelativeTime(project.client_last_viewed_at)}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Red dot notification indicator */}
