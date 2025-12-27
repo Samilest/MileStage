@@ -130,12 +130,6 @@ export default function Dashboard() {
                   author_type,
                   viewed_by_freelancer_at,
                   created_at
-                ),
-                extensions (
-                  id,
-                  status,
-                  marked_paid_at,
-                  viewed_by_freelancer_at
                 )
               )
             `)
@@ -184,13 +178,7 @@ export default function Dashboard() {
             note.author_type === 'client' && !note.viewed_by_freelancer_at
           ).length || 0;
 
-          const hasUnreadExtension = stage.extensions?.some((ext: any) =>
-            ext.status === 'marked_paid' &&
-            ext.marked_paid_at &&
-            !ext.viewed_by_freelancer_at
-          ) || false;
-
-          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0 || hasUnreadExtension;
+          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
 
           if (stageHasUnread) {
             hasUnreadActions = true;
@@ -201,8 +189,7 @@ export default function Dashboard() {
                   hasUnviewedPayment: hasUnreadPayment,
                   hasUnviewedRevision: hasUnreadRevision,
                   hasUnviewedApproval: hasUnreadApproval,
-                  unreadMessageCount: unreadMessageCount,
-                  hasUnviewedExtension: hasUnreadExtension
+                  unreadMessageCount: unreadMessageCount
                 },
                 ''
               );
