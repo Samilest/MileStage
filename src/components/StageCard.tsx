@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
@@ -647,9 +648,15 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
         )}
 
         {/* Payment Modal for Stage 0 */}
-        {showPaymentModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        {showPaymentModal && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowPaymentModal(false)}
+            />
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold">
                   Pay Down Payment - {formatCurrency(stage.amount, currency)}
@@ -772,7 +779,8 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
