@@ -86,9 +86,13 @@ function ProjectCard({ project, onNavigate, getStatusLabel }: ProjectCardProps) 
           <p className="text-sm text-gray-500 truncate">
             {project.client_name}
           </p>
-          {project.client_last_viewed_at && (
+          {project.client_last_viewed_at ? (
             <p className="text-xs text-gray-400 mt-0.5">
               Client viewed {formatRelativeTime(project.client_last_viewed_at)}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-0.5 invisible">
+              Placeholder
             </p>
           )}
         </div>
