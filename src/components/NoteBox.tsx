@@ -16,6 +16,7 @@ interface NoteBoxProps {
   stageId: string;
   authorType: 'freelancer' | 'client';
   authorName: string;
+  disabled?: boolean;
   stage?: {
     revisions_included: number;
     revisions_used: number;
@@ -26,7 +27,7 @@ interface NoteBoxProps {
   isMarkingRevisionUsed?: boolean;
 }
 
-export default function NoteBox({ stageId, authorType, authorName, stage, onMarkRevisionUsed, isMarkingRevisionUsed = false }: NoteBoxProps) {
+export default function NoteBox({ stageId, authorType, authorName, stage, onMarkRevisionUsed, isMarkingRevisionUsed = false, disabled = false }: NoteBoxProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -283,9 +284,9 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             return (
               <button
                 onClick={() => onMarkRevisionUsed(stageId, stage)}
-                disabled={isMarkingRevisionUsed}
+                disabled={isMarkingRevisionUsed || disabled}
                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-                title="Client requested changes in chat? Click to log as official revision."
+                title={disabled ? "Stage locked - complete previous stage first" : "Client requested changes in chat? Click to log as official revision."}
               >
                 <RotateCcw className="w-4 h-4" />
                 {isMarkingRevisionUsed ? 'Using...' : buttonText}
@@ -353,11 +354,11 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
+            placeholder={disabled ? "Stage locked - complete previous stage first" : "Type your message..."}
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-12 text-sm resize-none focus:border-green-500 focus:outline-none transition-colors"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-12 text-sm resize-none focus:border-green-500 focus:outline-none transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
             aria-label="Type your message"
-            disabled={sending}
+            disabled={sending || disabled}
             maxLength={MAX_CHARS}
           />
           <div className="absolute right-3 top-3">
@@ -401,7 +402,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
           </span>
           <button
             onClick={handleSend}
-            disabled={!message.trim() || sending || isOverLimit}
+            disabled={!message.trim() || sending || isOverLimit || disabled}
             className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send note"
           >

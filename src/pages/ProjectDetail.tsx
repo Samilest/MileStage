@@ -1782,6 +1782,7 @@ export default function ProjectDetail() {
                     stage={stage}
                     onMarkRevisionUsed={handleMarkRevisionUsed}
                     isMarkingRevisionUsed={markingRevisionUsedStageId === stage.id}
+                    disabled={stage.status === 'locked'}
                   />
                 </div>
 
