@@ -158,7 +158,19 @@ export default function Dashboard() {
         let hasUnreadActions = false;
 
         for (const stage of stages) {
-          // ✅ Skip completed/closed stages - they're locked and inaccessible
+          // Check for Stripe payment received FIRST (before skipping completed stages)
+          // Simple: payment received + freelancer hasn't viewed it yet
+          const hasStripePaymentReceived = stage.payment_status === 'received' && !stage.viewed_by_freelancer_at;
+
+          if (hasStripePaymentReceived) {
+            hasUnreadActions = true;
+            if (!primaryNotification) {
+              primaryNotification = '💰 Payment Received';
+            }
+            continue;
+          }
+
+          // Skip completed/closed stages for other notification types
           if (stage.status === 'complete' || stage.status === 'completed') {
             continue;
           }
@@ -173,39 +185,27 @@ export default function Dashboard() {
             !payment.viewed_by_freelancer_at
           ) || false;
 
-          // Check for Stripe payment received (payment_status='received' but freelancer hasn't seen it yet)
-          // We check if payment_received_at is newer than viewed_by_freelancer_at
-          const hasStripePaymentReceived = stage.payment_status === 'received' && 
-            stage.payment_received_at && 
-            (!stage.viewed_by_freelancer_at || 
-             new Date(stage.payment_received_at) > new Date(stage.viewed_by_freelancer_at));
-
           const hasUnreadApproval = stage.approved_at && !stage.viewed_by_freelancer_at;
 
           const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
             note.author_type === 'client' && !note.viewed_by_freelancer_at
           ).length || 0;
 
-          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0 || hasStripePaymentReceived;
+          const stageHasUnread = hasUnreadRevision || hasUnreadPayment || hasUnreadApproval || unreadMessageCount > 0;
 
           if (stageHasUnread) {
             hasUnreadActions = true;
             if (!primaryNotification) {
               console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
-              // Prioritize Stripe payment notification
-              if (hasStripePaymentReceived) {
-                primaryNotification = '💰 Payment Received';
-              } else {
-                primaryNotification = getPrimaryNotification(
-                  {
-                    hasUnviewedPayment: hasUnreadPayment,
-                    hasUnviewedRevision: hasUnreadRevision,
-                    hasUnviewedApproval: hasUnreadApproval,
-                    unreadMessageCount: unreadMessageCount
-                  },
-                  ''
-                );
-              }
+              primaryNotification = getPrimaryNotification(
+                {
+                  hasUnviewedPayment: hasUnreadPayment,
+                  hasUnviewedRevision: hasUnreadRevision,
+                  hasUnviewedApproval: hasUnreadApproval,
+                  unreadMessageCount: unreadMessageCount
+                },
+                ''
+              );
               console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
             }
           }
