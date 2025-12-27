@@ -56,7 +56,7 @@ interface Project {
   total_amount: number;
   status: string;
   currency: CurrencyCode;
-  offline_payment_instructions?: string;
+  offline_instructions?: string;
 }
 
 export default function ProjectDetail() {
@@ -655,8 +655,9 @@ export default function ProjectDetail() {
     }
   };
 
-  const rejectStagePayment = async (paymentId: string) => {
+  const rejectStagePayment = async (paymentId: string, stageId: string) => {
     try {
+      // Update payment status to rejected
       await supabase
         .from('stage_payments')
         .update({
@@ -666,7 +667,16 @@ export default function ProjectDetail() {
         })
         .eq('id', paymentId);
 
-      setSuccessMessage('Payment marked as not received.');
+      // Update stage status back to delivered so client can try again
+      await supabase
+        .from('stages')
+        .update({
+          status: 'delivered',
+          payment_status: 'unpaid'
+        })
+        .eq('id', stageId);
+
+      setSuccessMessage('Payment marked as not received. Client can retry payment.');
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -1105,64 +1115,7 @@ export default function ProjectDetail() {
           }}
         />
 
-        {pendingStagePayments.length > 0 && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg">
-            {pendingStagePayments.map(payment => {
-              const stage = stages.find(s => s.id === payment.stage_id);
-              if (!stage) return null;
-
-              return (
-                <div key={payment.id} className="bg-white p-5 rounded-lg border border-blue-200 mb-3 last:mb-0">
-                  <p className="text-lg font-semibold text-gray-900 mb-1">
-                    {project.client_name} marked <span className="text-blue-600">{stage.name}</span> as paid
-                  </p>
-                  <p className="text-2xl font-bold text-green-600 mb-3">
-                    {formatCurrency(payment.amount, project.currency || 'USD')}
-                  </p>
-                  
-                  {/* Payment details */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
-                    {project.offline_payment_instructions && (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Sent to</p>
-                        <p className="text-sm text-gray-900">{project.offline_payment_instructions}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">Reference Code</p>
-                      <p className="text-sm font-mono font-semibold text-blue-600">{payment.reference_code}</p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-500 mb-4">
-                    {new Date(payment.marked_paid_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit'
-                    })}
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => rejectStagePayment(payment.id)}
-                      className="px-6 py-2.5 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-semibold text-gray-700 transition-colors"
-                    >
-                      Not Received
-                    </button>
-                    <button
-                      onClick={() => verifyStagePayment(payment.id, stage.id)}
-                      className="px-6 py-2.5 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                    >
-                      Confirm Received
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* Payment verification is shown inline in each stage card */}
 
         <div className="space-y-8 sm:space-y-12">
           {stages.length === 0 ? (
@@ -1333,6 +1286,50 @@ export default function ProjectDetail() {
                       </div>
                     </div>
 
+                    {/* Payment Verification Details - Show inline */}
+                    {!isDownPaymentPaid && (() => {
+                      const pendingPayment = pendingStagePayments.find(p => p.stage_id === stage.id);
+                      if (!pendingPayment) return null;
+                      
+                      return (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4">
+                            <p className="font-semibold text-gray-900 mb-1">
+                              {project.client_name} marked this as paid
+                            </p>
+                            <p className="text-xl font-bold text-green-600 mb-2">
+                              {formatCurrency(pendingPayment.amount, project.currency || 'USD')}
+                            </p>
+                            
+                            <div className="text-sm text-gray-600 space-y-1 mb-3">
+                              {project.offline_instructions && (
+                                <p>Sent to: <span className="text-gray-900">{project.offline_instructions}</span></p>
+                              )}
+                              <p>Reference: <span className="font-mono text-blue-600">{pendingPayment.reference_code}</span></p>
+                              <p>{new Date(pendingPayment.marked_paid_at).toLocaleDateString('en-US', { 
+                                month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+                              })}</p>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => rejectStagePayment(pendingPayment.id, stage.id)}
+                                className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
+                              >
+                                Not Received
+                              </button>
+                              <button
+                                onClick={() => verifyStagePayment(pendingPayment.id, stage.id)}
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                              >
+                                Confirm Received
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {isDownPaymentPaid && stage.payment_received_at && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <p className="text-sm text-gray-600 text-center">
@@ -1412,45 +1409,49 @@ export default function ProjectDetail() {
                   deliverablesCount={stage.deliverables.length}
                 />
 
-                {/* Payment Status Display - Only show status badge if pending verification is shown above */}
-                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
-                  pendingStagePayments.some(p => p.stage_id === stage.id) ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
-                          Payment Pending Verification
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                {/* Payment Status Display - Show full details inline */}
+                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (() => {
+                  const pendingPayment = pendingStagePayments.find(p => p.stage_id === stage.id);
+                  
+                  if (pendingPayment) {
+                    return (
+                      <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4 mb-6">
+                        <p className="font-semibold text-gray-900 mb-1">
+                          {project.client_name} marked this stage as paid
+                        </p>
+                        <p className="text-xl font-bold text-green-600 mb-2">
+                          {formatCurrency(pendingPayment.amount, project.currency || 'USD')}
+                        </p>
+                        
+                        <div className="text-sm text-gray-600 space-y-1 mb-3">
+                          {project.offline_instructions && (
+                            <p>Sent to: <span className="text-gray-900">{project.offline_instructions}</span></p>
+                          )}
+                          <p>Reference: <span className="font-mono text-blue-600">{pendingPayment.reference_code}</span></p>
+                          <p>{new Date(pendingPayment.marked_paid_at).toLocaleDateString('en-US', { 
+                            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+                          })}</p>
                         </div>
-                        <div>
-                          <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
-                            Unpaid
-                          </span>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Client has marked payment as sent
-                          </p>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => rejectStagePayment(pendingPayment.id, stage.id)}
+                            className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
+                          >
+                            Not Received
+                          </button>
+                          <button
+                            onClick={() => verifyStagePayment(pendingPayment.id, stage.id)}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                          >
+                            Confirm Received
+                          </button>
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedStageForPayment(stage);
-                          setShowMarkPaidModal(true);
-                        }}
-                        className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
-                      >
-                        Mark as Paid
-                      </button>
-                    </div>
-                  )
-                )}
+                    );
+                  }
+                  return null;
+                })()}
 
                 {stage.revisions_used > 0 && (
                   <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg shadow-lg overflow-hidden">
