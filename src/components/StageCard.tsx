@@ -1,4 +1,4 @@
-// FORCE REBUILD v8 - portal modal fix
+// FORCE REBUILD v7 - payment_status='received' fix deployed
 import {
   Lock,
   Clock,
@@ -17,7 +17,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
@@ -83,11 +82,9 @@ interface StageCardProps {
     bank_transfer?: string;
     other?: string;
   };
-  freelancerStripeConnected?: boolean;
-  manualPaymentInstructions?: string | null;
 }
 
-export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {}, freelancerStripeConnected = false, manualPaymentInstructions = null }: StageCardProps) {
+export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, shareCode, currency = 'USD', paymentMethods = {} }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,6 +117,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   stage.payment_status === 'received' ? 'paid' : (stage.payment_status || 'unpaid')
 );
 
+  // Create a stable dependency key for extensions
+  const extensionsKey = JSON.stringify(stage.extensions?.map(e => ({ id: e.id, status: e.status })) || []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -133,7 +133,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     return () => {
       isMounted = false;
     };
-  }, [stage.id]);
+  }, [stage.id, extensionsKey]);
 
   useEffect(() => {
     // Update actualPaymentStatus when stage.payment_status changes
@@ -583,54 +583,110 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   if (stage.stage_number === 0) {
     const isPaid = actualPaymentStatus === 'received' || stage.payment_status === 'received';
     return (
-      <>
-        <div
-          className={`bg-white border-2 ${
-            isPaid ? 'border-green-500' : 'border-yellow-400'
-          } rounded-xl overflow-hidden shadow-md`}
-        >
-          <div className={`${
-            isPaid ? 'bg-green-50' : 'bg-yellow-50'
-          } px-4 sm:px-6 py-5 sm:py-6 space-y-4`}>
-            <div className="flex items-start gap-3">
-              <div className={`${
-                isPaid ? 'bg-green-100' : 'bg-yellow-100'
-              } rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
-                <DollarSign className={`w-5 h-5 ${
-                  isPaid ? 'text-green-600' : 'text-yellow-600'
-                }`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Stage 0: Down Payment
-                </h3>
-                <span className={`text-base font-semibold ${
-                  isPaid ? 'text-green-600' : 'text-yellow-600'
-                }`}>
-                  {isPaid ? 'Paid ✓' : 'Awaiting Payment'}
-                </span>
-              </div>
+      <div
+        className={`bg-white border-2 ${
+          isPaid ? 'border-green-500' : 'border-yellow-400'
+        } rounded-xl overflow-hidden shadow-md`}
+      >
+        <div className={`${
+          isPaid ? 'bg-green-50' : 'bg-yellow-50'
+        } px-4 sm:px-6 py-5 sm:py-6 space-y-4`}>
+          <div className="flex items-start gap-3">
+            <div className={`${
+              isPaid ? 'bg-green-100' : 'bg-yellow-100'
+            } rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
+              <DollarSign className={`w-5 h-5 ${
+                isPaid ? 'text-green-600' : 'text-yellow-600'
+              }`} />
             </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-gray-900">
+                Stage 0: Down Payment
+              </h3>
+              <span className={`text-base font-semibold ${
+                isPaid ? 'text-green-600' : 'text-yellow-600'
+              }`}>
+                {isPaid ? 'Paid ✓' : 'Awaiting Payment'}
+              </span>
+            </div>
+          </div>
 
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="text-lg font-semibold text-gray-900">
-                Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
-              </div>
-              {!isPaid && (
-                (freelancerStripeConnected || manualPaymentInstructions) ? (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow"
-                  >
-                    Pay Now
-                  </button>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="text-lg font-semibold text-gray-900">
+              Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
+            </div>
+            {!isPaid && (
+              <button
+                onClick={async () => {
+                  if (!shareCode) {
+                    alert('Invalid share code');
+                    return;
+                  }
+
+                  setCreatingPayment(true);
+                  try {
+                    const apiUrl = '/api/stripe/create-payment-intent';
+                    const response = await fetch(apiUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        stageId: stage.id,
+                        shareCode: shareCode,
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || errorData.message || 'Failed to create payment');
+                    }
+
+                    const result = await response.json();
+
+                    if (result.error) {
+                      throw new Error(result.error);
+                    }
+
+                    if (result.clientSecret) {
+                      // Redirect to Stripe checkout with the payment intent
+                      const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+                      if (!stripePublishableKey) {
+                        throw new Error('Stripe not configured');
+                      }
+                      
+                      // Store payment info and redirect to payment page
+                      sessionStorage.setItem('pendingPayment', JSON.stringify({
+                        clientSecret: result.clientSecret,
+                        stageId: stage.id,
+                        amount: stage.amount,
+                        stageName: stage.name,
+                        currency: currency,
+                        paymentMethods: paymentMethods || {},
+                      }));
+                      
+                      window.location.href = `/payment?stage=${stage.id}&share=${shareCode}`;
+                    }
+                  } catch (error: any) {
+                    console.error('Error creating payment:', error);
+                    alert(`Failed to create payment link: ${error.message || 'Please try again'}`);
+                  } finally {
+                    setCreatingPayment(false);
+                  }
+                }}
+                disabled={creatingPayment}
+                className="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-semibold transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {creatingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
                 ) : (
-                  <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
-                    <p className="text-yellow-800 text-sm font-medium">Payment setup in progress</p>
-                    <p className="text-yellow-700 text-xs mt-1">Contact your freelancer for payment details</p>
-                  </div>
-                )
-              )}
+                  'Pay Now'
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -645,114 +701,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
       </div>
-
-      {/* Payment Modal for Stage 0 - Using Portal to render at body level */}
-      {showPaymentModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowPaymentModal(false)}
-          />
-          {/* Modal Content */}
-          <div className="relative bg-white rounded-xl max-w-lg w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Complete Payment - {formatCurrency(stage.amount, currency)}
-              </h2>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
-              <p className="font-semibold text-yellow-900">
-                💰 Down Payment Required
-              </p>
-              <p className="text-sm text-yellow-800 mt-1">
-                Pay the down payment to unlock the project stages.
-              </p>
-            </div>
-
-            {/* Stripe Payment Button - Only show if Stripe is connected */}
-            {freelancerStripeConnected && (
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
-                <StripePaymentButton
-                  stageId={stage.id}
-                  stageName={stage.name}
-                  stageNumber={stage.stage_number}
-                  amount={stage.amount}
-                  currency={currency}
-                  shareCode={shareCode || ''}
-                  onSuccess={() => {
-                    setShowPaymentModal(false);
-                    setTimeout(() => window.location.reload(), 1000);
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Divider - Only show if both methods available */}
-            {freelancerStripeConnected && manualPaymentInstructions && (
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
-                </div>
-              </div>
-            )}
-
-            {/* Manual Payment Instructions - Only show if available */}
-            {manualPaymentInstructions && (
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold mb-3 text-gray-900">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
-                <p className="text-sm mb-4 text-gray-700">
-                  Pay {formatCurrency(stage.amount, currency)} using the method below:
-                </p>
-
-                <div className="bg-white p-4 rounded-lg border border-gray-200 mb-3">
-                  <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
-                </div>
-
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-                  <p className="font-semibold text-sm text-gray-900">Reference Code:</p>
-                  <p className="text-lg font-mono font-bold text-blue-600">
-                    STAGE0-{stage.id.slice(0, 8).toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Include this code with your payment
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleMarkPaymentSent}
-                  disabled={isMarkingPayment}
-                  className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {isMarkingPayment ? 'Processing...' : '✅ I\'ve Sent Payment'}
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowPaymentModal(false)}
-              className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
-  );
+    );
   }
 
   if (isCompleted) {
@@ -1266,33 +1215,26 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           extensionPrice={stage.extension_price}
           currency={currency}
           paymentMethods={paymentMethods}
-          manualPaymentInstructions={manualPaymentInstructions}
           onClose={() => setIsExtensionModalOpen(false)}
         />
       )}
 
-      {showPaymentModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowPaymentModal(false)}
-          />
-          {/* Modal Content */}
-          <div className="relative bg-white rounded-xl max-w-2xl w-full mx-4 p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold">
                 Complete Payment - {formatCurrency(stage.amount, currency)}
               </h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="text-gray-500 hover:text-gray-900 transition-colors"
+                className="text-gray-600 hover:text-black"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg">
+            <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
               <p className="font-semibold text-green-900">
                 ✅ You approved this stage's deliverables!
               </p>
@@ -1301,85 +1243,75 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               </p>
             </div>
 
-            {/* Stripe Payment Button - Only show if Stripe is connected */}
-            {freelancerStripeConnected && (
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
-                <StripePaymentButton
-                  stageId={stage.id}
-                  stageName={stage.name}
-                  stageNumber={stage.stage_number}
-                  amount={stage.amount}
-                  currency={currency}
-                  shareCode={shareCode || ''}
-                  onSuccess={() => {
-                    setShowPaymentModal(false);
-                    setTimeout(() => window.location.reload(), 1000);
-                  }}
-                />
-              </div>
-            )}
+            {/* Stripe Payment Button */}
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3 text-lg">Pay with Card</h3>
+              <StripePaymentButton
+                stageId={stage.id}
+                stageName={stage.name}
+                stageNumber={stage.stage_number}
+                amount={stage.amount}
+                currency={currency}
+                shareCode={shareCode || ''}
+                onSuccess={() => {
+                  setShowPaymentModal(false);
+                  setTimeout(() => window.location.reload(), 1000);
+                }}
+              />
+            </div>
 
-            {/* Divider - Only show if Stripe is connected */}
-            {freelancerStripeConnected && (
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
-                </div>
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
               </div>
-            )}
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500 font-medium">Or pay offline</span>
+              </div>
+            </div>
 
             {/* Manual Payment Instructions */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-3 text-gray-900">{freelancerStripeConnected ? 'Manual Payment Instructions:' : 'Payment Instructions:'}</h3>
+            <div className="bg-gray-50 p-4 rounded mb-6">
+              <h3 className="font-semibold mb-3">Manual Payment Instructions:</h3>
               <p className="text-sm mb-4 text-gray-700">
                 Pay {formatCurrency(stage.amount, currency)} using one of these methods:
               </p>
 
-              {/* Show manual_payment_instructions first if available */}
-              {manualPaymentInstructions ? (
-                <div className="bg-white p-4 rounded-lg border border-gray-200 mb-3">
-                  <p className="font-medium text-sm mb-2">Payment Details:</p>
-                  <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
-                </div>
-              ) : paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
+              {paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
                 <div className="space-y-2">
                   {paymentMethods.paypal && (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="bg-white p-3 rounded border">
                       <p className="font-medium text-sm">PayPal</p>
                       <p className="text-sm text-gray-900 font-mono">{paymentMethods.paypal}</p>
                     </div>
                   )}
                   {paymentMethods.venmo && (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="bg-white p-3 rounded border">
                       <p className="font-medium text-sm">Venmo</p>
                       <p className="text-sm text-gray-900 font-mono">{paymentMethods.venmo}</p>
                     </div>
                   )}
                   {paymentMethods.bank_transfer && (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="bg-white p-3 rounded border">
                       <p className="font-medium text-sm">Bank Transfer</p>
                       <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.bank_transfer}</p>
                     </div>
                   )}
                   {paymentMethods.other && (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="bg-white p-3 rounded border">
                       <p className="font-medium text-sm">Other</p>
                       <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.other}</p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <div className="bg-white p-3 rounded border">
                   <p className="text-sm text-gray-600">Contact the freelancer for payment details</p>
                 </div>
               )}
 
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
-                <p className="font-semibold text-sm text-gray-900">Reference Code:</p>
+              <div className="mt-4 p-3 bg-white rounded border-2 border-blue-300">
+                <p className="font-semibold text-sm">Reference Code:</p>
                 <p className="text-lg font-mono font-bold text-blue-600">
                   STAGE{stage.stage_number}-{stage.id.slice(0, 8).toUpperCase()}
                 </p>
@@ -1393,7 +1325,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               <button
                 onClick={handleMarkPaymentSent}
                 disabled={isMarkingPayment}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isMarkingPayment && <Loader2 className="w-5 h-5 animate-spin" />}
                 {isMarkingPayment ? 'Processing...' : '✅ I Paid Offline'}
@@ -1401,14 +1333,13 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
+                className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
               >
                 Cancel
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
       {isRevisionModalOpen && (
