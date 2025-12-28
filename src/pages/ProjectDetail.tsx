@@ -656,8 +656,7 @@ export default function ProjectDetail() {
   };
 
   const rejectStagePayment = async (paymentId: string, stageId: string) => {
-    const reason = prompt('Why are you rejecting this payment? (This will be shown to the client)');
-    if (!reason) return;
+    if (!confirm('Mark this payment as not received? The client will be able to try again.')) return;
 
     try {
       // Update the payment record to rejected
