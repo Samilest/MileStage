@@ -10,7 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { notifyPaymentConfirmation, notifyStageDelivered } from '../lib/email';
+import { notifyPaymentConfirmation } from '../lib/email';
 
 interface Deliverable {
   id: string;
@@ -604,30 +604,6 @@ export default function ProjectDetail() {
       }
 
       console.log('[Mark as Delivered] Process completed successfully!');
-      
-      // Send email notification to client (wrapped in try-catch - won't break if fails)
-      try {
-        console.log('[Mark as Delivered] Sending delivery notification email to client...');
-        
-        const deliveredStage = stages.find(s => s.id === stageId);
-        
-        if (deliveredStage && project) {
-          await notifyStageDelivered({
-            clientEmail: project.client_email,
-            clientName: project.client_name,
-            projectName: project.project_name,
-            stageName: deliveredStage.name || `Stage ${deliveredStage.stage_number}`,
-            freelancerName: userName || 'Your freelancer',
-            portalUrl: `https://milestage.com/client/${project.share_code}`,
-          });
-          
-          console.log('[Mark as Delivered] ✅ Delivery notification email sent to client');
-        }
-      } catch (emailError: any) {
-        console.error('[Mark as Delivered] Email sending failed (non-critical):', emailError.message);
-        // Don't throw - delivery confirmation still succeeds even if email fails
-      }
-      
       setSuccessMessage('✅ Work submitted! Client will be notified.');
 
       setTimeout(() => {
@@ -830,7 +806,6 @@ export default function ProjectDetail() {
           stageName: selectedStageForPayment.name || `Stage ${selectedStageForPayment.stage_number}`,
           amount: (selectedStageForPayment.amount / 100).toFixed(2),
           currency: project.currency || 'USD',
-          portalUrl: `https://milestage.com/client/${project.share_code}`,
         });
         
         console.log('[ProjectDetail] ✅ Payment confirmation email sent to client');
@@ -1329,6 +1304,7 @@ export default function ProjectDetail() {
             // STAGE 0 (DOWN PAYMENT) - Simplified payment gate
             if (stage.stage_number === 0) {
               const isDownPaymentPaid = stage.payment_status === 'received' && stage.payment_received_at;
+              const hasPendingPayment = pendingStagePayments.some(p => p.stage_id === stage.id);
 
               return (
                 <div
@@ -1370,10 +1346,10 @@ export default function ProjectDetail() {
                             <CheckCircle className="w-5 h-5 text-green-600" />
                             <span className="font-semibold text-green-700">Paid ✓</span>
                           </div>
-                        ) : (
+                        ) : hasPendingPayment ? (
                           <div className="flex flex-col gap-2">
-                            <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-sm font-semibold rounded-full text-center">
-                              Status: Unpaid
+                            <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded-full text-center">
+                              Payment Pending
                             </span>
                             <button
                               onClick={() => {
@@ -1384,6 +1360,12 @@ export default function ProjectDetail() {
                             >
                               Mark as Paid
                             </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-sm font-semibold rounded-full text-center">
+                              Awaiting Client Payment
+                            </span>
                           </div>
                         )}
                       </div>
