@@ -735,7 +735,7 @@ export default function ProjectDetail() {
       const { error: paymentError } = await supabase
         .from('stage_payments')
         .update({
-          status: 'paid',
+          status: 'verified',
           verified_at: new Date().toISOString()
         })
         .eq('stage_id', selectedStageForPayment.id)
