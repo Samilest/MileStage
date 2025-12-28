@@ -801,6 +801,7 @@ export default function ProjectDetail() {
       setShowMarkPaidModal(false);
       setSelectedStageForPayment(null);
       loadProjectData();
+      loadPendingStagePayments();
     } catch (error: any) {
       console.error('Error marking payment as received:', error);
       alert('Failed to mark payment: ' + (error?.message || 'Unknown error'));
