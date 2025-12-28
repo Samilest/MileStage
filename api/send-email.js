@@ -98,7 +98,7 @@ async function buildRevisionRequestedEmail(data) {
 }
 
 async function buildPaymentConfirmationEmail(data) {
-  const { clientEmail, clientName, projectName, stageName, amount, currency } = data;
+  const { clientEmail, clientName, projectName, stageName, amount, currency, portalUrl } = data;
   
   return {
     from: 'MileStage <notifications@milestage.com>',
@@ -140,7 +140,7 @@ function generatePaymentReceivedHTML(data) {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 💰 Payment Received!
                             </div>
@@ -250,7 +250,7 @@ function generateStageDeliveredHTML(data) {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ✅ Work Delivered
                             </div>
@@ -344,7 +344,7 @@ function generateStageApprovedHTML(data) {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ✅ Stage Approved
                             </div>
@@ -438,7 +438,7 @@ function generateRevisionRequestedHTML(data) {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #F59E0B; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ⚠️ Revision Requested
                             </div>
@@ -499,7 +499,7 @@ function generateRevisionRequestedHTML(data) {
 }
 
 function generatePaymentConfirmationHTML(data) {
-  const { clientName, projectName, stageName, amount, currency } = data;
+  const { clientName, projectName, stageName, amount, currency, portalUrl } = data;
   const name = clientName || 'there';
   
   return `<!DOCTYPE html>
@@ -526,7 +526,7 @@ function generatePaymentConfirmationHTML(data) {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ✅ Payment Confirmed
                             </div>
@@ -557,9 +557,20 @@ function generatePaymentConfirmationHTML(data) {
                                 </tr>
                             </table>
 
-                            <div style="font-size: 16px; color: #374151; line-height: 1.7;">
+                            <div style="font-size: 16px; color: #374151; line-height: 1.7; margin-bottom: 32px;">
                                 The next stage is now unlocked. Thank you for your payment!
                             </div>
+
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0;">
+                                        <a href="${portalUrl}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                            View Project
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
 
                         </td>
                     </tr>

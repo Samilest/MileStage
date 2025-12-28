@@ -258,6 +258,7 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
           stageName: stage.name || `Stage ${stage.stage_number}`,
           amount: (payment.amount / 100).toFixed(2),
           currency: payment.currency || 'USD',
+          portalUrl: `https://milestage.com/client/${project.share_code}`,
         },
       }),
     });

@@ -830,6 +830,7 @@ export default function ProjectDetail() {
           stageName: selectedStageForPayment.name || `Stage ${selectedStageForPayment.stage_number}`,
           amount: (selectedStageForPayment.amount / 100).toFixed(2),
           currency: project.currency || 'USD',
+          portalUrl: `https://milestage.com/client/${project.share_code}`,
         });
         
         console.log('[ProjectDetail] ✅ Payment confirmation email sent to client');

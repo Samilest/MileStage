@@ -78,6 +78,7 @@ export async function notifyPaymentConfirmation(params: {
   stageName: string;
   amount: string;
   currency: string;
+  portalUrl: string;
 }) {
   return sendEmail('payment_confirmation', params);
 }
