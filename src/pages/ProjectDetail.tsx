@@ -655,26 +655,45 @@ export default function ProjectDetail() {
     }
   };
 
-  const rejectStagePayment = async (paymentId: string) => {
+  const rejectStagePayment = async (paymentId: string, stageId: string) => {
     const reason = prompt('Why are you rejecting this payment? (This will be shown to the client)');
     if (!reason) return;
 
     try {
-      await supabase
+      // Update the payment record to rejected
+      const { error: paymentError } = await supabase
         .from('stage_payments')
         .update({
           status: 'rejected',
-          rejected_at: new Date().toISOString(),
-          rejection_reason: reason
+          rejected_at: new Date().toISOString()
         })
         .eq('id', paymentId);
 
-      setSuccessMessage('Payment marked as not received. Client will be notified.');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      if (paymentError) {
+        console.error('Payment rejection error:', paymentError);
+        throw paymentError;
+      }
+
+      // Reset stage status back to delivered so client can pay again
+      const { error: stageError } = await supabase
+        .from('stages')
+        .update({
+          status: 'delivered',
+          payment_status: 'unpaid'
+        })
+        .eq('id', stageId);
+
+      if (stageError) {
+        console.error('Stage reset error:', stageError);
+      }
+
+      setSuccessMessage('Payment marked as not received. Client can try again.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      loadProjectData();
+      loadPendingStagePayments();
     } catch (err: any) {
-      alert('Failed to reject payment: ' + err.message);
+      console.error('Reject payment error:', err);
+      alert('Failed to reject payment: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -1163,7 +1182,7 @@ export default function ProjectDetail() {
 
                   <div className="flex gap-3 mt-4 justify-end">
                     <button
-                      onClick={() => rejectStagePayment(payment.id)}
+                      onClick={() => rejectStagePayment(payment.id, payment.stage_id)}
                       className="px-4 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold"
                     >
                       ❌ Not Received
