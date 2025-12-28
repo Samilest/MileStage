@@ -19,6 +19,7 @@ import {
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { notifyRevisionRequested, notifyStageApproved } from '../lib/email';
 import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
 import ExtensionPurchaseModal from './ExtensionPurchaseModal';
@@ -421,6 +422,37 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
       if (stageError) throw stageError;
 
+      // Send email notification to freelancer (wrapped in try-catch - won't break if fails)
+      try {
+        console.log('[Stage Approved] Sending notification email to freelancer...');
+        
+        if (projectId) {
+          // Fetch project details for email
+          const { data: projectData } = await supabase
+            .from('projects')
+            .select('project_name, client_name, user_id, user_profiles!inner(email, full_name)')
+            .eq('id', projectId)
+            .single();
+          
+          if (projectData && projectData.user_profiles) {
+            await notifyStageApproved({
+              freelancerEmail: projectData.user_profiles.email,
+              freelancerName: projectData.user_profiles.full_name,
+              projectName: projectData.project_name,
+              stageName: stage.name || `Stage ${stage.stage_number}`,
+              amount: (stage.amount / 100).toFixed(2),
+              currency: currency || 'USD',
+              clientName: projectData.client_name,
+            });
+            
+            console.log('[Stage Approved] ✅ Approval notification email sent to freelancer');
+          }
+        }
+      } catch (emailError: any) {
+        console.error('[Stage Approved] Email sending failed (non-critical):', emailError.message);
+        // Don't throw - payment marking still succeeds even if email fails
+      }
+
       setSuccessMessage('Payment marked! Waiting for freelancer verification.');
       setShowPaymentModal(false);
       setTimeout(() => {
@@ -522,6 +554,36 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       }
 
       console.log('✅ Stage updated');
+
+      // Send email notification to freelancer (wrapped in try-catch - won't break if fails)
+      try {
+        console.log('[Revision Request] Sending notification email to freelancer...');
+        
+        if (projectId) {
+          // Fetch project details for email
+          const { data: projectData } = await supabase
+            .from('projects')
+            .select('project_name, user_id, user_profiles!inner(email, full_name)')
+            .eq('id', projectId)
+            .single();
+          
+          if (projectData && projectData.user_profiles) {
+            await notifyRevisionRequested({
+              freelancerEmail: projectData.user_profiles.email,
+              freelancerName: projectData.user_profiles.full_name,
+              projectName: projectData.project_name,
+              stageName: stage.name || `Stage ${stage.stage_number}`,
+              feedback: trimmed,
+              clientName: authorName || 'Your client',
+            });
+            
+            console.log('[Revision Request] ✅ Revision notification email sent to freelancer');
+          }
+        }
+      } catch (emailError: any) {
+        console.error('[Revision Request] Email sending failed (non-critical):', emailError.message);
+        // Don't throw - revision submission still succeeds even if email fails
+      }
 
       setSuccessMessage('Revision requested successfully!');
       setIsRevisionModalOpen(false);

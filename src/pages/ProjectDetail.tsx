@@ -10,7 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { notifyPaymentConfirmation } from '../lib/email';
+import { notifyPaymentConfirmation, notifyStageDelivered } from '../lib/email';
 
 interface Deliverable {
   id: string;
@@ -604,6 +604,30 @@ export default function ProjectDetail() {
       }
 
       console.log('[Mark as Delivered] Process completed successfully!');
+      
+      // Send email notification to client (wrapped in try-catch - won't break if fails)
+      try {
+        console.log('[Mark as Delivered] Sending delivery notification email to client...');
+        
+        const deliveredStage = stages.find(s => s.id === stageId);
+        
+        if (deliveredStage && project) {
+          await notifyStageDelivered({
+            clientEmail: project.client_email,
+            clientName: project.client_name,
+            projectName: project.project_name,
+            stageName: deliveredStage.name || `Stage ${deliveredStage.stage_number}`,
+            freelancerName: userName || 'Your freelancer',
+            portalUrl: `https://milestage.com/client/${project.share_code}`,
+          });
+          
+          console.log('[Mark as Delivered] ✅ Delivery notification email sent to client');
+        }
+      } catch (emailError: any) {
+        console.error('[Mark as Delivered] Email sending failed (non-critical):', emailError.message);
+        // Don't throw - delivery confirmation still succeeds even if email fails
+      }
+      
       setSuccessMessage('✅ Work submitted! Client will be notified.');
 
       setTimeout(() => {

@@ -53,6 +53,8 @@ export async function notifyStageApproved(params: {
   freelancerName: string;
   projectName: string;
   stageName: string;
+  amount: string;
+  currency: string;
   clientName: string;
 }) {
   return sendEmail('stage_approved', params);
