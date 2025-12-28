@@ -117,7 +117,7 @@ export default async function handler(req, res) {
 
         console.log(`[Webhook] Payment succeeded for stage: ${stageId}`);
 
-        // Update stage payment status
+        // Update stage payment status (EXISTING LOGIC - DO NOT CHANGE)
         const paymentResponse = await fetch(
           `${supabaseUrl}/rest/v1/stage_payments?id=eq.${stageId}`,
           {
@@ -140,6 +140,18 @@ export default async function handler(req, res) {
           console.error(`[Webhook] Failed to update stage payment: ${paymentResponse.statusText}`);
         } else {
           console.log(`[Webhook] Stage ${stageId} marked as paid`);
+          
+          // ============================================
+          // NEW: SEND EMAIL NOTIFICATIONS
+          // ============================================
+          // This section is NEW and does NOT affect existing payment logic
+          // If emails fail, payment processing still succeeds
+          try {
+            await sendPaymentEmails(stageId, supabaseUrl, supabaseKey);
+          } catch (emailError) {
+            // Log error but don't fail the webhook
+            console.error('[Webhook] Email sending failed (non-critical):', emailError.message);
+          }
         }
         break;
       }
@@ -164,6 +176,99 @@ export default async function handler(req, res) {
     console.error(`[Webhook] Error processing event: ${error.message}`);
     console.error(error.stack);
     res.status(500).json({ error: 'Webhook processing failed' });
+  }
+}
+
+// ============================================
+// EMAIL NOTIFICATION HELPER (NEW FUNCTION)
+// ============================================
+async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
+  console.log(`[Webhook] Fetching stage details for email notifications: ${stageId}`);
+  
+  // Fetch stage, project, and user details
+  const stageResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stage_payments?id=eq.${stageId}&select=*,stages!inner(*,projects!inner(id,project_name,client_name,client_email,user_id,user_profiles!inner(email,full_name)))`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!stageResponse.ok) {
+    throw new Error(`Failed to fetch stage details: ${stageResponse.statusText}`);
+  }
+  
+  const stageData = await stageResponse.json();
+  
+  if (!stageData || stageData.length === 0) {
+    console.log('[Webhook] No stage data found for email');
+    return;
+  }
+  
+  const payment = stageData[0];
+  const stage = payment.stages;
+  const project = stage.projects;
+  const freelancer = project.user_profiles;
+  
+  console.log('[Webhook] Sending payment notification emails...');
+  
+  // Call the email API endpoint
+  const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+  
+  // Send payment received email to freelancer
+  try {
+    const freelancerEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'payment_received',
+        data: {
+          freelancerEmail: freelancer.email,
+          freelancerName: freelancer.full_name || 'there',
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          amount: (payment.amount / 100).toFixed(2),
+          currency: payment.currency || 'USD',
+        },
+      }),
+    });
+    
+    if (freelancerEmailResponse.ok) {
+      console.log('[Webhook] ✅ Payment received email sent to freelancer');
+    } else {
+      console.error('[Webhook] Failed to send freelancer email:', await freelancerEmailResponse.text());
+    }
+  } catch (error) {
+    console.error('[Webhook] Error sending freelancer email:', error.message);
+  }
+  
+  // Send payment confirmation email to client
+  try {
+    const clientEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'payment_confirmation',
+        data: {
+          clientEmail: project.client_email,
+          clientName: project.client_name,
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          amount: (payment.amount / 100).toFixed(2),
+          currency: payment.currency || 'USD',
+        },
+      }),
+    });
+    
+    if (clientEmailResponse.ok) {
+      console.log('[Webhook] ✅ Payment confirmation email sent to client');
+    } else {
+      console.error('[Webhook] Failed to send client email:', await clientEmailResponse.text());
+    }
+  } catch (error) {
+    console.error('[Webhook] Error sending client email:', error.message);
   }
 }
 

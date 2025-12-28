@@ -10,6 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { notifyPaymentConfirmation } from '../lib/email';
 
 interface Deliverable {
   id: string;
@@ -56,7 +57,6 @@ interface Project {
   total_amount: number;
   status: string;
   currency: CurrencyCode;
-  offline_instructions?: string;
 }
 
 export default function ProjectDetail() {
@@ -317,19 +317,17 @@ export default function ProjectDetail() {
 
   const markStagesAsViewed = async (stages: any[]) => {
     try {
-      // Mark stages as viewed if:
-      // 1. They have been approved and not viewed yet, OR
-      // 2. They have payment_status='received' and not viewed yet
-      const stageIdsToMark = stages
-        .filter(s => !s.viewed_by_freelancer_at && (s.approved_at || s.payment_status === 'received'))
+      // Only mark stages as viewed if they have been approved
+      const approvedStageIds = stages
+        .filter(s => s.approved_at && !s.viewed_by_freelancer_at)
         .map(s => s.id);
       
-      if (stageIdsToMark.length > 0) {
+      if (approvedStageIds.length > 0) {
         await supabase
           .from('stages')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
-          .in('id', stageIdsToMark);
-        console.log(`✅ Marked ${stageIdsToMark.length} stages as viewed`);
+          .in('id', approvedStageIds);
+        console.log(`✅ Marked ${approvedStageIds.length} approved stages as viewed`);
       }
 
       // Mark all unviewed revisions as viewed
@@ -657,33 +655,26 @@ export default function ProjectDetail() {
     }
   };
 
-  const rejectStagePayment = async (paymentId: string, stageId: string) => {
+  const rejectStagePayment = async (paymentId: string) => {
+    const reason = prompt('Why are you rejecting this payment? (This will be shown to the client)');
+    if (!reason) return;
+
     try {
-      // Update payment status to rejected
       await supabase
         .from('stage_payments')
         .update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
-          rejection_reason: 'Payment not received'
+          rejection_reason: reason
         })
         .eq('id', paymentId);
 
-      // Update stage status back to delivered so client can try again
-      await supabase
-        .from('stages')
-        .update({
-          status: 'delivered',
-          payment_status: 'unpaid'
-        })
-        .eq('id', stageId);
-
-      setSuccessMessage('Payment marked as not received. Client can retry payment.');
+      setSuccessMessage('Payment marked as not received. Client will be notified.');
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (err: any) {
-      alert('Failed to update payment status: ' + err.message);
+      alert('Failed to reject payment: ' + err.message);
     }
   };
 
@@ -785,6 +776,26 @@ export default function ProjectDetail() {
           .eq('id', id);
       }
 
+      // Send email notifications (wrapped in try-catch - won't break if fails)
+      try {
+        console.log('[ProjectDetail] Sending manual payment confirmation emails...');
+        
+        // Send confirmation email to client
+        await notifyPaymentConfirmation({
+          clientEmail: project.client_email,
+          clientName: project.client_name,
+          projectName: project.project_name,
+          stageName: selectedStageForPayment.name || `Stage ${selectedStageForPayment.stage_number}`,
+          amount: (selectedStageForPayment.amount / 100).toFixed(2),
+          currency: project.currency || 'USD',
+        });
+        
+        console.log('[ProjectDetail] ✅ Payment confirmation email sent to client');
+      } catch (emailError: any) {
+        console.error('[ProjectDetail] Email sending failed (non-critical):', emailError.message);
+        // Don't throw - payment confirmation still succeeds even if email fails
+      }
+
       setSuccessMessage('Payment marked as received!');
       setTimeout(() => setSuccessMessage(''), 3000);
       setShowMarkPaidModal(false);
@@ -827,14 +838,14 @@ export default function ProjectDetail() {
 
     // Determine which type to use
     const usingFreeRevision = freeRevisionsRemaining > 0;
-    const revisionType = usingFreeRevision ? 'included' : 'extra';
+    const revisionType = usingFreeRevision ? 'included' : 'extension';
     const remainingText = usingFreeRevision 
       ? `${freeRevisionsRemaining - 1} free revision${freeRevisionsRemaining - 1 !== 1 ? 's' : ''}`
-      : `${extensionRevisionsRemaining - 1} extra revision${extensionRevisionsRemaining - 1 !== 1 ? 's' : ''}`;
+      : `${extensionRevisionsRemaining - 1} extension revision${extensionRevisionsRemaining - 1 !== 1 ? 's' : ''}`;
 
     const confirmMessage = usingFreeRevision
       ? `Use 1 included revision?\n\nThis will deduct from your included revisions.\n${remainingText} will remain after this.\n\n⚠️ This cannot be undone.`
-      : `Use 1 extra revision?\n\nThis will deduct from your purchased revisions.\n${remainingText} will remain after this.\n\n⚠️ This cannot be undone.`;
+      : `Use 1 extension revision?\n\nThis will deduct from your purchased revisions.\n${remainingText} will remain after this.\n\n⚠️ This cannot be undone.`;
 
     if (!confirm(confirmMessage)) {
       return;
@@ -1075,11 +1086,7 @@ export default function ProjectDetail() {
   </div>
   <div className="flex items-center gap-4 flex-shrink-0">
 <button
-  onClick={() => {
-    loadProjectData();
-    loadPendingStagePayments();
-    loadPendingExtensions();
-  }}
+  onClick={() => loadProjectData()}
   className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
   title="Refresh"
 >
@@ -1121,7 +1128,53 @@ export default function ProjectDetail() {
           }}
         />
 
-        {/* Payment verification is shown inline in each stage card */}
+        {pendingStagePayments.length > 0 && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+            <h3 className="font-bold text-lg mb-3">
+              💰 Stage Payment Pending Verification
+            </h3>
+            {pendingStagePayments.map(payment => {
+              const stage = stages.find(s => s.id === payment.stage_id);
+              if (!stage) return null;
+
+              return (
+                <div key={payment.id} className="bg-white p-4 rounded mb-3 border">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-bold text-lg text-gray-900">
+                        Stage {stage.stage_number}: {stage.name}
+                      </p>
+                      <p className="text-2xl font-bold text-green-600 mt-1">
+                        {formatCurrency(payment.amount, project.currency || 'USD')}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2">
+                        Reference: {payment.reference_code}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Marked paid: {new Date(payment.marked_paid_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-4 justify-end">
+                    <button
+                      onClick={() => rejectStagePayment(payment.id)}
+                      className="px-4 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold"
+                    >
+                      ❌ Not Received
+                    </button>
+                    <button
+                      onClick={() => verifyStagePayment(payment.id, stage.id)}
+                      className="bg-green-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-600"
+                    >
+                      ✅ Verify Payment Received
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="space-y-8 sm:space-y-12">
           {stages.length === 0 ? (
@@ -1269,10 +1322,6 @@ export default function ProjectDetail() {
                             <CheckCircle className="w-5 h-5 text-green-600" />
                             <span className="font-semibold text-green-700">Paid ✓</span>
                           </div>
-                        ) : pendingStagePayments.some(p => p.stage_id === stage.id) ? (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-blue-400 rounded-lg">
-                            <span className="font-semibold text-blue-700">Pending Verification</span>
-                          </div>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <span className="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-sm font-semibold rounded-full text-center">
@@ -1291,50 +1340,6 @@ export default function ProjectDetail() {
                         )}
                       </div>
                     </div>
-
-                    {/* Payment Verification Details - Show inline */}
-                    {!isDownPaymentPaid && (() => {
-                      const pendingPayment = pendingStagePayments.find(p => p.stage_id === stage.id);
-                      if (!pendingPayment) return null;
-                      
-                      return (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4">
-                            <p className="font-semibold text-gray-900 mb-1">
-                              {project.client_name} marked this as paid
-                            </p>
-                            <p className="text-xl font-bold text-green-600 mb-2">
-                              {formatCurrency(pendingPayment.amount, project.currency || 'USD')}
-                            </p>
-                            
-                            <div className="text-sm text-gray-600 space-y-1 mb-3">
-                              {project.offline_instructions && (
-                                <p>Sent to: <span className="text-gray-900">{project.offline_instructions}</span></p>
-                              )}
-                              <p>Reference: <span className="font-mono text-blue-600">{pendingPayment.reference_code}</span></p>
-                              <p>{new Date(pendingPayment.marked_paid_at).toLocaleDateString('en-US', { 
-                                month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
-                              })}</p>
-                            </div>
-
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => rejectStagePayment(pendingPayment.id, stage.id)}
-                                className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
-                              >
-                                Not Received
-                              </button>
-                              <button
-                                onClick={() => verifyStagePayment(pendingPayment.id, stage.id)}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
-                              >
-                                Confirm Received
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
 
                     {isDownPaymentPaid && stage.payment_received_at && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
@@ -1415,117 +1420,35 @@ export default function ProjectDetail() {
                   deliverablesCount={stage.deliverables.length}
                 />
 
-                {/* Pending Extension Alert - Show inline in relevant stage */}
-                {(() => {
-                  const stageExtensions = pendingExtensions.filter(ext => ext.stage_id === stage.id);
-                  if (stageExtensions.length === 0) return null;
-                  
-                  return (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-4 mb-6">
-                      <p className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
-                        💎 Extra Revision Payment Pending
-                      </p>
-                      {stageExtensions.map(ext => (
-                        <div key={ext.id} className="mt-2">
-                          <p className="text-sm text-gray-700">
-                            {project.client_name} purchased an extra revision for <strong>{formatCurrency(ext.amount, project.currency || 'USD')}</strong>
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Reference: <span className="font-mono">{ext.reference_code}</span>
-                          </p>
-                          <div className="flex gap-2 mt-3">
-                            <button
-                              onClick={async () => {
-                                if (!confirm('Confirm that you have NOT received this payment?')) return;
-                                try {
-                                  await supabase.from('extensions').update({
-                                    status: 'rejected',
-                                    rejected_at: new Date().toISOString(),
-                                  }).eq('id', ext.id);
-                                  alert('Extension payment marked as not received.');
-                                  loadPendingExtensions();
-                                } catch (err: any) {
-                                  alert('Failed: ' + err.message);
-                                }
-                              }}
-                              className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
-                            >
-                              Not Received
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await supabase.from('extensions').update({
-                                    status: 'verified',
-                                    verified_at: new Date().toISOString(),
-                                  }).eq('id', ext.id);
-                                  
-                                  // Increment revisions_included
-                                  await supabase.from('stages').update({
-                                    revisions_included: (stage.revisions_included || 2) + 1,
-                                  }).eq('id', stage.id);
-                                  
-                                  alert('✅ Extension verified! Client can now request 1 more revision.');
-                                  loadProjectData();
-                                  loadPendingExtensions();
-                                } catch (err: any) {
-                                  alert('Failed: ' + err.message);
-                                }
-                              }}
-                              className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
-                            >
-                              Confirm Received
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-
-                {/* Payment Status Display - Show full details inline */}
-                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (() => {
-                  const pendingPayment = pendingStagePayments.find(p => p.stage_id === stage.id);
-                  
-                  if (pendingPayment) {
-                    return (
-                      <div className="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4 mb-6">
-                        <p className="font-semibold text-gray-900 mb-1">
-                          {project.client_name} marked this stage as paid
-                        </p>
-                        <p className="text-xl font-bold text-green-600 mb-2">
-                          {formatCurrency(pendingPayment.amount, project.currency || 'USD')}
-                        </p>
-                        
-                        <div className="text-sm text-gray-600 space-y-1 mb-3">
-                          {project.offline_instructions && (
-                            <p>Sent to: <span className="text-gray-900">{project.offline_instructions}</span></p>
-                          )}
-                          <p>Reference: <span className="font-mono text-blue-600">{pendingPayment.reference_code}</span></p>
-                          <p>{new Date(pendingPayment.marked_paid_at).toLocaleDateString('en-US', { 
-                            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
-                          })}</p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => rejectStagePayment(pendingPayment.id, stage.id)}
-                            className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700 transition-colors text-sm"
-                          >
-                            Not Received
-                          </button>
-                          <button
-                            onClick={() => verifyStagePayment(pendingPayment.id, stage.id)}
-                            className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
-                          >
-                            Confirm Received
-                          </button>
-                        </div>
+                {/* Payment Status Display with Mark as Paid Button */}
+                {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
+                  <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-orange-400 rounded-full p-2 flex-shrink-0">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
-                    );
-                  }
-                  return null;
-                })()}
+                      <div>
+                        <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
+                          Unpaid
+                        </span>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Client has marked payment as sent
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedStageForPayment(stage);
+                        setShowMarkPaidModal(true);
+                      }}
+                      className="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
+                    >
+                      Mark as Paid
+                    </button>
+                  </div>
+                )}
 
                 {stage.revisions_used > 0 && (
                   <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg shadow-lg overflow-hidden">
@@ -1782,7 +1705,6 @@ export default function ProjectDetail() {
                     stage={stage}
                     onMarkRevisionUsed={handleMarkRevisionUsed}
                     isMarkingRevisionUsed={markingRevisionUsedStageId === stage.id}
-                    disabled={stage.status === 'locked'}
                   />
                 </div>
 
