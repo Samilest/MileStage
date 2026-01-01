@@ -38,25 +38,34 @@ export default async function handler(req, res) {
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                @media only screen and (max-width: 600px) {
+                    .mobile-logo { height: 32px !important; margin-bottom: 16px !important; }
+                    .mobile-title { font-size: 24px !important; }
+                    .header-padding { padding: 32px 20px !important; }
+                    .content-padding { padding: 32px 20px !important; }
+                }
+            </style>
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
             <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
               <tr>
                 <td align="center">
                   <!-- Email Container -->
-                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-                    <!-- Header -->
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <!-- Header with Logo -->
                     <tr>
-                      <td style="padding: 40px 40px 20px 40px; text-align: center;">
-                        <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #111827;">
-                          You've Been Invited to a Project
-                        </h1>
+                      <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
+                        <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                        <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                          You've Been Invited!
+                        </div>
                       </td>
                     </tr>
                     
                     <!-- Content -->
                     <tr>
-                      <td style="padding: 0 40px 40px 40px;">
+                      <td class="content-padding" style="padding: 48px 40px;">
                         <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #374151;">
                           Hi ${clientName || 'there'},
                         </p>

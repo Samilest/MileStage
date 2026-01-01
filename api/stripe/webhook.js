@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
         // Update stage payment status (EXISTING LOGIC - DO NOT CHANGE)
         const paymentResponse = await fetch(
-          `${supabaseUrl}/rest/v1/stage_payments?id=eq.${stageId}`,
+          `${supabaseUrl}/rest/v1/stage_payments?stage_id=eq.${stageId}`,
           {
             method: 'PATCH',
             headers: {
@@ -186,8 +186,9 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
   console.log(`[Webhook] Fetching stage details for email notifications: ${stageId}`);
   
   // Fetch stage, project, and user details
+  // Note: stageId is the stages.id, not stage_payments.id
   const stageResponse = await fetch(
-    `${supabaseUrl}/rest/v1/stage_payments?id=eq.${stageId}&select=*,stages!inner(*,projects!inner(id,project_name,client_name,client_email,user_id,user_profiles!inner(email,full_name)))`,
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,full_name))`,
     {
       headers: {
         'apikey': supabaseKey,
@@ -207,12 +208,15 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
     return;
   }
   
-  const payment = stageData[0];
-  const stage = payment.stages;
+  const stage = stageData[0];
   const project = stage.projects;
   const freelancer = project.user_profiles;
   
   console.log('[Webhook] Sending payment notification emails...');
+  console.log('[Webhook] Stage:', stage.name);
+  console.log('[Webhook] Project:', project.project_name);
+  console.log('[Webhook] Freelancer email:', freelancer.email);
+  console.log('[Webhook] Client email:', project.client_email);
   
   // Call the email API endpoint
   const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
@@ -229,8 +233,8 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
           freelancerName: freelancer.full_name || 'there',
           projectName: project.project_name,
           stageName: stage.name || `Stage ${stage.stage_number}`,
-          amount: (payment.amount / 100).toFixed(2),
-          currency: payment.currency || 'USD',
+          amount: (stage.amount / 100).toFixed(2),
+          currency: project.currency || 'USD',
         },
       }),
     });
@@ -256,8 +260,8 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
           clientName: project.client_name,
           projectName: project.project_name,
           stageName: stage.name || `Stage ${stage.stage_number}`,
-          amount: (payment.amount / 100).toFixed(2),
-          currency: payment.currency || 'USD',
+          amount: (stage.amount / 100).toFixed(2),
+          currency: project.currency || 'USD',
           portalUrl: `https://milestage.com/client/${project.share_code}`,
         },
       }),

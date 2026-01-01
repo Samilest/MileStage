@@ -66,7 +66,7 @@ serve(async (req) => {
                     <!-- Header -->
                     <tr>
                         <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
-                            <img src="https://milestage.com/assets/milestage-logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 Welcome to MileStage!
                             </div>
