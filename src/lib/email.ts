@@ -82,3 +82,29 @@ export async function notifyPaymentConfirmation(params: {
 }) {
   return sendEmail('payment_confirmation', params);
 }
+
+export async function notifyPaymentMarked(params: {
+  freelancerEmail: string;
+  freelancerName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  clientName: string;
+  referenceCode: string;
+}) {
+  return sendEmail('payment_marked', params);
+}
+
+export async function notifyExtensionPurchased(params: {
+  freelancerEmail: string;
+  freelancerName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  clientName: string;
+  referenceCode: string;
+}) {
+  return sendEmail('extension_purchased', params);
+}

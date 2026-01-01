@@ -19,7 +19,7 @@ import {
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
-import { notifyRevisionRequested, notifyStageApproved } from '../lib/email';
+import { notifyRevisionRequested, notifyStageApproved, notifyPaymentMarked, notifyExtensionPurchased } from '../lib/email';
 import NoteBox from './NoteBox';
 import StageProgress from './StageProgress';
 import ExtensionPurchaseModal from './ExtensionPurchaseModal';
@@ -424,7 +424,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
       // Send email notification to freelancer (wrapped in try-catch - won't break if fails)
       try {
-        console.log('[Stage Approved] Sending notification email to freelancer...');
+        console.log('[Payment Marked] Sending notification email to freelancer...');
         
         if (projectId) {
           // Fetch project details for email
@@ -435,21 +435,26 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             .single();
           
           if (projectData && projectData.user_profiles) {
-            await notifyStageApproved({
+            await notifyPaymentMarked({
               freelancerEmail: projectData.user_profiles.email,
               freelancerName: projectData.user_profiles.full_name,
               projectName: projectData.project_name,
               stageName: stage.name || `Stage ${stage.stage_number}`,
               amount: (stage.amount / 100).toFixed(2),
               currency: currency || 'USD',
-              clientName: projectData.client_name,
+              clientName: projectData.client_name || 'Your client',
+              referenceCode: referenceCode,
             });
             
-            console.log('[Stage Approved] ✅ Approval notification email sent to freelancer');
+            console.log('[Payment Marked] ✅ Payment notification email sent to freelancer');
+          } else {
+            console.log('[Payment Marked] No project data found for email');
           }
+        } else {
+          console.log('[Payment Marked] No projectId available for email');
         }
       } catch (emailError: any) {
-        console.error('[Stage Approved] Email sending failed (non-critical):', emailError.message);
+        console.error('[Payment Marked] Email sending failed (non-critical):', emailError.message);
         // Don't throw - payment marking still succeeds even if email fails
       }
 
