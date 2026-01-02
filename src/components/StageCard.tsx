@@ -133,8 +133,50 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
     loadData();
 
+    // Subscribe to stage_payments changes for real-time updates
+    const stagePaymentsChannel = supabase
+      .channel(`stage-payments-${stage.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'stage_payments',
+          filter: `stage_id=eq.${stage.id}`,
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[StageCard] stage_payments changed:', payload);
+          // Reload payment status when any change occurs
+          checkStagePaymentStatus(isMounted);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to stages changes for status updates
+    const stagesChannel = supabase
+      .channel(`stage-status-${stage.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stages',
+          filter: `id=eq.${stage.id}`,
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[StageCard] stage updated:', payload);
+          // Reload payment status when stage is updated
+          checkStagePaymentStatus(isMounted);
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
+      supabase.removeChannel(stagePaymentsChannel);
+      supabase.removeChannel(stagesChannel);
     };
   }, [stage.id, extensionsKey]);
 

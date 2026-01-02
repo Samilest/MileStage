@@ -1563,6 +1563,23 @@ export default function ProjectDetail() {
                   deliverablesCount={stage.deliverables.length}
                 />
 
+                {/* Show locked message and hide all content for locked stages */}
+                {stage.status === 'locked' ? (
+                  <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 sm:p-12 text-center">
+                    <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">
+                      🔒 Stage Locked
+                    </p>
+                    <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
+                      This stage will unlock once the previous stage is completed and payment is received.
+                    </p>
+                  </div>
+                ) : (
+                  <>
                 {/* Payment Status Display with Mark as Paid Button */}
                 {stage.status === 'payment_pending' && stage.payment_status !== 'received' && (
                   <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1890,10 +1907,7 @@ export default function ProjectDetail() {
                   </div>
                 )}
 
-                {stage.status === 'locked' && (
-                  <div className="mt-6">
-                    {renderStageActionButton(stage)}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
