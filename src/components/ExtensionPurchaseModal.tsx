@@ -1,11 +1,14 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { notifyExtensionPurchased } from '../lib/email';
 
 interface ExtensionPurchaseModalProps {
   stageId: string;
   stageName: string;
   extensionPrice: number;
+  projectId?: string;
+  currency?: string;
   paymentMethods: {
     paypal?: string;
     venmo?: string;
@@ -20,6 +23,8 @@ export default function ExtensionPurchaseModal({
   stageId,
   stageName,
   extensionPrice,
+  projectId,
+  currency = 'USD',
   paymentMethods,
   manualPaymentInstructions,
   onClose,
@@ -44,6 +49,42 @@ export default function ExtensionPurchaseModal({
       });
 
       if (error) throw error;
+
+      // Send email notification to freelancer
+      try {
+        console.log('[Extension Purchase] Sending notification email to freelancer...');
+        
+        if (projectId) {
+          // Fetch project details for email
+          const { data: projectData } = await supabase
+            .from('projects')
+            .select('project_name, client_name, user_id, user_profiles!inner(email, full_name)')
+            .eq('id', projectId)
+            .single();
+          
+          if (projectData && projectData.user_profiles) {
+            await notifyExtensionPurchased({
+              freelancerEmail: projectData.user_profiles.email,
+              freelancerName: projectData.user_profiles.full_name,
+              projectName: projectData.project_name,
+              stageName: stageName,
+              amount: extensionPrice.toString(),
+              currency: currency,
+              clientName: projectData.client_name || 'Your client',
+              referenceCode: referenceCode,
+            });
+            
+            console.log('[Extension Purchase] ✅ Email sent to freelancer');
+          } else {
+            console.log('[Extension Purchase] No project data found for email');
+          }
+        } else {
+          console.log('[Extension Purchase] No projectId available for email');
+        }
+      } catch (emailError: any) {
+        console.error('[Extension Purchase] Email sending failed (non-critical):', emailError.message);
+        // Don't throw - extension marking still succeeds even if email fails
+      }
 
       alert('Extra revision payment marked! Waiting for freelancer to verify.');
       window.location.reload();

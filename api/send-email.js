@@ -35,6 +35,12 @@ export default async function handler(req, res) {
       case 'extension_purchased':
         emailData = await buildExtensionPurchasedEmail(data);
         break;
+      case 'payment_verified':
+        emailData = await buildPaymentVerifiedEmail(data);
+        break;
+      case 'payment_rejected':
+        emailData = await buildPaymentRejectedEmail(data);
+        break;
       default:
         return res.status(400).json({ error: 'Invalid email type' });
     }
@@ -809,3 +815,203 @@ function generateExtensionPurchasedHTML(data) {
 </html>`;
 }
 
+
+// ============================================
+// PAYMENT VERIFIED - To Client
+// ============================================
+
+async function buildPaymentVerifiedEmail(data) {
+  const { clientEmail, clientName, projectName, stageName, amount, currency, freelancerName, portalUrl } = data;
+  
+  return {
+    from: 'MileStage <notifications@milestage.com>',
+    to: clientEmail,
+    subject: `✅ Payment Verified - ${stageName} on ${projectName}`,
+    html: generatePaymentVerifiedHTML(data),
+  };
+}
+
+function generatePaymentVerifiedHTML(data) {
+  const { clientName, projectName, stageName, amount, currency, freelancerName, portalUrl } = data;
+  const name = clientName || 'there';
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Verified</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .mobile-logo { height: 32px !important; margin-bottom: 16px !important; }
+            .mobile-title { font-size: 24px !important; }
+            .header-padding { padding: 32px 20px !important; }
+            .content-padding { padding: 32px 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <tr>
+                        <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                                ✅ Payment Verified!
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content-padding" style="padding: 48px 40px;">
+                            <div style="font-size: 18px; color: #111827; margin-bottom: 24px; line-height: 1.6;">
+                                Hi <strong>${name}</strong>,
+                            </div>
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
+                                Great news! <strong>${freelancerName}</strong> has verified your payment for <strong>${stageName}</strong> on <strong>${projectName}</strong>.
+                            </div>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ECFDF5; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 32px;">
+                                <tr>
+                                    <td style="padding: 28px 32px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: #065F46; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Payment Confirmed</div>
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">Amount</div>
+                                            <div style="font-size: 24px; font-weight: 700; color: #047857;">${currency}${amount}</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">Stage</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #047857;">${stageName}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="font-size: 16px; color: #374151; line-height: 1.7; margin-bottom: 32px;">
+                                The stage is now complete and the next stage has been unlocked.
+                            </div>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0 24px 0;">
+                                        <a href="${portalUrl}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                            View Project
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb;">
+                            <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                                Sent via MileStage<br/>
+                                <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Visit MileStage</a>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+}
+
+// ============================================
+// PAYMENT REJECTED - To Client
+// ============================================
+
+async function buildPaymentRejectedEmail(data) {
+  const { clientEmail, clientName, projectName, stageName, amount, currency, freelancerName, portalUrl } = data;
+  
+  return {
+    from: 'MileStage <notifications@milestage.com>',
+    to: clientEmail,
+    subject: `❌ Payment Not Received - ${stageName} on ${projectName}`,
+    html: generatePaymentRejectedHTML(data),
+  };
+}
+
+function generatePaymentRejectedHTML(data) {
+  const { clientName, projectName, stageName, amount, currency, freelancerName, portalUrl } = data;
+  const name = clientName || 'there';
+  
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Not Received</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .mobile-logo { height: 32px !important; margin-bottom: 16px !important; }
+            .mobile-title { font-size: 24px !important; }
+            .header-padding { padding: 32px 20px !important; }
+            .content-padding { padding: 32px 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <tr>
+                        <td class="header-padding" style="background-color: #EF4444; padding: 48px 40px; text-align: center;">
+                            <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
+                            <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
+                                ❌ Payment Not Received
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content-padding" style="padding: 48px 40px;">
+                            <div style="font-size: 18px; color: #111827; margin-bottom: 24px; line-height: 1.6;">
+                                Hi <strong>${name}</strong>,
+                            </div>
+                            <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
+                                <strong>${freelancerName}</strong> could not verify your payment for <strong>${stageName}</strong> on <strong>${projectName}</strong>.
+                            </div>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FEF2F2; border-left: 4px solid #EF4444; border-radius: 8px; margin-bottom: 32px;">
+                                <tr>
+                                    <td style="padding: 28px 32px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: #991B1B; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Payment Issue</div>
+                                        <div style="margin-bottom: 16px;">
+                                            <div style="font-size: 14px; color: #991B1B; margin-bottom: 4px;">Amount</div>
+                                            <div style="font-size: 24px; font-weight: 700; color: #B91C1C;">${currency}${amount}</div>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 14px; color: #991B1B; margin-bottom: 4px;">Stage</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #B91C1C;">${stageName}</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="font-size: 16px; color: #374151; line-height: 1.7; margin-bottom: 32px;">
+                                Please try again or contact the freelancer directly to resolve this issue.
+                            </div>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 8px 0 24px 0;">
+                                        <a href="${portalUrl}" style="display: inline-block; background-color: #EF4444; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                            Try Again
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb;">
+                            <div style="text-align: center; font-size: 12px; color: #9CA3AF; line-height: 1.6;">
+                                Sent via MileStage<br/>
+                                <a href="https://milestage.com" style="color: #10B981; text-decoration: none;">Visit MileStage</a>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+}

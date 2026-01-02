@@ -108,3 +108,29 @@ export async function notifyExtensionPurchased(params: {
 }) {
   return sendEmail('extension_purchased', params);
 }
+
+export async function notifyPaymentVerified(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  freelancerName: string;
+  portalUrl: string;
+}) {
+  return sendEmail('payment_verified', params);
+}
+
+export async function notifyPaymentRejected(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  freelancerName: string;
+  portalUrl: string;
+}) {
+  return sendEmail('payment_rejected', params);
+}

@@ -10,7 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { notifyPaymentConfirmation, notifyStageDelivered } from '../lib/email';
+import { notifyPaymentConfirmation, notifyStageDelivered, notifyPaymentVerified, notifyPaymentRejected } from '../lib/email';
 
 interface Deliverable {
   id: string;
@@ -57,6 +57,7 @@ interface Project {
   total_amount: number;
   status: string;
   currency: CurrencyCode;
+  share_code: string;
 }
 
 export default function ProjectDetail() {
@@ -610,13 +611,6 @@ export default function ProjectDetail() {
         console.log('[Mark as Delivered] Sending notification email to client...');
         
         if (project && project.client_email) {
-          // Get freelancer info from project
-          const { data: freelancerData } = await supabase
-            .from('user_profiles')
-            .select('full_name')
-            .eq('id', project.user_id)
-            .single();
-          
           const stageInfo = stages.find(s => s.id === stageId);
           
           await notifyStageDelivered({
@@ -624,7 +618,7 @@ export default function ProjectDetail() {
             clientName: project.client_name || 'there',
             projectName: project.project_name,
             stageName: stageInfo?.name || 'Stage',
-            freelancerName: freelancerData?.full_name || 'Your freelancer',
+            freelancerName: userName || 'Your freelancer',
             portalUrl: `https://milestage.com/client/${project.share_code}`,
           });
           
@@ -677,6 +671,28 @@ export default function ProjectDetail() {
           .eq('id', nextStage.id);
       }
 
+      // Send email notification to client (payment verified)
+      try {
+        console.log('[Payment Verified] Sending confirmation email to client...');
+        const stageInfo = stages.find(s => s.id === stageId);
+        
+        if (project && project.client_email) {
+          await notifyPaymentVerified({
+            clientEmail: project.client_email,
+            clientName: project.client_name || 'there',
+            projectName: project.project_name,
+            stageName: stageInfo?.name || `Stage ${stageInfo?.stage_number || ''}`,
+            amount: ((stageInfo?.amount || 0) / 100).toFixed(2),
+            currency: project.currency || 'USD',
+            freelancerName: userName || 'Your freelancer',
+            portalUrl: `https://milestage.com/client/${project.share_code}`,
+          });
+          console.log('[Payment Verified] ✅ Email sent to client');
+        }
+      } catch (emailError: any) {
+        console.error('[Payment Verified] Email failed (non-critical):', emailError.message);
+      }
+
       setSuccessMessage('✅ Payment verified! Stage completed. Next stage unlocked.');
       setTimeout(() => {
         window.location.reload();
@@ -715,6 +731,28 @@ export default function ProjectDetail() {
 
       if (stageError) {
         console.error('Stage reset error:', stageError);
+      }
+
+      // Send email notification to client (payment rejected)
+      try {
+        console.log('[Payment Rejected] Sending notification email to client...');
+        const stageInfo = stages.find(s => s.id === stageId);
+        
+        if (project && project.client_email) {
+          await notifyPaymentRejected({
+            clientEmail: project.client_email,
+            clientName: project.client_name || 'there',
+            projectName: project.project_name,
+            stageName: stageInfo?.name || `Stage ${stageInfo?.stage_number || ''}`,
+            amount: ((stageInfo?.amount || 0) / 100).toFixed(2),
+            currency: project.currency || 'USD',
+            freelancerName: userName || 'Your freelancer',
+            portalUrl: `https://milestage.com/client/${project.share_code}`,
+          });
+          console.log('[Payment Rejected] ✅ Email sent to client');
+        }
+      } catch (emailError: any) {
+        console.error('[Payment Rejected] Email failed (non-critical):', emailError.message);
       }
 
       setSuccessMessage('Payment marked as not received. Client can try again.');

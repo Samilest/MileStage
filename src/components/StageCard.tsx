@@ -1362,6 +1362,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           stageId={stage.id}
           stageName={stage.name}
           extensionPrice={stage.extension_price}
+          projectId={projectId}
           currency={currency}
           paymentMethods={paymentMethods}
           manualPaymentInstructions={manualPaymentInstructions}
