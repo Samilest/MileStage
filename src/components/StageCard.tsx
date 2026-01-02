@@ -459,6 +459,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 currency: currency || 'USD',
                 clientName: projectData.client_name || 'Your client',
                 referenceCode: referenceCode,
+                projectId: projectId,
               });
               
               console.log('[Payment Marked] ✅ Payment notification email sent to freelancer');
@@ -613,6 +614,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 stageName: stage.name || `Stage ${stage.stage_number}`,
                 feedback: trimmed,
                 clientName: authorName || 'Your client',
+                projectId: projectId,
               });
               
               console.log('[Revision Request] ✅ Revision notification email sent to freelancer');

@@ -87,6 +87,7 @@ export default function ExtensionPurchaseModal({
                 currency: currency,
                 clientName: projectData.client_name || 'Your client',
                 referenceCode: referenceCode,
+                projectId: projectId,
               });
               
               console.log('[Extension Purchase] ✅ Email sent to freelancer');

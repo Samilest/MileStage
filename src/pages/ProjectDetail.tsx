@@ -10,7 +10,7 @@ import RealtimeStatus from '../components/RealtimeStatus';
 import { formatCurrency, getCurrencySymbol, type CurrencyCode } from '../lib/currency';
 import { ArrowLeft, Plus, FileText, ExternalLink, Trash2, X, Unlock, CheckCircle, MessageSquare, ChevronDown, ChevronUp, Edit, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { notifyPaymentConfirmation, notifyStageDelivered, notifyPaymentVerified, notifyPaymentRejected } from '../lib/email';
+import { notifyPaymentConfirmation, notifyStageDelivered, notifyPaymentVerified, notifyPaymentRejected, notifyExtensionVerified, notifyExtensionRejected, notifyProjectCompleted } from '../lib/email';
 
 interface Deliverable {
   id: string;
@@ -693,6 +693,42 @@ export default function ProjectDetail() {
         console.error('[Payment Verified] Email failed (non-critical):', emailError.message);
       }
 
+      // Check if project is completed (last stage was paid)
+      const currentStageInfo = stages.find(s => s.id === stageId);
+      const isLastStage = currentStageInfo && currentStageInfo.stage_number === stages.filter(s => s.stage_number > 0).length;
+      
+      if (isLastStage) {
+        // Update project status to completed
+        try {
+          await supabase
+            .from('projects')
+            .update({ status: 'completed' })
+            .eq('id', projectId);
+          
+          console.log('[Project Completed] Project marked as completed');
+          
+          // Send completion email to freelancer
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user?.email && project) {
+            const totalAmount = stages.reduce((sum, s) => sum + (s.amount || 0), 0);
+            
+            await notifyProjectCompleted({
+              freelancerEmail: userData.user.email,
+              freelancerName: userName || 'there',
+              projectName: project.project_name,
+              clientName: project.client_name || 'Client',
+              totalAmount: totalAmount.toString(),
+              currency: project.currency || 'USD',
+              projectId: projectId || '',
+            });
+            
+            console.log('[Project Completed] ✅ Completion email sent to freelancer');
+          }
+        } catch (completionError: any) {
+          console.error('[Project Completed] Error:', completionError.message);
+        }
+      }
+
       setSuccessMessage('✅ Payment verified! Stage completed. Next stage unlocked.');
       setTimeout(() => {
         window.location.reload();
@@ -1218,6 +1254,13 @@ export default function ProjectDetail() {
             loadProjectData();
             loadPendingExtensions();
           }}
+          projectId={projectId}
+          projectName={project?.project_name}
+          clientEmail={project?.client_email}
+          clientName={project?.client_name}
+          freelancerName={userName}
+          shareCode={project?.share_code}
+          currency={project?.currency || 'USD'}
         />
 
         {pendingStagePayments.length > 0 && (

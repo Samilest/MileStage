@@ -17,7 +17,7 @@ export async function sendEmail(type: string, data: any) {
     const result = await response.json();
     console.log(`[Email] Sent ${type}:`, result.id);
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[Email] Failed to send ${type}:`, error);
     // Don't throw - email failures shouldn't break the app
     return { error: error.message };
@@ -67,6 +67,7 @@ export async function notifyRevisionRequested(params: {
   stageName: string;
   clientName: string;
   feedback?: string;
+  projectId?: string;
 }) {
   return sendEmail('revision_requested', params);
 }
@@ -92,6 +93,7 @@ export async function notifyPaymentMarked(params: {
   currency: string;
   clientName: string;
   referenceCode: string;
+  projectId?: string;
 }) {
   return sendEmail('payment_marked', params);
 }
@@ -105,6 +107,7 @@ export async function notifyExtensionPurchased(params: {
   currency: string;
   clientName: string;
   referenceCode: string;
+  projectId?: string;
 }) {
   return sendEmail('extension_purchased', params);
 }
@@ -133,4 +136,44 @@ export async function notifyPaymentRejected(params: {
   portalUrl: string;
 }) {
   return sendEmail('payment_rejected', params);
+}
+
+// Extension verify/reject emails to client
+export async function notifyExtensionVerified(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  freelancerName: string;
+  portalUrl: string;
+}) {
+  return sendEmail('extension_verified', params);
+}
+
+export async function notifyExtensionRejected(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  stageName: string;
+  amount: string;
+  currency: string;
+  freelancerName: string;
+  portalUrl: string;
+}) {
+  return sendEmail('extension_rejected', params);
+}
+
+// Project completed email to freelancer
+export async function notifyProjectCompleted(params: {
+  freelancerEmail: string;
+  freelancerName: string;
+  projectName: string;
+  clientName: string;
+  totalAmount: string;
+  currency: string;
+  projectId: string;
+}) {
+  return sendEmail('project_completed', params);
 }
