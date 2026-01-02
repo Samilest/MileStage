@@ -682,7 +682,7 @@ export default function ProjectDetail() {
             clientName: project.client_name || 'there',
             projectName: project.project_name,
             stageName: stageInfo?.name || `Stage ${stageInfo?.stage_number || ''}`,
-            amount: ((stageInfo?.amount || 0) / 100).toFixed(2),
+            amount: (stageInfo?.amount || 0).toString(),
             currency: project.currency || 'USD',
             freelancerName: userName || 'Your freelancer',
             portalUrl: `https://milestage.com/client/${project.share_code}`,
@@ -744,7 +744,7 @@ export default function ProjectDetail() {
             clientName: project.client_name || 'there',
             projectName: project.project_name,
             stageName: stageInfo?.name || `Stage ${stageInfo?.stage_number || ''}`,
-            amount: ((stageInfo?.amount || 0) / 100).toFixed(2),
+            amount: (stageInfo?.amount || 0).toString(),
             currency: project.currency || 'USD',
             freelancerName: userName || 'Your freelancer',
             portalUrl: `https://milestage.com/client/${project.share_code}`,
@@ -873,7 +873,7 @@ export default function ProjectDetail() {
           clientName: project.client_name,
           projectName: project.project_name,
           stageName: selectedStageForPayment.name || `Stage ${selectedStageForPayment.stage_number}`,
-          amount: (selectedStageForPayment.amount / 100).toFixed(2),
+          amount: selectedStageForPayment.amount.toString(),
           currency: project.currency || 'USD',
         });
         

@@ -425,30 +425,48 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       // Send email notification to freelancer (wrapped in try-catch - won't break if fails)
       try {
         console.log('[Payment Marked] Sending notification email to freelancer...');
+        console.log('[Payment Marked] projectId:', projectId);
         
         if (projectId) {
-          // Fetch project details for email
-          const { data: projectData } = await supabase
+          // Fetch project details
+          const { data: projectData, error: projectError } = await supabase
             .from('projects')
-            .select('project_name, client_name, user_id, user_profiles!inner(email, full_name)')
+            .select('project_name, client_name, user_id')
             .eq('id', projectId)
             .single();
           
-          if (projectData && projectData.user_profiles) {
-            await notifyPaymentMarked({
-              freelancerEmail: projectData.user_profiles.email,
-              freelancerName: projectData.user_profiles.full_name,
-              projectName: projectData.project_name,
-              stageName: stage.name || `Stage ${stage.stage_number}`,
-              amount: (stage.amount / 100).toFixed(2),
-              currency: currency || 'USD',
-              clientName: projectData.client_name || 'Your client',
-              referenceCode: referenceCode,
-            });
+          console.log('[Payment Marked] projectData:', projectData);
+          console.log('[Payment Marked] projectError:', projectError);
+          
+          if (projectData && projectData.user_id) {
+            // Fetch freelancer email separately
+            const { data: freelancerData, error: freelancerError } = await supabase
+              .from('user_profiles')
+              .select('email, name')
+              .eq('id', projectData.user_id)
+              .single();
             
-            console.log('[Payment Marked] ✅ Payment notification email sent to freelancer');
+            console.log('[Payment Marked] freelancerData:', freelancerData);
+            console.log('[Payment Marked] freelancerError:', freelancerError);
+            
+            if (freelancerData && freelancerData.email) {
+              await notifyPaymentMarked({
+                freelancerEmail: freelancerData.email,
+                freelancerName: freelancerData.name || 'there',
+                projectName: projectData.project_name,
+                stageName: stage.name || `Stage ${stage.stage_number}`,
+                amount: stage.amount.toString(),
+                currency: currency || 'USD',
+                clientName: projectData.client_name || 'Your client',
+                referenceCode: referenceCode,
+              });
+              
+              console.log('[Payment Marked] ✅ Payment notification email sent to freelancer');
+            } else {
+              console.log('[Payment Marked] No freelancer email found');
+            }
           } else {
-            console.log('[Payment Marked] No project data found for email');
+            console.log('[Payment Marked] No project data or user_id found');
           }
         } else {
           console.log('[Payment Marked] No projectId available for email');
@@ -563,27 +581,49 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       // Send email notification to freelancer (wrapped in try-catch - won't break if fails)
       try {
         console.log('[Revision Request] Sending notification email to freelancer...');
+        console.log('[Revision Request] projectId:', projectId);
         
         if (projectId) {
-          // Fetch project details for email
-          const { data: projectData } = await supabase
+          // Fetch project details
+          const { data: projectData, error: projectError } = await supabase
             .from('projects')
-            .select('project_name, user_id, user_profiles!inner(email, full_name)')
+            .select('project_name, client_name, user_id')
             .eq('id', projectId)
             .single();
           
-          if (projectData && projectData.user_profiles) {
-            await notifyRevisionRequested({
-              freelancerEmail: projectData.user_profiles.email,
-              freelancerName: projectData.user_profiles.full_name,
-              projectName: projectData.project_name,
-              stageName: stage.name || `Stage ${stage.stage_number}`,
-              feedback: trimmed,
-              clientName: authorName || 'Your client',
-            });
+          console.log('[Revision Request] projectData:', projectData);
+          console.log('[Revision Request] projectError:', projectError);
+          
+          if (projectData && projectData.user_id) {
+            // Fetch freelancer email separately
+            const { data: freelancerData, error: freelancerError } = await supabase
+              .from('user_profiles')
+              .select('email, name')
+              .eq('id', projectData.user_id)
+              .single();
             
-            console.log('[Revision Request] ✅ Revision notification email sent to freelancer');
+            console.log('[Revision Request] freelancerData:', freelancerData);
+            console.log('[Revision Request] freelancerError:', freelancerError);
+            
+            if (freelancerData && freelancerData.email) {
+              await notifyRevisionRequested({
+                freelancerEmail: freelancerData.email,
+                freelancerName: freelancerData.name || 'there',
+                projectName: projectData.project_name,
+                stageName: stage.name || `Stage ${stage.stage_number}`,
+                feedback: trimmed,
+                clientName: authorName || 'Your client',
+              });
+              
+              console.log('[Revision Request] ✅ Revision notification email sent to freelancer');
+            } else {
+              console.log('[Revision Request] No freelancer email found');
+            }
+          } else {
+            console.log('[Revision Request] No project data or user_id found');
           }
+        } else {
+          console.log('[Revision Request] No projectId available for email');
         }
       } catch (emailError: any) {
         console.error('[Revision Request] Email sending failed (non-critical):', emailError.message);
@@ -650,22 +690,25 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const isCompleted = stage.status === 'completed' || stage.status === 'complete';
 
   if (stage.stage_number === 0) {
-    const isPaid = actualPaymentStatus === 'received' || stage.payment_status === 'received';
+    const isPaid = actualPaymentStatus === 'received' || actualPaymentStatus === 'paid' || stage.payment_status === 'received';
+    const hasPendingPayment = pendingPayments.length > 0;
+    const hasRejectedPayment = rejectedPayments.length > 0;
+    
     return (
       <div
         className={`bg-white border-2 ${
-          isPaid ? 'border-green-500' : 'border-yellow-400'
+          isPaid ? 'border-green-500' : hasPendingPayment ? 'border-green-400' : 'border-yellow-400'
         } rounded-xl overflow-hidden shadow-md`}
       >
         <div className={`${
-          isPaid ? 'bg-green-50' : 'bg-yellow-50'
+          isPaid ? 'bg-green-50' : hasPendingPayment ? 'bg-green-50' : 'bg-yellow-50'
         } px-4 sm:px-6 py-5 sm:py-6 space-y-4`}>
           <div className="flex items-start gap-3">
             <div className={`${
-              isPaid ? 'bg-green-100' : 'bg-yellow-100'
+              isPaid ? 'bg-green-100' : hasPendingPayment ? 'bg-green-100' : 'bg-yellow-100'
             } rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
               <DollarSign className={`w-5 h-5 ${
-                isPaid ? 'text-green-600' : 'text-yellow-600'
+                isPaid ? 'text-green-600' : hasPendingPayment ? 'text-green-600' : 'text-yellow-600'
               }`} />
             </div>
             <div className="flex-1 min-w-0">
@@ -673,9 +716,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 Stage 0: Down Payment
               </h3>
               <span className={`text-base font-semibold ${
-                isPaid ? 'text-green-600' : 'text-yellow-600'
+                isPaid ? 'text-green-600' : hasPendingPayment ? 'text-green-600' : 'text-yellow-600'
               }`}>
-                {isPaid ? 'Paid ✓' : 'Awaiting Payment'}
+                {isPaid ? 'Paid ✓' : hasPendingPayment ? '⏳ Pending Verification' : 'Awaiting Payment'}
               </span>
             </div>
           </div>
@@ -684,7 +727,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             <div className="text-lg font-semibold text-gray-900">
               Amount: <span className="text-2xl font-black">{formatCurrency(stage.amount, currency)}</span>
             </div>
-            {!isPaid && (
+            {!isPaid && !hasPendingPayment && (
               <button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={creatingPayment}
@@ -703,7 +746,42 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         </div>
 
-        {isPaid && (
+        {/* Pending Payment Status */}
+        {hasPendingPayment && !isPaid && (
+          <div className="p-4 sm:p-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-green-800 mb-2">
+                <Clock className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm font-semibold">
+                  Payment Pending Verification
+                </p>
+              </div>
+              <p className="text-sm text-green-700">
+                You marked the payment as sent. Waiting for the freelancer to verify payment received.
+              </p>
+              <div className="mt-2 text-xs text-green-600">
+                Amount: {formatCurrency(stage.amount, currency)} | Reference: {pendingPayments[0]?.reference_code}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rejected Payment Warning */}
+        {hasRejectedPayment && !isPaid && !hasPendingPayment && (
+          <div className="p-4 sm:p-6">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-gray-800 mb-2">
+                <XCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm font-semibold">
+                  Payment Not Received
+                </p>
+              </div>
+              <p className="text-sm text-gray-700">
+                The freelancer could not verify your previous payment. Please try again or contact them directly.
+              </p>
+            </div>
+          </div>
+        )}
           <div className="p-4 sm:p-6">
             <div className="flex items-center gap-2 text-green-700 bg-green-100 rounded-lg p-4">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />

@@ -449,7 +449,7 @@ function generateRevisionRequestedHTML(data) {
                     
                     <!-- Header -->
                     <tr>
-                        <td class="header-padding" style="background-color: #F59E0B; padding: 48px 40px; text-align: center;">
+                        <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
                             <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ⚠️ Revision Requested
@@ -471,7 +471,7 @@ function generateRevisionRequestedHTML(data) {
 
                             ${feedback ? `
                             <!-- Feedback Box -->
-                            <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px 20px; border-radius: 8px; margin-bottom: 32px;">
+                            <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 16px 20px; border-radius: 8px; margin-bottom: 32px;">
                                 <div style="font-size: 14px; color: #92400E; font-weight: 600; margin-bottom: 8px;">Client Feedback:</div>
                                 <div style="font-size: 14px; color: #78350F; line-height: 1.6;">${feedback}</div>
                             </div>
@@ -481,7 +481,7 @@ function generateRevisionRequestedHTML(data) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 8px 0 24px 0;">
-                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #F59E0B; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
                                             View Details
                                         </a>
                                     </td>
@@ -647,7 +647,7 @@ function generatePaymentMarkedHTML(data) {
             <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                     <tr>
-                        <td class="header-padding" style="background-color: #F59E0B; padding: 48px 40px; text-align: center;">
+                        <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
                             <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 💳 Payment Pending Verification
@@ -662,7 +662,7 @@ function generatePaymentMarkedHTML(data) {
                             <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
                                 <strong>\${clientName}</strong> has marked their payment as sent for <strong>\${stageName}</strong> on <strong>\${projectName}</strong>.
                             </div>
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; border-radius: 8px; margin-bottom: 32px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ECFDF5; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 32px;">
                                 <tr>
                                     <td style="padding: 28px 32px;">
                                         <div style="font-size: 13px; font-weight: 600; color: #92400E; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Payment Details</div>
@@ -687,7 +687,7 @@ function generatePaymentMarkedHTML(data) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 8px 0 24px 0;">
-                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #F59E0B; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
                                             Verify Payment
                                         </a>
                                     </td>
@@ -751,7 +751,7 @@ function generateExtensionPurchasedHTML(data) {
             <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                     <tr>
-                        <td class="header-padding" style="background-color: #8B5CF6; padding: 48px 40px; text-align: center;">
+                        <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
                             <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 💎 Extra Revision Purchased
@@ -766,7 +766,7 @@ function generateExtensionPurchasedHTML(data) {
                             <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
                                 <strong>\${clientName}</strong> has purchased an extra revision for <strong>\${stageName}</strong> on <strong>\${projectName}</strong>.
                             </div>
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F5F3FF; border-left: 4px solid #8B5CF6; border-radius: 8px; margin-bottom: 32px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ECFDF5; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 32px;">
                                 <tr>
                                     <td style="padding: 28px 32px;">
                                         <div style="font-size: 13px; font-weight: 600; color: #6D28D9; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Purchase Details</div>
@@ -791,7 +791,7 @@ function generateExtensionPurchasedHTML(data) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 8px 0 24px 0;">
-                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #8B5CF6; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                        <a href="https://milestage.com/dashboard" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
                                             Verify Payment
                                         </a>
                                     </td>
@@ -956,7 +956,7 @@ function generatePaymentRejectedHTML(data) {
             <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                     <tr>
-                        <td class="header-padding" style="background-color: #EF4444; padding: 48px 40px; text-align: center;">
+                        <td class="header-padding" style="background-color: #10B981; padding: 48px 40px; text-align: center;">
                             <img src="https://milestage.com/assets/Menu-Logo.png" alt="MileStage" class="mobile-logo" style="height: 48px; display: block; margin: 0 auto 24px auto;" />
                             <div class="mobile-title" style="font-size: 32px; font-weight: 700; color: #ffffff; line-height: 1.2;">
                                 ❌ Payment Not Received
@@ -971,17 +971,17 @@ function generatePaymentRejectedHTML(data) {
                             <div style="font-size: 16px; color: #374151; margin-bottom: 32px; line-height: 1.7;">
                                 <strong>${freelancerName}</strong> could not verify your payment for <strong>${stageName}</strong> on <strong>${projectName}</strong>.
                             </div>
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #FEF2F2; border-left: 4px solid #EF4444; border-radius: 8px; margin-bottom: 32px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ECFDF5; border-left: 4px solid #10B981; border-radius: 8px; margin-bottom: 32px;">
                                 <tr>
                                     <td style="padding: 28px 32px;">
-                                        <div style="font-size: 13px; font-weight: 600; color: #991B1B; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Payment Issue</div>
+                                        <div style="font-size: 13px; font-weight: 600; color: #065F46; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 20px;">Payment Issue</div>
                                         <div style="margin-bottom: 16px;">
-                                            <div style="font-size: 14px; color: #991B1B; margin-bottom: 4px;">Amount</div>
-                                            <div style="font-size: 24px; font-weight: 700; color: #B91C1C;">${currency}${amount}</div>
+                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">Amount</div>
+                                            <div style="font-size: 24px; font-weight: 700; color: #047857;">${currency}${amount}</div>
                                         </div>
                                         <div>
-                                            <div style="font-size: 14px; color: #991B1B; margin-bottom: 4px;">Stage</div>
-                                            <div style="font-size: 16px; font-weight: 500; color: #B91C1C;">${stageName}</div>
+                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">Stage</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #047857;">${stageName}</div>
                                         </div>
                                     </td>
                                 </tr>
@@ -992,7 +992,7 @@ function generatePaymentRejectedHTML(data) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 8px 0 24px 0;">
-                                        <a href="${portalUrl}" style="display: inline-block; background-color: #EF4444; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
+                                        <a href="${portalUrl}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
                                             Try Again
                                         </a>
                                     </td>

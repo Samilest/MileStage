@@ -53,30 +53,48 @@ export default function ExtensionPurchaseModal({
       // Send email notification to freelancer
       try {
         console.log('[Extension Purchase] Sending notification email to freelancer...');
+        console.log('[Extension Purchase] projectId:', projectId);
         
         if (projectId) {
-          // Fetch project details for email
-          const { data: projectData } = await supabase
+          // Fetch project details
+          const { data: projectData, error: projectError } = await supabase
             .from('projects')
-            .select('project_name, client_name, user_id, user_profiles!inner(email, full_name)')
+            .select('project_name, client_name, user_id')
             .eq('id', projectId)
             .single();
           
-          if (projectData && projectData.user_profiles) {
-            await notifyExtensionPurchased({
-              freelancerEmail: projectData.user_profiles.email,
-              freelancerName: projectData.user_profiles.full_name,
-              projectName: projectData.project_name,
-              stageName: stageName,
-              amount: extensionPrice.toString(),
-              currency: currency,
-              clientName: projectData.client_name || 'Your client',
-              referenceCode: referenceCode,
-            });
+          console.log('[Extension Purchase] projectData:', projectData);
+          console.log('[Extension Purchase] projectError:', projectError);
+          
+          if (projectData && projectData.user_id) {
+            // Fetch freelancer email separately
+            const { data: freelancerData, error: freelancerError } = await supabase
+              .from('user_profiles')
+              .select('email, name')
+              .eq('id', projectData.user_id)
+              .single();
             
-            console.log('[Extension Purchase] ✅ Email sent to freelancer');
+            console.log('[Extension Purchase] freelancerData:', freelancerData);
+            console.log('[Extension Purchase] freelancerError:', freelancerError);
+            
+            if (freelancerData && freelancerData.email) {
+              await notifyExtensionPurchased({
+                freelancerEmail: freelancerData.email,
+                freelancerName: freelancerData.name || 'there',
+                projectName: projectData.project_name,
+                stageName: stageName,
+                amount: extensionPrice.toString(),
+                currency: currency,
+                clientName: projectData.client_name || 'Your client',
+                referenceCode: referenceCode,
+              });
+              
+              console.log('[Extension Purchase] ✅ Email sent to freelancer');
+            } else {
+              console.log('[Extension Purchase] No freelancer email found');
+            }
           } else {
-            console.log('[Extension Purchase] No project data found for email');
+            console.log('[Extension Purchase] No project data or user_id found');
           }
         } else {
           console.log('[Extension Purchase] No projectId available for email');
