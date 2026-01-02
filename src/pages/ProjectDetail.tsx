@@ -392,7 +392,7 @@ export default function ProjectDetail() {
     }
   };
 
-  // Load all data once on mount
+  // Load all data once on mount and setup real-time subscriptions
   useEffect(() => {
     let isMounted = true;
 
@@ -403,8 +403,88 @@ export default function ProjectDetail() {
       loadPendingStagePayments();
     }
 
+    // Setup real-time subscriptions for freelancer portal
+    if (!id) return;
+
+    // Subscribe to stage_payments changes
+    const stagePaymentsChannel = supabase
+      .channel(`project-payments-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stage_payments',
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[ProjectDetail] stage_payments changed:', payload.eventType);
+          loadPendingStagePayments();
+          loadProjectData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to stages changes
+    const stagesChannel = supabase
+      .channel(`project-stages-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stages',
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[ProjectDetail] stages changed:', payload.eventType);
+          loadProjectData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to extensions changes
+    const extensionsChannel = supabase
+      .channel(`project-extensions-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'extensions',
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[ProjectDetail] extensions changed:', payload.eventType);
+          loadPendingExtensions();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to deliverables changes
+    const deliverablesChannel = supabase
+      .channel(`project-deliverables-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'deliverables',
+        },
+        (payload) => {
+          if (!isMounted) return;
+          console.log('[ProjectDetail] deliverables changed:', payload.eventType);
+          loadProjectData();
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
+      supabase.removeChannel(stagePaymentsChannel);
+      supabase.removeChannel(stagesChannel);
+      supabase.removeChannel(extensionsChannel);
+      supabase.removeChannel(deliverablesChannel);
     };
   }, [id, loadProjectData, loadUserProfile, loadPendingExtensions, loadPendingStagePayments]);
 

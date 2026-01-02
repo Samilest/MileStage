@@ -132,13 +132,16 @@ export default function ClientPortal() {
       setProjectData(project as ProjectData);
       console.log('[ClientPortal] Project loaded successfully');
 
-      // Record that client viewed the portal (only if not logged in as freelancer)
+      // Record that client viewed the portal (only if not the project owner)
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('[ClientPortal] Session check:', session ? 'Logged in' : 'Not logged in');
+      console.log('[ClientPortal] Session check:', session ? 'Logged in as ' + session.user.id : 'Not logged in');
       
-      if (!session) {
-        // No logged-in user = this is a client viewing
-        console.log('[ClientPortal] Attempting to update client_last_viewed_at...');
+      // Check if logged-in user is the project owner (freelancer)
+      const isProjectOwner = session && project.user_id === session.user.id;
+      
+      if (!isProjectOwner) {
+        // Not the project owner = this is a client viewing
+        console.log('[ClientPortal] Client viewing - updating client_last_viewed_at...');
         const { data: updateData, error: updateError } = await supabase
           .from('projects')
           .update({ client_last_viewed_at: new Date().toISOString() })
@@ -151,7 +154,7 @@ export default function ClientPortal() {
           console.log('[ClientPortal] Recorded client view:', updateData);
         }
       } else {
-        console.log('[ClientPortal] Freelancer viewing - not updating client_last_viewed_at');
+        console.log('[ClientPortal] Project owner (freelancer) viewing - not updating client_last_viewed_at');
       }
 
       if (isRefresh) {

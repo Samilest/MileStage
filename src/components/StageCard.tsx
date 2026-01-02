@@ -1439,8 +1439,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {/* Payment status alerts */}
-        {readOnly && stage.status === 'payment_pending' && pendingPayments.length > 0 && (
+        {/* Payment status alerts - Only show ONE at a time for clarity */}
+        {/* Priority: Pending (newest state) > Rejected (old state) */}
+        {readOnly && pendingPayments.length > 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
             <h3 className="font-bold text-yellow-900 mb-2">
               ⏳ Payment Pending Verification
@@ -1454,7 +1455,8 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {readOnly && rejectedPayments.length > 0 && (
+        {/* Only show rejected alert if there's NO pending payment (client hasn't retried yet) */}
+        {readOnly && rejectedPayments.length > 0 && pendingPayments.length === 0 && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
             <h3 className="font-bold text-red-900 mb-2">
               ⚠️ Payment Issue
@@ -1474,7 +1476,6 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               <button
                 onClick={() => {
                   setShowPaymentModal(true);
-                  setRejectedPayments([]);
                 }}
                 className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 font-semibold transition-all duration-200"
               >
