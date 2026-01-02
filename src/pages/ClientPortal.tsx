@@ -409,26 +409,22 @@ export default function ClientPortal() {
 
       {/* Project Header */}
       <div className="max-w-6xl mx-auto px-4 sm:px-8 mb-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 break-words leading-tight">
               {projectData.project_name}
             </h1>
             <p className="text-gray-600 mt-1 text-sm sm:text-base">
               Client: {projectData.client_name}
             </p>
-            <p className="text-gray-500 text-xs sm:text-sm mt-1">
+            <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">
               Freelancer: {projectData.user_profiles.name}
             </p>
           </div>
-          <div className="text-right flex-shrink-0 hidden sm:block">
-            <div className="text-xs sm:text-sm text-gray-600">Total Project Value</div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(projectData.total_amount, projectData.currency || 'USD')}</div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-xs sm:text-sm text-gray-500 sm:text-gray-600">Total Value</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-900">{formatCurrency(projectData.total_amount, projectData.currency || 'USD')}</div>
           </div>
-        </div>
-        <div className="sm:hidden mt-3 text-center pt-3 border-t border-gray-200">
-          <div className="text-xs text-gray-600">Total Project Value</div>
-          <div className="text-xl font-bold text-gray-900">{formatCurrency(projectData.total_amount, projectData.currency || 'USD')}</div>
         </div>
       </div>
 
