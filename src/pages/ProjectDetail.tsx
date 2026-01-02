@@ -719,7 +719,7 @@ export default function ProjectDetail() {
               clientName: project.client_name || 'Client',
               totalAmount: totalAmount.toString(),
               currency: project.currency || 'USD',
-              projectId: projectId || '',
+              projectId: id || '',
             });
             
             console.log('[Project Completed] ✅ Completion email sent to freelancer');
@@ -1254,7 +1254,7 @@ export default function ProjectDetail() {
             loadProjectData();
             loadPendingExtensions();
           }}
-          projectId={projectId}
+          projectId={id}
           projectName={project?.project_name}
           clientEmail={project?.client_email}
           clientName={project?.client_name}

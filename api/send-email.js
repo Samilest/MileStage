@@ -434,7 +434,7 @@ function generateStageApprovedHTML(data) {
 function generateRevisionRequestedHTML(data) {
   const { freelancerName, projectName, stageName, clientName, feedback, projectId } = data;
   const name = freelancerName || 'there';
-  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}` : 'https://milestage.com/dashboard';
+  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}/overview` : 'https://milestage.com/dashboard';
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -635,7 +635,7 @@ async function buildPaymentMarkedEmail(data) {
 function generatePaymentMarkedHTML(data) {
   const { freelancerName, projectName, stageName, amount, currency, clientName, referenceCode, projectId } = data;
   const name = freelancerName || "there";
-  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}` : 'https://milestage.com/dashboard';
+  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}/overview` : 'https://milestage.com/dashboard';
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -740,7 +740,7 @@ async function buildExtensionPurchasedEmail(data) {
 function generateExtensionPurchasedHTML(data) {
   const { freelancerName, projectName, stageName, amount, currency, clientName, referenceCode, projectId } = data;
   const name = freelancerName || "there";
-  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}` : 'https://milestage.com/dashboard';
+  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}/overview` : 'https://milestage.com/dashboard';
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1246,7 +1246,7 @@ async function buildProjectCompletedEmail(data) {
 function generateProjectCompletedHTML(data) {
   const { freelancerName, projectName, clientName, totalAmount, currency, projectId } = data;
   const name = freelancerName || "there";
-  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}` : 'https://milestage.com/dashboard';
+  const projectUrl = projectId ? `https://milestage.com/projects/${projectId}/overview` : 'https://milestage.com/dashboard';
   
   return `<!DOCTYPE html>
 <html lang="en">
