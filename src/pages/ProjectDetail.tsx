@@ -703,7 +703,7 @@ export default function ProjectDetail() {
           await supabase
             .from('projects')
             .update({ status: 'completed' })
-            .eq('id', projectId);
+            .eq('id', id);
           
           console.log('[Project Completed] Project marked as completed');
           
@@ -911,6 +911,7 @@ export default function ProjectDetail() {
           stageName: selectedStageForPayment.name || `Stage ${selectedStageForPayment.stage_number}`,
           amount: selectedStageForPayment.amount.toString(),
           currency: project.currency || 'USD',
+          portalUrl: `https://milestage.com/client/${project.share_code}`,
         });
         
         console.log('[ProjectDetail] ✅ Payment confirmation email sent to client');

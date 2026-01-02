@@ -1195,6 +1195,21 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           payment_status={actualPaymentStatus}
         />
 
+        {/* Show locked message and hide all content for locked stages */}
+        {stage.status === 'locked' ? (
+          <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 sm:p-12 text-center">
+            <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-gray-500" />
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">
+              🔒 Stage Locked
+            </p>
+            <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
+              This stage will unlock once the previous stage is completed and payment is received.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* DELIVERABLES SECTION - Prioritized at top for client review */}
         <div>
           <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
@@ -1373,18 +1388,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {stage.status === 'locked' && (
-          <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 sm:p-12 text-center">
-            <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-10 h-10 text-gray-500" />
-            </div>
-            <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">
-              🔒 Stage Locked
-            </p>
-            <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
-              This stage will unlock once the previous stage is completed and payment is received.
-            </p>
-          </div>
+        </>
         )}
 
         {successMessage && (
