@@ -782,6 +782,8 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </div>
           </div>
         )}
+
+        {isPaid && (
           <div className="p-4 sm:p-6">
             <div className="flex items-center gap-2 text-green-700 bg-green-100 rounded-lg p-4">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
