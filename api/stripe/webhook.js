@@ -139,12 +139,35 @@ export default async function handler(req, res) {
         if (!paymentResponse.ok) {
           console.error(`[Webhook] Failed to update stage payment: ${paymentResponse.statusText}`);
         } else {
-          console.log(`[Webhook] Stage ${stageId} marked as paid`);
+          console.log(`[Webhook] Stage payment ${stageId} marked as paid`);
+          
+          // Also update the stage's payment_status to 'received'
+          const stageUpdateResponse = await fetch(
+            `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                payment_status: 'received',
+                payment_received_at: new Date().toISOString(),
+              }),
+            }
+          );
+
+          if (!stageUpdateResponse.ok) {
+            console.error(`[Webhook] Failed to update stage payment_status: ${stageUpdateResponse.statusText}`);
+          } else {
+            console.log(`[Webhook] Stage ${stageId} payment_status set to 'received'`);
+          }
           
           // ============================================
-          // NEW: SEND EMAIL NOTIFICATIONS
+          // SEND EMAIL NOTIFICATIONS
           // ============================================
-          // This section is NEW and does NOT affect existing payment logic
           // If emails fail, payment processing still succeeds
           try {
             await sendPaymentEmails(stageId, supabaseUrl, supabaseKey);
@@ -186,9 +209,8 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
   console.log(`[Webhook] Fetching stage details for email notifications: ${stageId}`);
   
   // Fetch stage, project, and user details
-  // Note: stageId is the stages.id, not stage_payments.id
   const stageResponse = await fetch(
-    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,full_name))`,
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,name))`,
     {
       headers: {
         'apikey': supabaseKey,
@@ -213,10 +235,11 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
   const freelancer = project.user_profiles;
   
   console.log('[Webhook] Sending payment notification emails...');
-  console.log('[Webhook] Stage:', stage.name);
+  console.log('[Webhook] Stage:', stage.name, '| Stage Number:', stage.stage_number);
   console.log('[Webhook] Project:', project.project_name);
   console.log('[Webhook] Freelancer email:', freelancer.email);
   console.log('[Webhook] Client email:', project.client_email);
+  console.log('[Webhook] Amount:', stage.amount, project.currency || 'USD');
   
   // Call the email API endpoint
   const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
@@ -230,11 +253,14 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
         type: 'payment_received',
         data: {
           freelancerEmail: freelancer.email,
-          freelancerName: freelancer.full_name || 'there',
+          freelancerName: freelancer.name || 'there',
           projectName: project.project_name,
           stageName: stage.name || `Stage ${stage.stage_number}`,
-          amount: (stage.amount / 100).toFixed(2),
+          stageNumber: stage.stage_number,
+          amount: stage.amount,
           currency: project.currency || 'USD',
+          clientName: project.client_name,
+          projectId: project.id,
         },
       }),
     });
@@ -242,7 +268,8 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
     if (freelancerEmailResponse.ok) {
       console.log('[Webhook] ✅ Payment received email sent to freelancer');
     } else {
-      console.error('[Webhook] Failed to send freelancer email:', await freelancerEmailResponse.text());
+      const errorText = await freelancerEmailResponse.text();
+      console.error('[Webhook] Failed to send freelancer email:', errorText);
     }
   } catch (error) {
     console.error('[Webhook] Error sending freelancer email:', error.message);
@@ -260,8 +287,10 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
           clientName: project.client_name,
           projectName: project.project_name,
           stageName: stage.name || `Stage ${stage.stage_number}`,
-          amount: (stage.amount / 100).toFixed(2),
+          stageNumber: stage.stage_number,
+          amount: stage.amount,
           currency: project.currency || 'USD',
+          freelancerName: freelancer.name || 'Your freelancer',
           portalUrl: `https://milestage.com/client/${project.share_code}`,
         },
       }),
@@ -270,7 +299,8 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
     if (clientEmailResponse.ok) {
       console.log('[Webhook] ✅ Payment confirmation email sent to client');
     } else {
-      console.error('[Webhook] Failed to send client email:', await clientEmailResponse.text());
+      const errorText = await clientEmailResponse.text();
+      console.error('[Webhook] Failed to send client email:', errorText);
     }
   } catch (error) {
     console.error('[Webhook] Error sending client email:', error.message);
