@@ -188,6 +188,134 @@ module.exports = async (req, res) => {
         break;
       }
 
+      // ============================================
+      // PROJECT PAYMENT EVENTS (Stage & Extension)
+      // ============================================
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object;
+        const metadata = paymentIntent.metadata || {};
+        const stageId = metadata.stage_id;
+        const paymentType = metadata.type; // 'extension' or undefined (stage payment)
+
+        if (!stageId) {
+          console.log('[SubWebhook] No stage_id in payment metadata, skipping');
+          break;
+        }
+
+        console.log(`[SubWebhook] Payment succeeded - Type: ${paymentType || 'stage'}, Stage: ${stageId}`);
+
+        // ============================================
+        // EXTENSION PAYMENT (Extra Revision Purchase)
+        // ============================================
+        if (paymentType === 'extension') {
+          console.log('[SubWebhook] Processing extension payment...');
+          
+          const extensionAmount = parseFloat(metadata.amount) || 0;
+          const referenceCode = `STRIPE-${paymentIntent.id.slice(-12).toUpperCase()}`;
+          
+          // Insert extension record with status 'paid' (auto-verified for Stripe)
+          const extensionResponse = await fetch(
+            `${supabaseUrl}/rest/v1/extensions`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=representation',
+              },
+              body: JSON.stringify({
+                stage_id: stageId,
+                amount: extensionAmount,
+                reference_code: referenceCode,
+                status: 'paid',
+                marked_paid_at: new Date().toISOString(),
+                verified_at: new Date().toISOString(),
+                additional_revisions: 1,
+                stripe_payment_intent_id: paymentIntent.id,
+              }),
+            }
+          );
+
+          if (!extensionResponse.ok) {
+            const errorText = await extensionResponse.text();
+            console.error(`[SubWebhook] Failed to create extension: ${errorText}`);
+          } else {
+            console.log(`[SubWebhook] ✅ Extension created for stage ${stageId}`);
+            
+            // Send email notification for extension purchase
+            try {
+              await sendExtensionEmails(stageId, extensionAmount, supabaseUrl, supabaseKey);
+            } catch (emailError) {
+              console.error('[SubWebhook] Extension email failed (non-critical):', emailError.message);
+            }
+          }
+        }
+        // ============================================
+        // STAGE PAYMENT (Down Payment or Milestone)
+        // ============================================
+        else {
+          console.log('[SubWebhook] Processing stage payment...');
+          
+          // Update stage_payments table
+          const paymentResponse = await fetch(
+            `${supabaseUrl}/rest/v1/stage_payments?stage_id=eq.${stageId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=minimal',
+              },
+              body: JSON.stringify({
+                status: 'paid',
+                marked_paid_at: new Date().toISOString(),
+                stripe_payment_intent_id: paymentIntent.id,
+              }),
+            }
+          );
+
+          if (!paymentResponse.ok) {
+            console.error(`[SubWebhook] Failed to update stage payment: ${paymentResponse.statusText}`);
+          } else {
+            console.log(`[SubWebhook] Stage payment ${stageId} marked as paid`);
+            
+            // Also update the stage's payment_status to 'received'
+            const stageUpdateResponse = await fetch(
+              `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  payment_status: 'received',
+                  payment_received_at: new Date().toISOString(),
+                }),
+              }
+            );
+
+            if (!stageUpdateResponse.ok) {
+              console.error(`[SubWebhook] Failed to update stage payment_status: ${stageUpdateResponse.statusText}`);
+            } else {
+              console.log(`[SubWebhook] Stage ${stageId} payment_status set to 'received'`);
+            }
+            
+            // Send email notifications
+            try {
+              await sendPaymentEmails(stageId, supabaseUrl, supabaseKey);
+            } catch (emailError) {
+              console.error('[SubWebhook] Email sending failed (non-critical):', emailError.message);
+            }
+          }
+        }
+        break;
+      }
+
       default:
         console.log(`[SubWebhook] Unhandled event type: ${event.type}`);
     }
@@ -198,3 +326,180 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 };
+
+// ============================================
+// EMAIL NOTIFICATION HELPER - STAGE PAYMENTS
+// ============================================
+async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
+  console.log(`[SubWebhook] Fetching stage details for email notifications: ${stageId}`);
+  
+  // Fetch stage, project, and user details
+  const stageResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,name))`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!stageResponse.ok) {
+    throw new Error(`Failed to fetch stage details: ${stageResponse.statusText}`);
+  }
+  
+  const stageData = await stageResponse.json();
+  
+  if (!stageData || stageData.length === 0) {
+    console.log('[SubWebhook] No stage data found for email');
+    return;
+  }
+  
+  const stage = stageData[0];
+  const project = stage.projects;
+  const freelancer = project.user_profiles;
+  
+  console.log('[SubWebhook] Sending payment notification emails...');
+  console.log('[SubWebhook] Stage:', stage.name, '| Stage Number:', stage.stage_number);
+  console.log('[SubWebhook] Project:', project.project_name);
+  console.log('[SubWebhook] Freelancer email:', freelancer.email);
+  console.log('[SubWebhook] Client email:', project.client_email);
+  console.log('[SubWebhook] Amount:', stage.amount, project.currency || 'USD');
+  
+  // Call the email API endpoint
+  const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+  
+  // Send payment received email to freelancer
+  try {
+    const freelancerEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'payment_received',
+        data: {
+          freelancerEmail: freelancer.email,
+          freelancerName: freelancer.name || 'there',
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          stageNumber: stage.stage_number,
+          amount: stage.amount,
+          currency: project.currency || 'USD',
+          clientName: project.client_name,
+          projectId: project.id,
+        },
+      }),
+    });
+    
+    if (freelancerEmailResponse.ok) {
+      console.log('[SubWebhook] ✅ Payment received email sent to freelancer');
+    } else {
+      const errorText = await freelancerEmailResponse.text();
+      console.error('[SubWebhook] Failed to send freelancer email:', errorText);
+    }
+  } catch (error) {
+    console.error('[SubWebhook] Error sending freelancer email:', error.message);
+  }
+  
+  // Send payment confirmation email to client
+  try {
+    const clientEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'payment_confirmation',
+        data: {
+          clientEmail: project.client_email,
+          clientName: project.client_name,
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          stageNumber: stage.stage_number,
+          amount: stage.amount,
+          currency: project.currency || 'USD',
+          freelancerName: freelancer.name || 'Your freelancer',
+          portalUrl: `https://milestage.com/client/${project.share_code}`,
+        },
+      }),
+    });
+    
+    if (clientEmailResponse.ok) {
+      console.log('[SubWebhook] ✅ Payment confirmation email sent to client');
+    } else {
+      const errorText = await clientEmailResponse.text();
+      console.error('[SubWebhook] Failed to send client email:', errorText);
+    }
+  } catch (error) {
+    console.error('[SubWebhook] Error sending client email:', error.message);
+  }
+}
+
+// ============================================
+// EMAIL NOTIFICATION HELPER - EXTENSION PAYMENTS
+// ============================================
+async function sendExtensionEmails(stageId, amount, supabaseUrl, supabaseKey) {
+  console.log(`[SubWebhook] Fetching stage details for extension email: ${stageId}`);
+  
+  // Fetch stage, project, and user details
+  const stageResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,name))`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!stageResponse.ok) {
+    throw new Error(`Failed to fetch stage details: ${stageResponse.statusText}`);
+  }
+  
+  const stageData = await stageResponse.json();
+  
+  if (!stageData || stageData.length === 0) {
+    console.log('[SubWebhook] No stage data found for extension email');
+    return;
+  }
+  
+  const stage = stageData[0];
+  const project = stage.projects;
+  const freelancer = project.user_profiles;
+  
+  console.log('[SubWebhook] Sending extension purchase emails...');
+  console.log('[SubWebhook] Stage:', stage.name);
+  console.log('[SubWebhook] Freelancer email:', freelancer.email);
+  console.log('[SubWebhook] Amount:', amount);
+  
+  const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+  
+  // Send extension purchased email to freelancer
+  try {
+    const freelancerEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'extension_purchased',
+        data: {
+          freelancerEmail: freelancer.email,
+          freelancerName: freelancer.name || 'there',
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          amount: amount,
+          currency: project.currency || 'USD',
+          clientName: project.client_name,
+          referenceCode: 'Paid via Stripe',
+          projectId: project.id,
+          isPaidViaStripe: true,
+        },
+      }),
+    });
+    
+    if (freelancerEmailResponse.ok) {
+      console.log('[SubWebhook] ✅ Extension purchased email sent to freelancer');
+    } else {
+      const errorText = await freelancerEmailResponse.text();
+      console.error('[SubWebhook] Failed to send extension email:', errorText);
+    }
+  } catch (error) {
+    console.error('[SubWebhook] Error sending extension email:', error.message);
+  }
+}
