@@ -44,26 +44,26 @@ export default function Pricing() {
 
         {/* Pricing Card */}
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-8 relative">
-            {/* Popular badge */}
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <span className="bg-green-600 text-white px-6 py-2 rounded-full text-sm font-semibold shadow-lg">
+          <div className="bg-white rounded-2xl shadow-2xl border-2 border-gray-200 p-8 relative pt-12 sm:pt-8">
+            {/* Popular badge - FIXED FOR MOBILE */}
+            <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 px-4 sm:px-0">
+              <span className="bg-green-600 text-white px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold shadow-lg whitespace-nowrap">
                 Everything Included
               </span>
             </div>
 
-            <div className="text-center mb-8 mt-4">
+            <div className="text-center mb-8 mt-2 sm:mt-4">
               {isAnnual ? (
                 <>
-                  <div className="text-6xl font-bold text-gray-900 mb-2">
-                    $12<span className="text-2xl text-gray-600">/month</span>
+                  <div className="text-5xl sm:text-6xl font-bold text-gray-900 mb-2">
+                    $12<span className="text-xl sm:text-2xl text-gray-600">/month</span>
                   </div>
-                  <p className="text-gray-600">Billed annually at $144/year</p>
-                  <p className="text-sm text-green-600 font-semibold mt-1">Save $84/year</p>
+                  <p className="text-sm sm:text-base text-gray-600">Billed annually at $144/year</p>
+                  <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1">Save $84/year</p>
                 </>
               ) : (
-                <div className="text-6xl font-bold text-gray-900 mb-2">
-                  $19<span className="text-2xl text-gray-600">/month</span>
+                <div className="text-5xl sm:text-6xl font-bold text-gray-900 mb-2">
+                  $19<span className="text-xl sm:text-2xl text-gray-600">/month</span>
                 </div>
               )}
             </div>
