@@ -550,7 +550,7 @@ async function checkProjectCompletion(stageId, supabaseUrl, supabaseKey) {
   
   // Get all stages for this project (excluding stage 0)
   const allStagesResponse = await fetch(
-    `${supabaseUrl}/rest/v1/stages?project_id=eq.${projectId}&stage_number=gt.0&select=id,stage_number,payment_status&order=stage_number.asc`,
+    `${supabaseUrl}/rest/v1/stages?project_id=eq.${projectId}&stage_number=gt.0&select=id,stage_number,payment_status,amount&order=stage_number.asc`,
     {
       headers: {
         'apikey': supabaseKey,
@@ -606,6 +606,9 @@ async function checkProjectCompletion(stageId, supabaseUrl, supabaseKey) {
   }
   
   console.log('[SubWebhook] ✅ Project marked as completed');
+  
+  // Wait 2 seconds to avoid Resend rate limit (2 requests/second)
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
   // Calculate total amount
   const totalAmount = allStages.reduce((sum, s) => sum + (s.amount || 0), 0);
