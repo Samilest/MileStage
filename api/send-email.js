@@ -738,9 +738,16 @@ async function buildExtensionPurchasedEmail(data) {
 }
 
 function generateExtensionPurchasedHTML(data) {
-  const { freelancerName, projectName, stageName, amount, currency, clientName, referenceCode, projectId } = data;
+  const { freelancerName, projectName, stageName, amount, currency, clientName, referenceCode, projectId, isPaidViaStripe } = data;
   const name = freelancerName || "there";
   const projectUrl = projectId ? `https://milestage.com/projects/${projectId}/overview` : 'https://milestage.com/dashboard';
+  
+  // Different content for Stripe vs Offline payments
+  const isStripePayment = isPaidViaStripe === true || referenceCode === 'Paid via Stripe';
+  const instructionText = isStripePayment 
+    ? 'Payment has been processed via Stripe and automatically verified. The extra revision has been added to the stage.'
+    : 'Please verify you have received this payment in your dashboard. Once verified, the extra revision will be added to the stage.';
+  const buttonText = isStripePayment ? 'View Project' : 'Verify Payment';
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -791,20 +798,20 @@ function generateExtensionPurchasedHTML(data) {
                                             <div style="font-size: 16px; font-weight: 500; color: #047857;">${stageName}</div>
                                         </div>
                                         <div>
-                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">Reference Code</div>
-                                            <div style="font-size: 16px; font-weight: 500; color: #047857; font-family: monospace;">${referenceCode}</div>
+                                            <div style="font-size: 14px; color: #065F46; margin-bottom: 4px;">${isStripePayment ? 'Payment Method' : 'Reference Code'}</div>
+                                            <div style="font-size: 16px; font-weight: 500; color: #047857; font-family: monospace;">${isStripePayment ? '✓ Paid via Stripe' : referenceCode}</div>
                                         </div>
                                     </td>
                                 </tr>
                             </table>
                             <div style="font-size: 16px; color: #374151; line-height: 1.7; margin-bottom: 32px;">
-                                Please verify you have received this payment in your dashboard. Once verified, the extra revision will be added to the stage.
+                                ${instructionText}
                             </div>
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding: 8px 0 24px 0;">
                                         <a href="${projectUrl}" style="display: inline-block; background-color: #10B981; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px;">
-                                            Verify Payment
+                                            ${buttonText}
                                         </a>
                                     </td>
                                 </tr>

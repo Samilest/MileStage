@@ -311,6 +311,13 @@ module.exports = async (req, res) => {
             } catch (emailError) {
               console.error('[SubWebhook] Email sending failed (non-critical):', emailError.message);
             }
+            
+            // Check if project is completed (all stages paid)
+            try {
+              await checkProjectCompletion(stageId, supabaseUrl, supabaseKey);
+            } catch (completionError) {
+              console.error('[SubWebhook] Project completion check failed (non-critical):', completionError.message);
+            }
           }
         }
         break;
@@ -501,5 +508,158 @@ async function sendExtensionEmails(stageId, amount, supabaseUrl, supabaseKey) {
     }
   } catch (error) {
     console.error('[SubWebhook] Error sending extension email:', error.message);
+  }
+}
+
+// ============================================
+// PROJECT COMPLETION CHECK
+// ============================================
+async function checkProjectCompletion(stageId, supabaseUrl, supabaseKey) {
+  console.log(`[SubWebhook] Checking project completion for stage: ${stageId}`);
+  
+  // Get the stage and its project
+  const stageResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=id,stage_number,project_id,projects!inner(id,project_name,client_name,currency,user_id,status,user_profiles!inner(email,name))`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!stageResponse.ok) {
+    throw new Error(`Failed to fetch stage: ${stageResponse.statusText}`);
+  }
+  
+  const stageData = await stageResponse.json();
+  if (!stageData || stageData.length === 0) {
+    console.log('[SubWebhook] No stage data found');
+    return;
+  }
+  
+  const stage = stageData[0];
+  const project = stage.projects;
+  const projectId = stage.project_id;
+  
+  // Skip if project already completed
+  if (project.status === 'completed') {
+    console.log('[SubWebhook] Project already completed, skipping');
+    return;
+  }
+  
+  // Get all stages for this project (excluding stage 0)
+  const allStagesResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stages?project_id=eq.${projectId}&stage_number=gt.0&select=id,stage_number,payment_status&order=stage_number.asc`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!allStagesResponse.ok) {
+    throw new Error(`Failed to fetch all stages: ${allStagesResponse.statusText}`);
+  }
+  
+  const allStages = await allStagesResponse.json();
+  
+  if (!allStages || allStages.length === 0) {
+    console.log('[SubWebhook] No stages found for project');
+    return;
+  }
+  
+  // Check if current stage is the last one
+  const lastStageNumber = Math.max(...allStages.map(s => s.stage_number));
+  const isLastStage = stage.stage_number === lastStageNumber;
+  
+  console.log(`[SubWebhook] Stage ${stage.stage_number} of ${lastStageNumber}, isLastStage: ${isLastStage}`);
+  
+  if (!isLastStage) {
+    console.log('[SubWebhook] Not the last stage, skipping completion check');
+    return;
+  }
+  
+  // It's the last stage - mark project as completed
+  console.log('[SubWebhook] Last stage paid! Marking project as completed...');
+  
+  const updateResponse = await fetch(
+    `${supabaseUrl}/rest/v1/projects?id=eq.${projectId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        status: 'completed',
+      }),
+    }
+  );
+  
+  if (!updateResponse.ok) {
+    console.error(`[SubWebhook] Failed to update project status: ${updateResponse.statusText}`);
+    return;
+  }
+  
+  console.log('[SubWebhook] ✅ Project marked as completed');
+  
+  // Calculate total amount
+  const totalAmount = allStages.reduce((sum, s) => sum + (s.amount || 0), 0);
+  
+  // Get stage 0 amount if exists
+  const stage0Response = await fetch(
+    `${supabaseUrl}/rest/v1/stages?project_id=eq.${projectId}&stage_number=eq.0&select=amount`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  let stage0Amount = 0;
+  if (stage0Response.ok) {
+    const stage0Data = await stage0Response.json();
+    if (stage0Data && stage0Data.length > 0) {
+      stage0Amount = stage0Data[0].amount || 0;
+    }
+  }
+  
+  const grandTotal = totalAmount + stage0Amount;
+  
+  // Send completion email to freelancer
+  const freelancer = project.user_profiles;
+  const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+  
+  try {
+    const emailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'project_completed',
+        data: {
+          freelancerEmail: freelancer.email,
+          freelancerName: freelancer.name || 'there',
+          projectName: project.project_name,
+          clientName: project.client_name || 'Client',
+          totalAmount: grandTotal.toString(),
+          currency: project.currency || 'USD',
+          projectId: projectId,
+        },
+      }),
+    });
+    
+    if (emailResponse.ok) {
+      console.log('[SubWebhook] ✅ Project completion email sent to freelancer');
+    } else {
+      const errorText = await emailResponse.text();
+      console.error('[SubWebhook] Failed to send completion email:', errorText);
+    }
+  } catch (error) {
+    console.error('[SubWebhook] Error sending completion email:', error.message);
   }
 }
