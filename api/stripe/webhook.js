@@ -108,42 +108,73 @@ export default async function handler(req, res) {
       // ============================================
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
-        const stageId = paymentIntent.metadata?.stage_id;
+        const metadata = paymentIntent.metadata || {};
+        const stageId = metadata.stage_id;
+        const paymentType = metadata.type; // 'extension' or undefined (stage payment)
 
         if (!stageId) {
           console.log('[Webhook] No stage_id in payment metadata, skipping');
           break;
         }
 
-        console.log(`[Webhook] Payment succeeded for stage: ${stageId}`);
+        console.log(`[Webhook] Payment succeeded - Type: ${paymentType || 'stage'}, Stage: ${stageId}`);
 
-        // Update stage payment status (EXISTING LOGIC - DO NOT CHANGE)
-        const paymentResponse = await fetch(
-          `${supabaseUrl}/rest/v1/stage_payments?stage_id=eq.${stageId}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Prefer': 'return=minimal',
-            },
-            body: JSON.stringify({
-              status: 'paid',
-              marked_paid_at: new Date().toISOString(),
-              stripe_payment_intent_id: paymentIntent.id,
-            }),
-          }
-        );
-
-        if (!paymentResponse.ok) {
-          console.error(`[Webhook] Failed to update stage payment: ${paymentResponse.statusText}`);
-        } else {
-          console.log(`[Webhook] Stage payment ${stageId} marked as paid`);
+        // ============================================
+        // EXTENSION PAYMENT (Extra Revision Purchase)
+        // ============================================
+        if (paymentType === 'extension') {
+          console.log('[Webhook] Processing extension payment...');
           
-          // Also update the stage's payment_status to 'received'
-          const stageUpdateResponse = await fetch(
-            `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}`,
+          const extensionAmount = parseFloat(metadata.amount) || 0;
+          const referenceCode = `STRIPE-${paymentIntent.id.slice(-12).toUpperCase()}`;
+          
+          // Insert extension record with status 'paid' (auto-verified for Stripe)
+          const extensionResponse = await fetch(
+            `${supabaseUrl}/rest/v1/extensions`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=representation',
+              },
+              body: JSON.stringify({
+                stage_id: stageId,
+                amount: extensionAmount,
+                reference_code: referenceCode,
+                status: 'paid', // Auto-verified for Stripe payments
+                marked_paid_at: new Date().toISOString(),
+                verified_at: new Date().toISOString(),
+                additional_revisions: 1,
+                stripe_payment_intent_id: paymentIntent.id,
+              }),
+            }
+          );
+
+          if (!extensionResponse.ok) {
+            const errorText = await extensionResponse.text();
+            console.error(`[Webhook] Failed to create extension: ${errorText}`);
+          } else {
+            console.log(`[Webhook] ✅ Extension created for stage ${stageId}`);
+            
+            // Send email notification for extension purchase
+            try {
+              await sendExtensionEmails(stageId, extensionAmount, supabaseUrl, supabaseKey);
+            } catch (emailError) {
+              console.error('[Webhook] Extension email failed (non-critical):', emailError.message);
+            }
+          }
+        }
+        // ============================================
+        // STAGE PAYMENT (Down Payment or Milestone)
+        // ============================================
+        else {
+          console.log('[Webhook] Processing stage payment...');
+          
+          // Update stage_payments table
+          const paymentResponse = await fetch(
+            `${supabaseUrl}/rest/v1/stage_payments?stage_id=eq.${stageId}`,
             {
               method: 'PATCH',
               headers: {
@@ -153,27 +184,48 @@ export default async function handler(req, res) {
                 'Prefer': 'return=minimal',
               },
               body: JSON.stringify({
-                payment_status: 'received',
-                payment_received_at: new Date().toISOString(),
+                status: 'paid',
+                marked_paid_at: new Date().toISOString(),
+                stripe_payment_intent_id: paymentIntent.id,
               }),
             }
           );
 
-          if (!stageUpdateResponse.ok) {
-            console.error(`[Webhook] Failed to update stage payment_status: ${stageUpdateResponse.statusText}`);
+          if (!paymentResponse.ok) {
+            console.error(`[Webhook] Failed to update stage payment: ${paymentResponse.statusText}`);
           } else {
-            console.log(`[Webhook] Stage ${stageId} payment_status set to 'received'`);
-          }
-          
-          // ============================================
-          // SEND EMAIL NOTIFICATIONS
-          // ============================================
-          // If emails fail, payment processing still succeeds
-          try {
-            await sendPaymentEmails(stageId, supabaseUrl, supabaseKey);
-          } catch (emailError) {
-            // Log error but don't fail the webhook
-            console.error('[Webhook] Email sending failed (non-critical):', emailError.message);
+            console.log(`[Webhook] Stage payment ${stageId} marked as paid`);
+            
+            // Also update the stage's payment_status to 'received'
+            const stageUpdateResponse = await fetch(
+              `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Prefer': 'return=minimal',
+                },
+                body: JSON.stringify({
+                  payment_status: 'received',
+                  payment_received_at: new Date().toISOString(),
+                }),
+              }
+            );
+
+            if (!stageUpdateResponse.ok) {
+              console.error(`[Webhook] Failed to update stage payment_status: ${stageUpdateResponse.statusText}`);
+            } else {
+              console.log(`[Webhook] Stage ${stageId} payment_status set to 'received'`);
+            }
+            
+            // Send email notifications
+            try {
+              await sendPaymentEmails(stageId, supabaseUrl, supabaseKey);
+            } catch (emailError) {
+              console.error('[Webhook] Email sending failed (non-critical):', emailError.message);
+            }
           }
         }
         break;
@@ -203,7 +255,7 @@ export default async function handler(req, res) {
 }
 
 // ============================================
-// EMAIL NOTIFICATION HELPER (NEW FUNCTION)
+// EMAIL NOTIFICATION HELPER - STAGE PAYMENTS
 // ============================================
 async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
   console.log(`[Webhook] Fetching stage details for email notifications: ${stageId}`);
@@ -304,6 +356,78 @@ async function sendPaymentEmails(stageId, supabaseUrl, supabaseKey) {
     }
   } catch (error) {
     console.error('[Webhook] Error sending client email:', error.message);
+  }
+}
+
+// ============================================
+// EMAIL NOTIFICATION HELPER - EXTENSION PAYMENTS
+// ============================================
+async function sendExtensionEmails(stageId, amount, supabaseUrl, supabaseKey) {
+  console.log(`[Webhook] Fetching stage details for extension email: ${stageId}`);
+  
+  // Fetch stage, project, and user details
+  const stageResponse = await fetch(
+    `${supabaseUrl}/rest/v1/stages?id=eq.${stageId}&select=*,projects!inner(id,project_name,client_name,client_email,share_code,currency,user_id,user_profiles!inner(email,name))`,
+    {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    }
+  );
+  
+  if (!stageResponse.ok) {
+    throw new Error(`Failed to fetch stage details: ${stageResponse.statusText}`);
+  }
+  
+  const stageData = await stageResponse.json();
+  
+  if (!stageData || stageData.length === 0) {
+    console.log('[Webhook] No stage data found for extension email');
+    return;
+  }
+  
+  const stage = stageData[0];
+  const project = stage.projects;
+  const freelancer = project.user_profiles;
+  
+  console.log('[Webhook] Sending extension purchase emails...');
+  console.log('[Webhook] Stage:', stage.name);
+  console.log('[Webhook] Freelancer email:', freelancer.email);
+  console.log('[Webhook] Amount:', amount);
+  
+  const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+  
+  // Send extension purchased email to freelancer
+  try {
+    const freelancerEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'extension_purchased',
+        data: {
+          freelancerEmail: freelancer.email,
+          freelancerName: freelancer.name || 'there',
+          projectName: project.project_name,
+          stageName: stage.name || `Stage ${stage.stage_number}`,
+          amount: amount,
+          currency: project.currency || 'USD',
+          clientName: project.client_name,
+          referenceCode: 'Paid via Stripe',
+          projectId: project.id,
+          isPaidViaStripe: true,
+        },
+      }),
+    });
+    
+    if (freelancerEmailResponse.ok) {
+      console.log('[Webhook] ✅ Extension purchased email sent to freelancer');
+    } else {
+      const errorText = await freelancerEmailResponse.text();
+      console.error('[Webhook] Failed to send extension email:', errorText);
+    }
+  } catch (error) {
+    console.error('[Webhook] Error sending extension email:', error.message);
   }
 }
 
