@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Smile, RotateCcw } from 'lucide-react';
+import { MessageSquare, Smile, RotateCcw, HelpCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Note {
@@ -267,7 +267,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             Notes & Feedback
           </h3>
           
-          {/* Use Revision button - only for freelancers with revisions remaining */}
+          {/* Log Revision button - only for freelancers with revisions remaining */}
           {authorType === 'freelancer' && stage && onMarkRevisionUsed && (() => {
             const freeRevisionsRemaining = (stage.revisions_included || 0) - (stage.revisions_used || 0);
             const extensionRevisionsTotal = stage.extension_purchased ? 3 : 0;
@@ -278,19 +278,28 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             if (totalRemaining <= 0) return null;
             
             const buttonText = freeRevisionsRemaining > 0 
-              ? 'Use Revision'
-              : `Use Revision (${extensionRevisionsRemaining} extra left)`;
+              ? 'Log Revision'
+              : `Log Revision (${extensionRevisionsRemaining} extra left)`;
             
             return (
-              <button
-                onClick={() => onMarkRevisionUsed(stageId, stage)}
-                disabled={isMarkingRevisionUsed || disabled}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-                title={disabled ? "Stage locked - complete previous stage first" : "Client requested changes in chat? Click to log as official revision."}
-              >
-                <RotateCcw className="w-4 h-4" />
-                {isMarkingRevisionUsed ? 'Using...' : buttonText}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onMarkRevisionUsed(stageId, stage)}
+                  disabled={isMarkingRevisionUsed || disabled}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  {isMarkingRevisionUsed ? 'Logging...' : buttonText}
+                </button>
+                <div className="relative group">
+                  <HelpCircle className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <p>Client asked for a significant change in chat? Click to count it as a revision.</p>
+                    <p className="mt-2 text-gray-300 text-xs">({totalRemaining} of {(stage.revisions_included || 0) + extensionRevisionsTotal} remaining)</p>
+                    <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 rotate-45"></div>
+                  </div>
+                </div>
+              </div>
             );
           })()}
         </div>
