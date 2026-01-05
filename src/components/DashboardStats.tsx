@@ -26,11 +26,22 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('[DashboardStats] No userId provided, skipping fetch');
+      setLoading(false);
+      return;
+    }
+    console.log('[DashboardStats] Fetching stats for userId:', userId);
     fetchStats();
   }, [userId]);
 
   const fetchStats = async () => {
+    if (!userId) {
+      console.log('[DashboardStats] fetchStats called without userId');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
 
@@ -39,11 +50,25 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-      // First, fetch all user's project IDs
+      console.log('[DashboardStats] Running query for user:', userId);
+
+      // Query projects with nested stages - EXACT same pattern as Dashboard.tsx
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('id, currency')
-        .eq('user_id', userId);
+        .select(`
+          id,
+          currency,
+          stages (
+            id,
+            stage_number,
+            status,
+            amount,
+            payment_status,
+            payment_received_at
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
       if (projectsError) {
         console.error('[DashboardStats] Projects query error:', projectsError);
@@ -57,26 +82,13 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
         return;
       }
 
-      const projectIds = projects.map(p => p.id);
+      // Use the most common currency (or first project's currency)
       const primaryCurrency = projects[0]?.currency || 'USD';
 
-      console.log('[DashboardStats] Found', projectIds.length, 'projects');
+      // Flatten all stages from all projects
+      const allStages = projects.flatMap(p => (p.stages as any[]) || []);
 
-      // Fetch stages for each project individually and combine
-      let allStages: any[] = [];
-      
-      for (const projectId of projectIds) {
-        const { data: stages, error: stagesError } = await supabase
-          .from('stages')
-          .select('id, amount, payment_status, payment_received_at, created_at, status')
-          .eq('project_id', projectId);
-        
-        if (!stagesError && stages) {
-          allStages = [...allStages, ...stages];
-        }
-      }
-
-      console.log('[DashboardStats] Found', allStages.length, 'total stages');
+      console.log('[DashboardStats] Found', projects.length, 'projects with', allStages.length, 'total stages');
 
       if (allStages.length === 0) {
         setLoading(false);
@@ -87,7 +99,6 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       let earnedThisMonth = 0;
       let earnedThisYear = 0;
       let outstanding = 0;
-      let totalDaysToPayment = 0;
       let paidStagesCount = 0;
 
       allStages.forEach(stage => {
@@ -106,24 +117,16 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
             earnedThisYear += amount;
           }
 
-          // Calculate days to payment (from stage creation or delivery)
-          if (stage.created_at) {
-            const createdDate = new Date(stage.created_at);
-            const daysToPayment = Math.floor((paidDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysToPayment >= 0) {
-              totalDaysToPayment += daysToPayment;
-              paidStagesCount++;
-            }
-          }
+          // Count paid stages for avg calculation
+          paidStagesCount++;
         } else if (stage.payment_status !== 'received' && stage.status !== 'locked') {
           // Outstanding = unpaid stages that are not locked
           outstanding += amount;
         }
       });
 
-      const avgDaysToPayment = paidStagesCount > 0 
-        ? Math.round(totalDaysToPayment / paidStagesCount) 
-        : null;
+      // For avg days to payment, we'll show null for now (needs more data)
+      const avgDaysToPayment = null;
 
       console.log('[DashboardStats] Calculated:', { earnedThisMonth, earnedThisYear, outstanding, avgDaysToPayment });
 
