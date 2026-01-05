@@ -11,6 +11,7 @@ import { ErrorFallback } from '../components/ErrorFallback';
 import { retryOperation } from '../lib/errorHandling';
 import { getStageNotificationMessage } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
+import { generateQuotePDF, generateInvoicePDF } from '../lib/invoiceGenerator';
 import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, Clock, CheckCircle2 } from 'lucide-react';
 
 interface ProjectData {
@@ -199,6 +200,60 @@ export default function ProjectOverview() {
     window.open(`/portal/${project.share_code}`, '_blank');
   }, [project]);
 
+  const handleDownloadQuote = useCallback(() => {
+    if (!project || !user) return;
+    
+    try {
+      generateQuotePDF({
+        freelancerName: user.user_metadata?.name || user.email || 'Freelancer',
+        freelancerEmail: user.email || '',
+        clientName: project.client_name,
+        clientEmail: project.client_email,
+        projectName: project.project_name,
+        projectCreatedAt: project.created_at,
+        currency: project.currency || 'USD',
+        stages: project.stages.map(s => ({
+          stage_number: s.stage_number,
+          name: s.name,
+          amount: s.amount,
+        })),
+        totalAmount: project.total_amount,
+      });
+      toast.success('Quote downloaded!');
+    } catch (err) {
+      console.error('Failed to generate quote:', err);
+      toast.error('Could not generate quote');
+    }
+  }, [project, user]);
+
+  const handleDownloadInvoice = useCallback(() => {
+    if (!project || !user) return;
+    
+    try {
+      generateInvoicePDF({
+        freelancerName: user.user_metadata?.name || user.email || 'Freelancer',
+        freelancerEmail: user.email || '',
+        clientName: project.client_name,
+        clientEmail: project.client_email,
+        projectName: project.project_name,
+        projectCreatedAt: project.created_at,
+        currency: project.currency || 'USD',
+        stages: project.stages.map(s => ({
+          stage_number: s.stage_number,
+          name: s.name,
+          amount: s.amount,
+          payment_status: s.payment_status,
+          approved_at: s.approved_at,
+        })),
+        totalAmount: project.total_amount,
+      });
+      toast.success('Invoice downloaded!');
+    } catch (err) {
+      console.error('Failed to generate invoice:', err);
+      toast.error('Could not generate invoice');
+    }
+  }, [project, user]);
+
   const getProjectStatusColor = (status: string, completedStages: number, totalStages: number) => {
     const isFullyComplete = totalStages > 0 && completedStages === totalStages;
 
@@ -364,6 +419,31 @@ export default function ProjectOverview() {
           <p className="text-xs sm:text-sm text-gray-400">
             Created {new Date(project.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
+          
+          {/* PDF Download Buttons */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            <button
+              onClick={handleDownloadQuote}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              title="Download a formal quote to share with your client"
+            >
+              📄 Download Quote
+            </button>
+            {completedStages === totalStages && totalStages > 0 && (
+              <button
+                onClick={handleDownloadInvoice}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                title="Download final invoice with all payment details"
+              >
+                📄 Download Invoice
+              </button>
+            )}
+            {completedStages !== totalStages && (
+              <span className="inline-flex items-center px-3 py-2 text-xs text-gray-500">
+                Invoice available when all stages are paid
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
