@@ -39,38 +39,44 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-      // Fetch all user's projects with their stages in a single query
+      // First, fetch all user's project IDs
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          id, 
-          currency,
-          stages (
-            id,
-            amount,
-            payment_status,
-            payment_received_at,
-            created_at,
-            status
-          )
-        `)
+        .select('id, currency')
         .eq('user_id', userId);
 
       if (projectsError) {
         console.error('[DashboardStats] Projects query error:', projectsError);
-        throw projectsError;
-      }
-
-      if (!projects || projects.length === 0) {
         setLoading(false);
         return;
       }
 
-      // Use the most common currency (or first project's currency)
+      if (!projects || projects.length === 0) {
+        console.log('[DashboardStats] No projects found');
+        setLoading(false);
+        return;
+      }
+
+      const projectIds = projects.map(p => p.id);
       const primaryCurrency = projects[0]?.currency || 'USD';
 
-      // Flatten all stages from all projects
-      const allStages = projects.flatMap(p => p.stages || []);
+      console.log('[DashboardStats] Found', projectIds.length, 'projects');
+
+      // Fetch stages for each project individually and combine
+      let allStages: any[] = [];
+      
+      for (const projectId of projectIds) {
+        const { data: stages, error: stagesError } = await supabase
+          .from('stages')
+          .select('id, amount, payment_status, payment_received_at, created_at, status')
+          .eq('project_id', projectId);
+        
+        if (!stagesError && stages) {
+          allStages = [...allStages, ...stages];
+        }
+      }
+
+      console.log('[DashboardStats] Found', allStages.length, 'total stages');
 
       if (allStages.length === 0) {
         setLoading(false);
@@ -118,6 +124,8 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       const avgDaysToPayment = paidStagesCount > 0 
         ? Math.round(totalDaysToPayment / paidStagesCount) 
         : null;
+
+      console.log('[DashboardStats] Calculated:', { earnedThisMonth, earnedThisYear, outstanding, avgDaysToPayment });
 
       setStats({
         earnedThisMonth,
