@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
-import { DollarSign, TrendingUp, Clock, CalendarDays } from 'lucide-react';
+import { DollarSign, TrendingUp, Briefcase, CalendarDays } from 'lucide-react';
 
 interface DashboardStatsProps {
   userId: string;
@@ -11,7 +11,7 @@ interface Stats {
   earnedThisMonth: number;
   earnedThisYear: number;
   outstanding: number;
-  avgDaysToPayment: number | null;
+  activeProjects: number;
   currency: CurrencyCode;
 }
 
@@ -20,7 +20,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
     earnedThisMonth: 0,
     earnedThisYear: 0,
     outstanding: 0,
-    avgDaysToPayment: null,
+    activeProjects: 0,
     currency: 'USD',
   });
   const [loading, setLoading] = useState(true);
@@ -58,6 +58,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
         .select(`
           id,
           currency,
+          archived_at,
           stages (
             id,
             stage_number,
@@ -99,7 +100,18 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       let earnedThisMonth = 0;
       let earnedThisYear = 0;
       let outstanding = 0;
-      let paidStagesCount = 0;
+      let activeProjects = 0;
+
+      // Count active projects (not completed, not archived)
+      projects.forEach(project => {
+        const stages = (project.stages as any[]) || [];
+        const allStagesPaid = stages.length > 0 && stages.every(s => s.payment_status === 'received');
+        const isArchived = !!(project as any).archived_at;
+        
+        if (!allStagesPaid && !isArchived) {
+          activeProjects++;
+        }
+      });
 
       allStages.forEach(stage => {
         const amount = stage.amount || 0;
@@ -116,25 +128,19 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
           if (paidDate >= new Date(startOfYear)) {
             earnedThisYear += amount;
           }
-
-          // Count paid stages for avg calculation
-          paidStagesCount++;
         } else if (stage.payment_status !== 'received' && stage.status !== 'locked') {
           // Outstanding = unpaid stages that are not locked
           outstanding += amount;
         }
       });
 
-      // For avg days to payment, we'll show null for now (needs more data)
-      const avgDaysToPayment = null;
-
-      console.log('[DashboardStats] Calculated:', { earnedThisMonth, earnedThisYear, outstanding, avgDaysToPayment });
+      console.log('[DashboardStats] Calculated:', { earnedThisMonth, earnedThisYear, outstanding, activeProjects });
 
       setStats({
         earnedThisMonth,
         earnedThisYear,
         outstanding,
-        avgDaysToPayment,
+        activeProjects,
         currency: primaryCurrency as CurrencyCode,
       });
 
@@ -163,29 +169,30 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       label: 'Earned This Month',
       value: formatCurrency(stats.earnedThisMonth, stats.currency),
       icon: CalendarDays,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      iconBg: 'bg-green-50',
     },
     {
       label: 'Earned This Year',
       value: formatCurrency(stats.earnedThisYear, stats.currency),
       icon: TrendingUp,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-50',
     },
     {
       label: 'Outstanding',
       value: formatCurrency(stats.outstanding, stats.currency),
       icon: DollarSign,
-      color: stats.outstanding > 0 ? 'text-orange-600' : 'text-gray-600',
-      bgColor: stats.outstanding > 0 ? 'bg-orange-50' : 'bg-gray-50',
+      iconColor: stats.outstanding > 0 ? 'text-orange-600' : 'text-gray-600',
+      iconBg: stats.outstanding > 0 ? 'bg-orange-50' : 'bg-gray-50',
+      tooltip: 'Unpaid amounts from active stages',
     },
     {
-      label: 'Avg. Days to Payment',
-      value: stats.avgDaysToPayment !== null ? `${stats.avgDaysToPayment} days` : '—',
-      icon: Clock,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      label: 'Active Projects',
+      value: stats.activeProjects.toString(),
+      icon: Briefcase,
+      iconColor: 'text-purple-600',
+      iconBg: 'bg-purple-50',
     },
   ];
 
@@ -197,12 +204,12 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
           className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow"
         >
           <div className="flex items-center gap-3 mb-2">
-            <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
+            <div className={`p-2 rounded-lg ${stat.iconBg}`}>
+              <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
             </div>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mb-1">{stat.label}</p>
-          <p className={`text-lg sm:text-2xl font-bold ${stat.color}`}>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">
             {stat.value}
           </p>
         </div>
