@@ -420,6 +420,9 @@ export default function ClientPortal() {
             <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">
               Freelancer: {projectData.user_profiles.name}
             </p>
+            <p className="text-gray-400 text-xs mt-0.5">
+              Created {new Date(projectData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
           </div>
           <div className="text-right flex-shrink-0">
             <div className="text-xs sm:text-sm text-gray-500 sm:text-gray-600">Total Value</div>
