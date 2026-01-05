@@ -19,6 +19,7 @@ export default function Settings() {
   const [email, setEmail] = useState('');
   const [stripeConnected, setStripeConnected] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('');
+  const [manualPaymentInstructions, setManualPaymentInstructions] = useState('');
   const [errors, setErrors] = useState({
     fullName: '',
   });
@@ -39,7 +40,7 @@ export default function Settings() {
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('name, email, stripe_account_id, stripe_customer_id, subscription_status, stripe_onboarding_completed, stripe_charges_enabled')
+        .select('name, email, stripe_account_id, stripe_customer_id, subscription_status, stripe_onboarding_completed, stripe_charges_enabled, manual_payment_instructions')
         .eq('id', user.id)
         .single();
 
@@ -51,6 +52,7 @@ export default function Settings() {
         // Only show as connected if Stripe is FULLY set up
         setStripeConnected(!!data.stripe_account_id && data.stripe_onboarding_completed && data.stripe_charges_enabled);
         setSubscriptionStatus(data.subscription_status || 'trialing');
+        setManualPaymentInstructions(data.manual_payment_instructions || '');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -88,6 +90,7 @@ export default function Settings() {
         .from('user_profiles')
         .update({
           name: fullName.trim(),
+          manual_payment_instructions: manualPaymentInstructions.trim() || null,
         })
         .eq('id', user!.id);
 
@@ -226,6 +229,25 @@ export default function Settings() {
                     You can receive project payments from clients via Stripe.
                   </p>
                 )}
+              </div>
+
+              {/* Manual Payment Instructions */}
+              <div>
+                <label htmlFor="manualPaymentInstructions" className="block text-sm font-medium text-gray-700 mb-2">
+                  Default Offline Payment Instructions
+                </label>
+                <textarea
+                  id="manualPaymentInstructions"
+                  value={manualPaymentInstructions}
+                  onChange={(e) => setManualPaymentInstructions(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  placeholder="Example:&#10;PayPal: yourname@paypal.com&#10;Bank Transfer: Account 1234567890&#10;Venmo: @yourhandle"
+                  disabled={loading}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This will be auto-filled when you create new projects. Clients will see this for offline payments.
+                </p>
               </div>
 
               {/* Save Button */}

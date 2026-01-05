@@ -60,21 +60,27 @@ export default function NewProject() {
       return;
     }
 
-    // Fetch Stripe status only
-    const fetchStripeStatus = async () => {
+    // Fetch Stripe status and manual payment instructions
+    const fetchUserPaymentSettings = async () => {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('stripe_charges_enabled')
+        .select('stripe_charges_enabled, manual_payment_instructions')
         .eq('id', user.id)
         .single();
 
       if (!error && data) {
         setStripeConnected(!!data.stripe_charges_enabled);
         console.log('[NewProject] Stripe connected:', !!data.stripe_charges_enabled);
+        
+        // Pre-fill offline payment instructions from saved profile
+        if (data.manual_payment_instructions) {
+          setOfflinePaymentInstructions(data.manual_payment_instructions);
+          console.log('[NewProject] Pre-filled manual payment instructions from profile');
+        }
       }
     };
 
-    fetchStripeStatus();
+    fetchUserPaymentSettings();
 
     if (templateId) {
       const template = TEMPLATES.find((t) => t.id === templateId);
