@@ -13,6 +13,7 @@ import PaymentTracker from '../components/PaymentTracker';
 import StripeConnect from '../components/StripeConnect';
 import WelcomeModal from '../components/WelcomeModal';
 import TrialBanner from '../components/TrialBanner';
+import DashboardStats from '../components/DashboardStats';
 import { retryOperation } from '../lib/errorHandling';
 import { getPrimaryNotification } from '../lib/notificationMessages';
 import { formatCurrency, type CurrencyCode } from '../lib/currency';
@@ -598,6 +599,9 @@ export default function Dashboard() {
 
         {/* Trial Banner - Shows subscription status */}
         <TrialBanner />
+
+        {/* Dashboard Stats - 4 key metrics */}
+        <DashboardStats userId={userId!} />
 
         {/* Payment Tracker Section */}
         <PaymentTracker userId={userId!} />
