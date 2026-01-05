@@ -361,6 +361,9 @@ export default function ProjectOverview() {
           <p className="text-sm sm:text-base text-gray-600">
             Client: {project.client_name} ({project.client_email})
           </p>
+          <p className="text-xs sm:text-sm text-gray-400">
+            Created {new Date(project.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
