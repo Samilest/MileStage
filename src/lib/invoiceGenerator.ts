@@ -7,6 +7,7 @@ interface Stage {
   amount: number;
   payment_status?: string;
   approved_at?: string | null;
+  payment_received_at?: string | null;
 }
 
 interface PDFData {
@@ -165,7 +166,7 @@ export function generateQuotePDF(data: PDFData): void {
   // === FOOTER ===
   doc.setFontSize(8);
   doc.setTextColor('#9CA3AF');
-  doc.text('Generated via MileStage', pageWidth / 2, y, { align: 'center' });
+  doc.text('Generated via MileStage.com', pageWidth / 2, y, { align: 'center' });
   
   // === SAVE ===
   const fileName = `Quote-${data.projectName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
@@ -280,9 +281,12 @@ export function generateInvoicePDF(data: PDFData): void {
       ? 'Down Payment' 
       : `Stage ${stage.stage_number}: ${stage.name}`;
     
-    const paidDate = stage.approved_at 
-      ? new Date(stage.approved_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : '—';
+    // Use payment_received_at first, fallback to approved_at
+    const paidDate = stage.payment_received_at 
+      ? new Date(stage.payment_received_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : stage.approved_at
+        ? new Date(stage.approved_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : '—';
     
     doc.text(stageLabel, 25, y);
     doc.setTextColor('#6B7280');
@@ -322,7 +326,7 @@ export function generateInvoicePDF(data: PDFData): void {
   y += 15;
   doc.setFontSize(8);
   doc.setTextColor('#9CA3AF');
-  doc.text('Generated via MileStage', pageWidth / 2, y, { align: 'center' });
+  doc.text('Generated via MileStage.com', pageWidth / 2, y, { align: 'center' });
   
   // === SAVE ===
   const fileName = `Invoice-${data.projectName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;

@@ -31,6 +31,7 @@ interface ProjectData {
     amount: number;
     status: string;
     payment_status: string;
+    payment_received_at: string | null;
     revisions_included: number;
     revisions_used: number;
     approved_at: string | null;
@@ -62,12 +63,32 @@ export default function ProjectOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [freelancerName, setFreelancerName] = useState<string>('');
   const [pendingExtensions, setPendingExtensions] = useState<Array<{
     id: string;
     stage_id: string;
     amount: number;
     reference_code: string;
   }>>([]);
+
+  // Fetch freelancer name from user_profiles
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const fetchFreelancerName = async () => {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.name) {
+        setFreelancerName(data.name);
+      }
+    };
+    
+    fetchFreelancerName();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id || !id) return;
@@ -101,6 +122,7 @@ export default function ProjectOverview() {
                 amount,
                 status,
                 payment_status,
+                payment_received_at,
                 revisions_included,
                 revisions_used,
                 approved_at,
@@ -205,7 +227,7 @@ export default function ProjectOverview() {
     
     try {
       generateQuotePDF({
-        freelancerName: user.user_metadata?.name || user.email || 'Freelancer',
+        freelancerName: freelancerName || user.email || 'Freelancer',
         freelancerEmail: user.email || '',
         clientName: project.client_name,
         clientEmail: project.client_email,
@@ -224,14 +246,14 @@ export default function ProjectOverview() {
       console.error('Failed to generate quote:', err);
       toast.error('Could not generate quote');
     }
-  }, [project, user]);
+  }, [project, user, freelancerName]);
 
   const handleDownloadInvoice = useCallback(() => {
     if (!project || !user) return;
     
     try {
       generateInvoicePDF({
-        freelancerName: user.user_metadata?.name || user.email || 'Freelancer',
+        freelancerName: freelancerName || user.email || 'Freelancer',
         freelancerEmail: user.email || '',
         clientName: project.client_name,
         clientEmail: project.client_email,
@@ -244,6 +266,7 @@ export default function ProjectOverview() {
           amount: s.amount,
           payment_status: s.payment_status,
           approved_at: s.approved_at,
+          payment_received_at: s.payment_received_at,
         })),
         totalAmount: project.total_amount,
       });
@@ -252,7 +275,7 @@ export default function ProjectOverview() {
       console.error('Failed to generate invoice:', err);
       toast.error('Could not generate invoice');
     }
-  }, [project, user]);
+  }, [project, user, freelancerName]);
 
   const getProjectStatusColor = (status: string, completedStages: number, totalStages: number) => {
     const isFullyComplete = totalStages > 0 && completedStages === totalStages;
