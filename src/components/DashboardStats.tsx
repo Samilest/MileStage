@@ -39,32 +39,40 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-      // Fetch all user's projects
+      // Fetch all user's projects with their stages in a single query
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('id, currency')
+        .select(`
+          id, 
+          currency,
+          stages (
+            id,
+            amount,
+            payment_status,
+            payment_received_at,
+            created_at,
+            status
+          )
+        `)
         .eq('user_id', userId);
 
-      if (projectsError) throw projectsError;
+      if (projectsError) {
+        console.error('[DashboardStats] Projects query error:', projectsError);
+        throw projectsError;
+      }
 
       if (!projects || projects.length === 0) {
         setLoading(false);
         return;
       }
 
-      const projectIds = projects.map(p => p.id);
       // Use the most common currency (or first project's currency)
       const primaryCurrency = projects[0]?.currency || 'USD';
 
-      // Fetch all stages for these projects
-      const { data: stages, error: stagesError } = await supabase
-        .from('stages')
-        .select('id, amount, payment_status, payment_received_at, created_at, status')
-        .in('project_id', projectIds);
+      // Flatten all stages from all projects
+      const allStages = projects.flatMap(p => p.stages || []);
 
-      if (stagesError) throw stagesError;
-
-      if (!stages) {
+      if (allStages.length === 0) {
         setLoading(false);
         return;
       }
@@ -76,7 +84,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       let totalDaysToPayment = 0;
       let paidStagesCount = 0;
 
-      stages.forEach(stage => {
+      allStages.forEach(stage => {
         const amount = stage.amount || 0;
 
         if (stage.payment_status === 'received' && stage.payment_received_at) {
