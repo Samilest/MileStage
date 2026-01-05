@@ -189,13 +189,13 @@ export function generateInvoicePDF(data: PDFData): void {
   doc.setFont('helvetica', 'bold');
   doc.text('INVOICE', 20, y);
   
-  // Paid badge
+  // Paid badge - properly centered
   doc.setFillColor(16, 185, 129);
-  doc.roundedRect(pageWidth - 50, y - 8, 30, 12, 2, 2, 'F');
-  doc.setFontSize(10);
+  doc.roundedRect(pageWidth - 55, y - 10, 35, 14, 3, 3, 'F');
+  doc.setFontSize(11);
   doc.setTextColor('#FFFFFF');
   doc.setFont('helvetica', 'bold');
-  doc.text('PAID', pageWidth - 42, y);
+  doc.text('PAID', pageWidth - 37.5, y - 1, { align: 'center' });
   
   y += 15;
   
