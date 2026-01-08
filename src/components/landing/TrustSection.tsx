@@ -41,8 +41,8 @@ export default function TrustSection() {
               />
             </div>
             
-            {/* Security badge */}
-            <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:bottom-6 bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
+            {/* Security badge - centered, half outside image */}
+            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
