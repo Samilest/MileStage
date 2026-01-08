@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 export default function FAQ() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   const faqs = [
     {
       question: "What does MileStage do?",
@@ -34,6 +38,10 @@ export default function FAQ() {
     }
   ];
 
+  const toggleFaq = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
   return (
     <section id="faq" className="py-24 bg-white">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,18 +51,40 @@ export default function FAQ() {
           </h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {faqs.map((faq, index) => (
             <div 
               key={index} 
-              className="bg-gray-50 rounded-lg p-5 border border-gray-100"
+              className="border border-gray-200 rounded-lg overflow-hidden"
             >
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm">
-                {faq.question}
-              </h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {faq.answer}
-              </p>
+              <button
+                onClick={() => toggleFaq(index)}
+                className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-medium text-gray-900 text-sm pr-4">
+                  {faq.question}
+                </span>
+                <svg 
+                  className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-200 ${
+                    openIndex === index ? 'rotate-180' : ''
+                  }`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div 
+                className={`overflow-hidden transition-all duration-200 ${
+                  openIndex === index ? 'max-h-40' : 'max-h-0'
+                }`}
+              >
+                <p className="px-4 pb-4 text-gray-600 text-sm leading-relaxed">
+                  {faq.answer}
+                </p>
+              </div>
             </div>
           ))}
         </div>
