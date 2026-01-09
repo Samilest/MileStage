@@ -25,7 +25,7 @@ export default function Pricing() {
             Simple Pricing
           </h2>
           <p className="text-lg text-gray-600">
-            One plan. All features. No hidden fees.
+            One plan. All features. No surprises.
           </p>
         </div>
 
@@ -103,11 +103,11 @@ export default function Pricing() {
             to="/signup"
             className="block w-full text-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors mb-3"
           >
-            Start Free Trial
+            Get Started Free
           </Link>
 
           <p className="text-center text-sm text-gray-500">
-            14-day free trial • No credit card • Cancel anytime
+            14-day trial • No credit card required
           </p>
 
           {/* Guarantee */}

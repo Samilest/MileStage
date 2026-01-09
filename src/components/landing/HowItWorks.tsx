@@ -11,8 +11,8 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        <div className="space-y-20 lg:space-y-32">
-          {/* Step 1 */}
+        <div className="space-y-24">
+          {/* Step 1 - Image Left */}
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="order-2 lg:order-1">
               <div className="rounded-xl shadow-xl border border-gray-200 overflow-hidden bg-white">
@@ -24,20 +24,20 @@ export default function HowItWorks() {
               </div>
             </div>
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-green-600 text-white text-sm font-bold rounded-lg mb-5">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-600 text-white text-lg font-bold rounded-full mb-6">
                 1
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Create Project
+                Create Your Project
               </h3>
               <p className="text-base text-gray-600 mb-6">
-                Pick a template, customize stages, set amounts. Takes 3 minutes.
+                Pick a template or start from scratch. Set your stages, amounts, and revision limits. Takes 3 minutes.
               </p>
               <ul className="space-y-3">
                 {[
                   'Pre-built templates for design, dev & content',
-                  'Or create custom stages from scratch',
-                  'Optional down payment (Stage 0)',
+                  'Customizable stages and pricing',
+                  'Optional down payment protection',
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-gray-700">
                     <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,80 +50,76 @@ export default function HowItWorks() {
             </div>
           </div>
 
-          {/* Step 2 */}
+          {/* Step 2 - Image Right (different layout) */}
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-green-600 text-white text-sm font-bold rounded-lg mb-5">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-600 text-white text-lg font-bold rounded-full mb-6">
                 2
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Deliver → Approve → Pay
+                Share With Your Client
               </h3>
               <p className="text-base text-gray-600 mb-6">
-                Upload deliverables. Client approves. Payment unlocks. Next stage begins.
+                Send a single link. No client signup needed. They see a clean portal with stages, deliverables, and payment buttons.
               </p>
-              <ul className="space-y-3">
-                {[
-                  'Client reviews & approves your work',
-                  'Payment unlocks after approval',
-                  'Next stage unlocks after payment',
-                  'Stripe or offline payments supported',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-700">
-                    <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-base">{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  <span className="font-semibold">Pro tip:</span> Clients can pay via Stripe or mark offline payments (PayPal, bank transfer, etc.)
+                </p>
+              </div>
             </div>
             <div>
               <div className="rounded-xl shadow-xl border border-gray-200 overflow-hidden bg-white">
                 <img 
                   src="/assets/screenshots/step2-stages.png" 
-                  alt="Stage workflow"
+                  alt="Client portal"
                   className="w-full"
                 />
               </div>
             </div>
           </div>
 
-          {/* Step 3 */}
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="rounded-xl shadow-xl border border-gray-200 overflow-hidden bg-white">
-                <img 
-                  src="/assets/screenshots/step3-client-portal.png" 
-                  alt="Client portal"
-                  className="w-full"
-                />
+          {/* Step 3 - Full width different style */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 lg:p-12">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-green-600 text-white text-lg font-bold rounded-full mb-6">
+                  3
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Get Paid Automatically
+                </h3>
+                <p className="text-base text-gray-600 mb-6">
+                  When a client pays, the next stage unlocks instantly. Automated reminders chase overdue payments so you don't have to.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {[
+                    { label: 'Real-time updates', desc: 'Instant notifications' },
+                    { label: 'Auto reminders', desc: 'Stop chasing payments' },
+                    { label: 'Stage locking', desc: 'No unpaid work' },
+                    { label: 'Payment tracking', desc: 'See everything at a glance' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{item.label}</p>
+                        <p className="text-xs text-gray-500">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-green-600 text-white text-sm font-bold rounded-lg mb-5">
-                3
+              <div>
+                <div className="rounded-xl shadow-xl border border-gray-200 overflow-hidden bg-white">
+                  <img 
+                    src="/assets/screenshots/step3-client-portal.png" 
+                    alt="Payment tracking"
+                    className="w-full"
+                  />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Track Automatically
-              </h3>
-              <p className="text-base text-gray-600 mb-6">
-                Status updates in real-time. Reminders send themselves. Focus on work.
-              </p>
-              <ul className="space-y-3">
-                {[
-                  'Payment received? Stage unlocks instantly',
-                  'Automated email reminders (optional)',
-                  'Dashboard shows everything at a glance',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-gray-700">
-                    <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-base">{item}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>

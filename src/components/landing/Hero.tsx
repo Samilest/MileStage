@@ -21,7 +21,7 @@ export default function Hero() {
               to="/signup"
               className="inline-flex items-center justify-center px-8 py-4 bg-green-600 text-white text-base font-semibold rounded-lg hover:bg-green-700 transition-all duration-200 shadow-lg shadow-green-600/25 hover:shadow-xl hover:shadow-green-600/30 hover:-translate-y-0.5"
             >
-              Start Free Trial
+              Try Free for 14 Days
               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -29,7 +29,7 @@ export default function Hero() {
           </div>
 
           <p className="text-sm text-gray-500">
-            No credit card required • 14 days free • Cancel anytime
+            No credit card required • Cancel anytime
           </p>
         </div>
 

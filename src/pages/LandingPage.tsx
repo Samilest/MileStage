@@ -7,6 +7,7 @@ import Hero from '../components/landing/Hero';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
+import Testimonial from '../components/landing/Testimonial';
 import MidPageCTA from '../components/landing/MidPageCTA';
 import TrustSection from '../components/landing/TrustSection';
 import Pricing from '../components/landing/Pricing';
@@ -47,6 +48,7 @@ export default function LandingPage() {
         <Features />
         <HowItWorks />
         <ScopeCreepPrevention />
+        <Testimonial />
         <MidPageCTA />
         <TrustSection />
         <Pricing />
