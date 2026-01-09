@@ -44,7 +44,7 @@ export default function EmailNotifications() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-700 text-sm">{item}</span>
+                  <span className="text-base text-gray-700">{item}</span>
                 </li>
               ))}
             </ul>
@@ -61,7 +61,7 @@ export default function EmailNotifications() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-700 text-sm">{item}</span>
+                  <span className="text-base text-gray-700">{item}</span>
                 </li>
               ))}
             </ul>
@@ -70,7 +70,7 @@ export default function EmailNotifications() {
 
         {/* Bottom note */}
         <div className="mt-12 text-center">
-          <p className="text-gray-600 text-sm">
+          <p className="text-base text-gray-600">
             Professional branded emails. Clear action buttons. Zero manual follow-ups.
           </p>
         </div>

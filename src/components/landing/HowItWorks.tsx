@@ -30,7 +30,7 @@ export default function HowItWorks() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Create Project
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-base text-gray-600 mb-6">
                 Pick a template, customize stages, set amounts. Takes 3 minutes.
               </p>
               <ul className="space-y-3">
@@ -43,7 +43,7 @@ export default function HowItWorks() {
                     <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm">{item}</span>
+                    <span className="text-base">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -59,7 +59,7 @@ export default function HowItWorks() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Deliver → Approve → Pay
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-base text-gray-600 mb-6">
                 Upload deliverables. Client approves. Payment unlocks. Next stage begins.
               </p>
               <ul className="space-y-3">
@@ -73,7 +73,7 @@ export default function HowItWorks() {
                     <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm">{item}</span>
+                    <span className="text-base">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -107,7 +107,7 @@ export default function HowItWorks() {
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Track Automatically
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-base text-gray-600 mb-6">
                 Status updates in real-time. Reminders send themselves. Focus on work.
               </p>
               <ul className="space-y-3">
@@ -120,7 +120,7 @@ export default function HowItWorks() {
                     <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-sm">{item}</span>
+                    <span className="text-base">{item}</span>
                   </li>
                 ))}
               </ul>

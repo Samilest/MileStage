@@ -27,14 +27,14 @@ export default function Comparison() {
                 { project: '$10,000', fee: '-$290' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-700 text-sm">{item.project} project</span>
-                  <span className="font-medium text-red-600 text-sm">{item.fee}</span>
+                  <span className="text-gray-700">{item.project} project</span>
+                  <span className="font-medium text-red-600">{item.fee}</span>
                 </div>
               ))}
             </div>
 
             <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">10 projects/year:</p>
+              <p className="text-sm text-gray-600 mb-1">10 projects/year:</p>
               <p className="text-xl font-bold text-red-600">-$1,450+</p>
             </div>
           </div>
@@ -59,14 +59,14 @@ export default function Comparison() {
                 { project: '$10,000', fee: '$0' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="text-gray-700 text-sm">{item.project} project</span>
-                  <span className="font-medium text-green-600 text-sm">{item.fee} fees</span>
+                  <span className="text-gray-700">{item.project} project</span>
+                  <span className="font-medium text-green-600">{item.fee} fees</span>
                 </div>
               ))}
             </div>
 
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-xs text-gray-600 mb-1">10 projects/year:</p>
+              <p className="text-sm text-gray-600 mb-1">10 projects/year:</p>
               <p className="text-xl font-bold text-green-600">Save $1,450+</p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export default function Comparison() {
 
         {/* Bottom note */}
         <div className="text-center">
-          <p className="text-gray-600">
+          <p className="text-base text-gray-600">
             That's enough to cover your subscription for <span className="font-semibold text-gray-900">6+ years</span>.
           </p>
           <p className="text-sm text-gray-500 mt-2">

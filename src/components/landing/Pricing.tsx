@@ -24,14 +24,14 @@ export default function Pricing() {
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
             Simple Pricing
           </h2>
-          <p className="text-gray-600">
+          <p className="text-lg text-gray-600">
             One plan. All features. No hidden fees.
           </p>
         </div>
 
         {/* Toggle */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <span className={`text-sm font-medium ${!isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
+          <span className={`font-medium ${!isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
             Monthly
           </span>
           <button
@@ -47,7 +47,7 @@ export default function Pricing() {
               }`}
             />
           </button>
-          <span className={`text-sm font-medium ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
+          <span className={`font-medium ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
             Annual
             <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
               Save 37%
@@ -72,7 +72,7 @@ export default function Pricing() {
                   $12<span className="text-lg text-gray-500">/mo</span>
                 </div>
                 <p className="text-sm text-gray-500">Billed annually at $144/year</p>
-                <p className="text-xs text-green-600 font-medium mt-1">Save $84/year</p>
+                <p className="text-sm text-green-600 font-medium mt-1">Save $84/year</p>
               </>
             ) : (
               <div className="text-4xl sm:text-5xl font-bold text-gray-900 mb-1">
@@ -86,12 +86,12 @@ export default function Pricing() {
             <ul className="space-y-3">
               {features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <div>
-                    <span className="text-gray-900 text-sm font-medium">{feature.title}</span>
-                    <p className="text-xs text-gray-500">{feature.desc}</p>
+                    <span className="text-gray-900 font-medium">{feature.title}</span>
+                    <p className="text-sm text-gray-500">{feature.desc}</p>
                   </div>
                 </li>
               ))}
@@ -106,16 +106,16 @@ export default function Pricing() {
             Start Free Trial
           </Link>
 
-          <p className="text-center text-xs text-gray-500">
+          <p className="text-center text-sm text-gray-500">
             14-day free trial • No credit card • Cancel anytime
           </p>
 
           {/* Guarantee */}
           <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <p className="text-xs font-semibold text-gray-900 mb-1">
+            <p className="font-semibold text-gray-900 mb-1">
               30-Day Money-Back Guarantee
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-gray-500">
               Not happy? Full refund, no questions.
             </p>
           </div>
@@ -123,7 +123,7 @@ export default function Pricing() {
 
         {/* Contact */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-base text-gray-500">
             Questions?{' '}
             <a href="mailto:support@milestage.com" className="text-green-600 hover:text-green-700 font-medium">
               support@milestage.com

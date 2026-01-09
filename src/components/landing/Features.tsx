@@ -67,7 +67,7 @@ export default function Features() {
                 {feature.icon}
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-              <p className="text-gray-600 leading-relaxed text-sm">{feature.description}</p>
+              <p className="text-base text-gray-600 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>

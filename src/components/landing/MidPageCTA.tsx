@@ -5,12 +5,12 @@ export default function MidPageCTA() {
     <section className="py-20 bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Headline */}
-        <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
           Ready to Stop Chasing Payments?
         </h2>
         
         {/* Subtext */}
-        <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-300 mb-10 max-w-2xl mx-auto">
           Join freelancers who track stage-by-stage payments automatically. 
           No more scope creep, no more awkward conversations.
         </p>

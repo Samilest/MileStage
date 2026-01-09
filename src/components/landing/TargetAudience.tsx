@@ -38,7 +38,7 @@ export default function TargetAudience() {
                   <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-700">{item}</span>
+                  <span className="text-base text-gray-700">{item}</span>
                 </li>
               ))}
             </ul>
@@ -58,7 +58,7 @@ export default function TargetAudience() {
                   <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span className="text-gray-500">{item}</span>
+                  <span className="text-base text-gray-500">{item}</span>
                 </li>
               ))}
             </ul>
@@ -67,7 +67,7 @@ export default function TargetAudience() {
 
         {/* Bottom callout */}
         <div className="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
-          <p className="text-gray-700">
+          <p className="text-base text-gray-700">
             <span className="font-semibold text-gray-900">Built for client-facing work</span> where clear boundaries prevent scope creep and payment delays.
           </p>
         </div>

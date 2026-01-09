@@ -19,7 +19,7 @@ export default function TrustSection() {
                   <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-green-700 text-sm font-semibold">{item.step}</span>
                   </div>
-                  <p className="text-gray-700 pt-1">{item.text}</p>
+                  <p className="text-base text-gray-700 pt-1">{item.text}</p>
                 </div>
               ))}
             </div>
@@ -32,7 +32,7 @@ export default function TrustSection() {
           </div>
 
           {/* Image with badge */}
-          <div className="relative">
+          <div className="relative pb-8">
             <div className="rounded-xl shadow-xl overflow-hidden">
               <img 
                 src="/assets/photos/freelancer-working.jpg" 
@@ -42,7 +42,7 @@ export default function TrustSection() {
             </div>
             
             {/* Security badge - centered, half outside image */}
-            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
+            <div className="absolute -bottom-0 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">

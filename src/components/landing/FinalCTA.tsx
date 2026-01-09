@@ -15,13 +15,13 @@ export default function FinalCTA() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: CTA Content */}
           <div>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
               Stop Chasing Payments
             </h2>
-            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+            <p className="text-lg text-gray-300 mb-8 leading-relaxed">
               Let the system do the work. Automated reminders. Locked stages. Professional client portal.
             </p>
-            <p className="text-lg text-gray-400 mb-10">
+            <p className="text-base text-gray-400 mb-10">
               Join freelancers who've eliminated scope creep and payment stress.
             </p>
             
@@ -51,22 +51,6 @@ export default function FinalCTA() {
                 className="w-full aspect-square object-cover"
               />
             </div>
-
-            {/* Floating testimonial card (when you have real testimonials) */}
-            {/* 
-            <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-6 shadow-2xl max-w-sm">
-              <p className="text-gray-700 mb-3 italic">
-                "I used to spend hours chasing payments. Now it's automatic. Game changer."
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-full"></div>
-                <div>
-                  <p className="font-semibold text-gray-900">Sarah Chen</p>
-                  <p className="text-sm text-gray-600">Brand Designer</p>
-                </div>
-              </div>
-            </div>
-            */}
           </div>
         </div>
       </div>

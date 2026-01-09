@@ -34,10 +34,10 @@ export default function ScopeCreepPrevention() {
                 key={index} 
                 className="bg-gray-50 border-l-4 border-gray-300 p-5 rounded-r-lg"
               >
-                <p className="font-medium text-gray-900 mb-2 text-sm">
+                <p className="font-medium text-gray-900 mb-2">
                   {scenario.question}
                 </p>
-                <p className="text-gray-600 text-sm flex items-center gap-2">
+                <p className="text-base text-gray-600 flex items-center gap-2">
                   <span className="text-red-500">→</span>
                   {scenario.answer}
                 </p>
@@ -46,7 +46,7 @@ export default function ScopeCreepPrevention() {
 
             {/* Benefits box */}
             <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200">
-              <p className="font-semibold text-gray-900 mb-4 text-sm">
+              <p className="font-semibold text-gray-900 mb-4">
                 System enforces boundaries:
               </p>
               <ul className="space-y-2">
@@ -55,11 +55,11 @@ export default function ScopeCreepPrevention() {
                   'Revisions tracked per stage',
                   'Work progresses in order',
                 ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-gray-700 text-sm">
+                  <li key={i} className="flex items-center gap-2 text-gray-700">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    {item}
+                    <span className="text-base">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -84,7 +84,7 @@ export default function ScopeCreepPrevention() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Revision Tracking Built-In
             </h3>
-            <p className="text-gray-600 text-sm">
+            <p className="text-base text-gray-600">
               Each stage includes set revisions. When clients exceed their limit, they purchase additional rounds through the portal. No more "shadow work."
             </p>
           </div>

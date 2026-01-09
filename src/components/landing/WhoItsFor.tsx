@@ -41,7 +41,7 @@ export default function WhoItsFor() {
   return (
     <section className="py-16 bg-white border-t border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-gray-600 mb-10">
+        <p className="text-center text-base text-gray-600 mb-10">
           For designers, developers, and creators who work in stages
         </p>
 
@@ -51,8 +51,8 @@ export default function WhoItsFor() {
               <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 text-white group-hover:bg-green-600 transition-colors duration-200">
                 {item.icon}
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1 text-sm">{item.title}</h3>
-              <p className="text-xs text-gray-500">{item.subtitle}</p>
+              <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+              <p className="text-sm text-gray-500">{item.subtitle}</p>
             </div>
           ))}
         </div>

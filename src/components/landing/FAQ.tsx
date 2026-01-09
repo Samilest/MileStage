@@ -61,7 +61,7 @@ export default function FAQ() {
                 onClick={() => toggleFaq(index)}
                 className="w-full flex items-center justify-between p-4 text-left bg-white hover:bg-gray-50 transition-colors"
               >
-                <span className="font-medium text-gray-900 text-sm pr-4">
+                <span className="font-medium text-gray-900 pr-4">
                   {faq.question}
                 </span>
                 <svg 
@@ -81,7 +81,7 @@ export default function FAQ() {
                   openIndex === index ? 'max-h-40' : 'max-h-0'
                 }`}
               >
-                <p className="px-4 pb-4 text-gray-600 text-sm leading-relaxed">
+                <p className="px-4 pb-4 text-base text-gray-600 leading-relaxed">
                   {faq.answer}
                 </p>
               </div>
@@ -91,12 +91,12 @@ export default function FAQ() {
 
         {/* Contact */}
         <div className="mt-12 text-center">
-          <p className="text-gray-500 text-sm mb-2">
+          <p className="text-base text-gray-500 mb-2">
             More questions?
           </p>
           <a 
             href="mailto:support@milestage.com" 
-            className="text-green-600 hover:text-green-700 font-medium text-sm"
+            className="text-green-600 hover:text-green-700 font-medium"
           >
             support@milestage.com
           </a>

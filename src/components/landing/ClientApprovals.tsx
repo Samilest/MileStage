@@ -25,10 +25,10 @@ export default function ClientApprovals() {
 
         {/* Solution */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
             Sound familiar?
           </h2>
-          <p className="text-gray-600">
+          <p className="text-lg text-gray-600">
             MileStage fixes this:
           </p>
         </div>
@@ -43,7 +43,7 @@ export default function ClientApprovals() {
               <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <p className="text-gray-700">{benefit}</p>
+              <p className="text-base text-gray-700">{benefit}</p>
             </div>
           ))}
         </div>
@@ -53,7 +53,7 @@ export default function ClientApprovals() {
           <p className="text-xl font-semibold text-gray-900 mb-1">
             Approve = Pay = Progress
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-base text-gray-600">
             All in one action.
           </p>
         </div>
