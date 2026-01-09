@@ -4,7 +4,6 @@ import SEOHead from '../components/SEOHead';
 import StructuredData from '../components/StructuredData';
 import LandingNav from '../components/landing/LandingNav';
 import Hero from '../components/landing/Hero';
-import WhoItsFor from '../components/landing/WhoItsFor';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
@@ -45,7 +44,6 @@ export default function LandingPage() {
       <div className="bg-white">
         <LandingNav />
         <Hero />
-        <WhoItsFor />
         <Features />
         <HowItWorks />
         <ScopeCreepPrevention />
