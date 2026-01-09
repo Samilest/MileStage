@@ -7,7 +7,7 @@ export default function Features() {
         </svg>
       ),
       title: 'Never Chase Payments',
-      description: 'Reminders send automatically. You focus on work, not admin.',
+      description: 'Automated reminders send themselves. You focus on work, not follow-ups.',
     },
     {
       icon: (
@@ -25,16 +25,16 @@ export default function Features() {
         </svg>
       ),
       title: 'Keep Every Dollar',
-      description: 'Most platforms charge 2-3% per transaction. We charge 0%.',
+      description: 'Zero transaction fees. Most platforms take 2-3%. We take nothing.',
     },
     {
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
-      title: 'Track Your Earnings',
-      description: 'Dashboard shows monthly income, yearly total, and outstanding payments.',
+      title: 'Automatic Notifications',
+      description: 'Payment received, stage approved, work delivered — everyone stays informed.',
     },
     {
       icon: (
