@@ -5,13 +5,10 @@ import StructuredData from '../components/StructuredData';
 import LandingNav from '../components/landing/LandingNav';
 import Hero from '../components/landing/Hero';
 import WhoItsFor from '../components/landing/WhoItsFor';
-import Comparison from '../components/landing/Comparison';
 import Features from '../components/landing/Features';
 import HowItWorks from '../components/landing/HowItWorks';
 import ScopeCreepPrevention from '../components/landing/ScopeCreepPrevention';
 import MidPageCTA from '../components/landing/MidPageCTA';
-import ClientApprovals from '../components/landing/ClientApprovals';
-import EmailNotifications from '../components/landing/EmailNotifications';
 import TrustSection from '../components/landing/TrustSection';
 import Pricing from '../components/landing/Pricing';
 import FAQ from '../components/landing/FAQ';
@@ -33,7 +30,7 @@ export default function LandingPage() {
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, [location]);
+      }, 100);
     }
   }, [location]);
 
@@ -49,13 +46,10 @@ export default function LandingPage() {
         <LandingNav />
         <Hero />
         <WhoItsFor />
-        <Comparison />
         <Features />
         <HowItWorks />
         <ScopeCreepPrevention />
         <MidPageCTA />
-        <ClientApprovals />
-        <EmailNotifications />
         <TrustSection />
         <Pricing />
         <FAQ />
