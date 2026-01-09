@@ -1,4 +1,11 @@
 export default function Features() {
+  const audiences = [
+    { title: 'Designers', subtitle: 'Logos, branding, print' },
+    { title: 'Developers', subtitle: 'Websites, apps, code' },
+    { title: 'Creators', subtitle: 'Video, photo, writing' },
+    { title: 'Consultants', subtitle: 'Any milestone work' },
+  ];
+
   const features = [
     {
       icon: (
@@ -58,8 +65,25 @@ export default function Features() {
   ];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-24 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Section header with audience */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            Built for Freelancers Who Work in Stages
+          </h2>
+          <p className="text-lg text-gray-600 mb-8">
+            {audiences.map((item, index) => (
+              <span key={index}>
+                {item.title}
+                {index < audiences.length - 1 && <span className="mx-2 text-gray-300">·</span>}
+              </span>
+            ))}
+          </p>
+        </div>
+
+        {/* Features grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
           {features.map((feature, index) => (
             <div key={index} className="text-center group">
