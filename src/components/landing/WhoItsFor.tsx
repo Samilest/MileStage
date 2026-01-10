@@ -41,18 +41,23 @@ export default function WhoItsFor() {
   return (
     <section className="py-16 bg-white border-t border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-base text-gray-600 mb-10">
+        {/* FIXED: Better mobile text wrapping */}
+        <h2 className="text-center text-xl sm:text-2xl font-bold text-gray-900 mb-4">
+          Built for Freelancers Who Work in Stages
+        </h2>
+        
+        <p className="text-center text-sm sm:text-base text-gray-600 mb-10 max-w-2xl mx-auto">
           For designers, developers, and creators who work in stages
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {audiences.map((item, index) => (
             <div key={index} className="text-center group">
-              <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 text-white group-hover:bg-green-600 transition-colors duration-200">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-white group-hover:bg-green-600 transition-colors duration-200">
                 {item.icon}
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
-              <p className="text-sm text-gray-500">{item.subtitle}</p>
+              <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">{item.title}</h3>
+              <p className="text-xs sm:text-sm text-gray-500">{item.subtitle}</p>
             </div>
           ))}
         </div>

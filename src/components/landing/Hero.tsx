@@ -43,8 +43,8 @@ export default function Hero() {
             />
           </div>
           
-          {/* Floating badges */}
-          <div className="absolute -bottom-4 sm:bottom-8 right-4 sm:-right-4 flex flex-col gap-3">
+          {/* Floating badges - FIXED FOR MOBILE */}
+          <div className="relative sm:absolute sm:-bottom-4 sm:bottom-8 sm:right-4 sm:-right-4 flex flex-col gap-3 mt-6 sm:mt-0 px-4 sm:px-0">
             <div className="bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
               <p className="text-sm font-semibold text-gray-900">Multi-currency</p>
               <p className="text-xs text-gray-500">USD, EUR, GBP & more</p>
