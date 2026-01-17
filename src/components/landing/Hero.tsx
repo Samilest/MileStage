@@ -37,7 +37,7 @@ export default function Hero() {
         <div className="relative max-w-5xl mx-auto">
           <div className="relative rounded-xl shadow-2xl border border-gray-200 overflow-hidden bg-gray-100">
             <img 
-              src="/assets/screenshots/hero-dashboard.png" 
+              src="/assets/screenshots/hero-dashboard.gif" 
               alt="MileStage Dashboard"
               className="w-full"
             />
