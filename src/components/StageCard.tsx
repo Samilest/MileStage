@@ -56,6 +56,7 @@ interface Stage {
     id: string;
     name: string;
     file_url: string;
+    description?: string;
     uploaded_at: string;
   }>;
   revisions: Array<{
@@ -1068,6 +1069,11 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-gray-900 truncate">{deliverable.name}</div>
+                              {deliverable.description && (
+                                <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">
+                                  {deliverable.description}
+                                </p>
+                              )}
                               <div className="text-xs text-gray-500 mt-1">
                                 Uploaded {formatDate(deliverable.uploaded_at)}
                               </div>
@@ -1269,6 +1275,11 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 mb-1">{deliverable.name}</div>
+                      {deliverable.description && (
+                        <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">
+                          {deliverable.description}
+                        </p>
+                      )}
                       <a
                         href={deliverable.file_url}
                         target="_blank"
