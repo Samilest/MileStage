@@ -159,18 +159,15 @@ export default function Dashboard() {
         // NOTIFICATION LOGIC - Check for unread items across all stages
         let primaryNotification = '';
         let hasUnreadActions = false;
+        let hasUnviewedStripePayment = false;
 
         for (const stage of stages) {
           // Check for Stripe payment received (payment_status = 'received' and not yet viewed)
-          // This shows "Payment Received" notification until freelancer opens the project
-          const hasStripePaymentReceived = stage.payment_status === 'received' && !stage.viewed_by_freelancer_at;
-
-          if (hasStripePaymentReceived) {
+          if (stage.payment_status === 'received' && !stage.viewed_by_freelancer_at) {
+            hasUnviewedStripePayment = true;
             hasUnreadActions = true;
-            if (!primaryNotification) {
-              primaryNotification = '💰 Payment Received';
-            }
-            continue; // Skip other checks for this stage
+            // Don't set notification yet - check for more actionable items first
+            continue;
           }
 
           // Skip completed/closed stages for other notification types
@@ -214,6 +211,11 @@ export default function Dashboard() {
               );
             }
           }
+        }
+
+        // If no other notification but we have unviewed Stripe payment, show it
+        if (!primaryNotification && hasUnviewedStripePayment) {
+          primaryNotification = '💰 Payment Received';
         }
 
         return {
