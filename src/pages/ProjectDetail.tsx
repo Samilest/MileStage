@@ -318,17 +318,21 @@ export default function ProjectDetail() {
 
   const markStagesAsViewed = async (stages: any[]) => {
     try {
-      // Only mark stages as viewed if they have been approved
-      const approvedStageIds = stages
-        .filter(s => s.approved_at && !s.viewed_by_freelancer_at)
+      // Mark stages as viewed if they have been approved OR payment received
+      // This clears both "Approved" and "Payment Received" notifications
+      const stagesToMarkViewed = stages
+        .filter(s => 
+          (s.approved_at && !s.viewed_by_freelancer_at) || 
+          (s.payment_status === 'received' && !s.viewed_by_freelancer_at)
+        )
         .map(s => s.id);
       
-      if (approvedStageIds.length > 0) {
+      if (stagesToMarkViewed.length > 0) {
         await supabase
           .from('stages')
           .update({ viewed_by_freelancer_at: new Date().toISOString() })
-          .in('id', approvedStageIds);
-        console.log(`✅ Marked ${approvedStageIds.length} approved stages as viewed`);
+          .in('id', stagesToMarkViewed);
+        console.log(`✅ Marked ${stagesToMarkViewed.length} stages as viewed`);
       }
 
       // Mark all unviewed revisions as viewed
@@ -1280,97 +1284,48 @@ export default function ProjectDetail() {
           Back to Project
         </Link>
 
-{/* Project Header */}
-        <div className="mb-6 sm:mb-8">
-          {/* Mobile Layout */}
-          <div className="flex sm:hidden items-start justify-between gap-3 mb-3">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold tracking-tight text-black leading-tight break-words">
-                {project.project_name || project.name}
-              </h1>
-              <p className="text-neutral-600 text-sm mt-1">
-                Client: {project.client_name}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-xs text-gray-500">Total Value</p>
-              <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(project.total_amount, project.currency || 'USD')}
-              </p>
-            </div>
-          </div>
-          {/* Mobile Refresh Button */}
-          <div className="flex sm:hidden">
-            <button
-              onClick={() => {
-                loadProjectData();
-                loadPendingStagePayments();
-                loadPendingExtensions();
-              }}
-              className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
-              title="Refresh"
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-              </svg>
-              <span className="text-sm font-medium">Refresh</span>
-            </button>
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="hidden sm:flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-black mb-2">
-                {project.project_name || project.name}
-              </h1>
-              <p className="text-neutral-600 text-lg">
-                Client: {project.client_name}
-              </p>
-            </div>
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <button
-                onClick={() => {
-                  loadProjectData();
-                  loadPendingStagePayments();
-                  loadPendingExtensions();
-                }}
-                className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
-                title="Refresh"
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                </svg>
-                <span className="text-sm font-medium">Refresh</span>
-              </button>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Total Project Value</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(project.total_amount, project.currency || 'USD')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+<div className="mb-8 flex items-start justify-between gap-4">
+  <div>
+    <h1 className="text-4xl lg:text-5xl font-black tracking-tight text-black mb-2">
+      {project.project_name || project.name}
+    </h1>
+    <p className="text-neutral-600 text-lg">
+      Client: {project.client_name}
+    </p>
+  </div>
+  <div className="flex items-center gap-4 flex-shrink-0">
+<button
+  onClick={() => {
+    loadProjectData();
+    loadPendingStagePayments();
+    loadPendingExtensions();
+  }}
+  className="px-3 py-2 border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 rounded-lg transition-all flex items-center gap-2"
+  title="Refresh"
+>
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="18" 
+    height="18" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+  </svg>
+  <span className="text-sm font-medium">Refresh</span>
+</button>
+    <div className="text-right">
+      <p className="text-sm text-gray-500">Total Project Value</p>
+      <p className="text-2xl font-bold text-gray-900">
+        {formatCurrency(project.total_amount, project.currency || 'USD')}
+      </p>
+    </div>
+  </div>
+</div>
 
         {successMessage && (
           <div className="mb-6 bg-emerald-50 border border-emerald-500 text-emerald-700 px-4 py-3 rounded-lg">

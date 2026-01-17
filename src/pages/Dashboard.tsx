@@ -156,13 +156,13 @@ export default function Dashboard() {
           .filter((s: any) => s.payment_status === 'received')
           .reduce((sum: number, s: any) => sum + (s.amount || 0), 0);
 
-        // EXACT ORIGINAL LOGIC - Find the first stage with unread actions
+        // NOTIFICATION LOGIC - Check for unread items across all stages
         let primaryNotification = '';
         let hasUnreadActions = false;
 
         for (const stage of stages) {
-          // Check for Stripe payment received FIRST (before skipping completed stages)
-          // Simple: payment received + freelancer hasn't viewed it yet
+          // Check for Stripe payment received (payment_status = 'received' and not yet viewed)
+          // This shows "Payment Received" notification until freelancer opens the project
           const hasStripePaymentReceived = stage.payment_status === 'received' && !stage.viewed_by_freelancer_at;
 
           if (hasStripePaymentReceived) {
@@ -170,7 +170,7 @@ export default function Dashboard() {
             if (!primaryNotification) {
               primaryNotification = '💰 Payment Received';
             }
-            continue;
+            continue; // Skip other checks for this stage
           }
 
           // Skip completed/closed stages for other notification types
@@ -178,18 +178,22 @@ export default function Dashboard() {
             continue;
           }
 
+          // Check for unread revisions
           const hasUnreadRevision = stage.revisions?.some((rev: any) =>
             rev.requested_at && !rev.viewed_by_freelancer_at
           ) || false;
 
+          // Check for manual payments marked as paid (needs verification)
           const hasUnreadPayment = stage.stage_payments?.some((payment: any) =>
             payment.status === 'marked_paid' &&
             payment.marked_paid_at &&
             !payment.viewed_by_freelancer_at
           ) || false;
 
+          // Check if stage was approved but not yet viewed
           const hasUnreadApproval = stage.approved_at && !stage.viewed_by_freelancer_at;
 
+          // Check for unread messages from client
           const unreadMessageCount = stage.stage_notes?.filter((note: any) =>
             note.author_type === 'client' && !note.viewed_by_freelancer_at
           ).length || 0;
@@ -199,7 +203,6 @@ export default function Dashboard() {
           if (stageHasUnread) {
             hasUnreadActions = true;
             if (!primaryNotification) {
-              console.log(`[Dashboard] Stage ${stage.stage_number} has unread actions`);
               primaryNotification = getPrimaryNotification(
                 {
                   hasUnviewedPayment: hasUnreadPayment,
@@ -209,7 +212,6 @@ export default function Dashboard() {
                 },
                 ''
               );
-              console.log(`[Dashboard] Generated notification: ${primaryNotification}`);
             }
           }
         }
