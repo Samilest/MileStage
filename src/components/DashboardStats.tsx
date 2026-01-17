@@ -7,37 +7,37 @@ interface DashboardStatsProps {
   userId: string;
 }
 
-interface Stats {
+// Stats grouped by currency
+interface CurrencyStats {
   earnedThisMonth: number;
   earnedThisYear: number;
   outstanding: number;
+}
+
+interface Stats {
+  byCurrency: Record<CurrencyCode, CurrencyStats>;
   activeProjects: number;
-  currency: CurrencyCode;
+  primaryCurrency: CurrencyCode;
 }
 
 export default function DashboardStats({ userId }: DashboardStatsProps) {
   const [stats, setStats] = useState<Stats>({
-    earnedThisMonth: 0,
-    earnedThisYear: 0,
-    outstanding: 0,
+    byCurrency: {},
     activeProjects: 0,
-    currency: 'USD',
+    primaryCurrency: 'USD',
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) {
-      console.log('[DashboardStats] No userId provided, skipping fetch');
       setLoading(false);
       return;
     }
-    console.log('[DashboardStats] Fetching stats for userId:', userId);
     fetchStats();
   }, [userId]);
 
   const fetchStats = async () => {
     if (!userId) {
-      console.log('[DashboardStats] fetchStats called without userId');
       setLoading(false);
       return;
     }
@@ -50,9 +50,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString();
 
-      console.log('[DashboardStats] Running query for user:', userId);
-
-      // Query projects with nested stages - EXACT same pattern as Dashboard.tsx
+      // Query projects with nested stages
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -78,70 +76,72 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       }
 
       if (!projects || projects.length === 0) {
-        console.log('[DashboardStats] No projects found');
         setLoading(false);
         return;
       }
 
-      // Use the most common currency (or first project's currency)
-      const primaryCurrency = projects[0]?.currency || 'USD';
-
-      // Flatten all stages from all projects
-      const allStages = projects.flatMap(p => (p.stages as any[]) || []);
-
-      console.log('[DashboardStats] Found', projects.length, 'projects with', allStages.length, 'total stages');
-
-      if (allStages.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      // Calculate stats
-      let earnedThisMonth = 0;
-      let earnedThisYear = 0;
-      let outstanding = 0;
+      // Initialize stats by currency
+      const byCurrency: Record<string, CurrencyStats> = {};
       let activeProjects = 0;
 
-      // Count active projects (not completed, not archived)
+      // Count currency frequency to determine primary
+      const currencyCount: Record<string, number> = {};
+
       projects.forEach(project => {
+        const currency = (project.currency || 'USD') as CurrencyCode;
         const stages = (project.stages as any[]) || [];
-        const allStagesPaid = stages.length > 0 && stages.every(s => s.payment_status === 'received');
         const isArchived = !!(project as any).archived_at;
         
-        if (!allStagesPaid && !isArchived) {
+        // Count currency usage
+        currencyCount[currency] = (currencyCount[currency] || 0) + 1;
+
+        // Initialize currency stats if needed
+        if (!byCurrency[currency]) {
+          byCurrency[currency] = {
+            earnedThisMonth: 0,
+            earnedThisYear: 0,
+            outstanding: 0,
+          };
+        }
+
+        // Check if project is active (has at least one unpaid stage and not archived)
+        const hasUnpaidStage = stages.some(s => s.payment_status !== 'received');
+        if (hasUnpaidStage && !isArchived) {
           activeProjects++;
         }
+
+        // Calculate stats per stage
+        stages.forEach(stage => {
+          const amount = stage.amount || 0;
+
+          if (stage.payment_status === 'received' && stage.payment_received_at) {
+            const paidDate = new Date(stage.payment_received_at);
+            
+            // Earned this month
+            if (paidDate >= new Date(startOfMonth)) {
+              byCurrency[currency].earnedThisMonth += amount;
+            }
+            
+            // Earned this year
+            if (paidDate >= new Date(startOfYear)) {
+              byCurrency[currency].earnedThisYear += amount;
+            }
+          } else if (stage.payment_status !== 'received') {
+            // Outstanding = ALL unpaid stages (regardless of locked status)
+            // This matches what users see on project cards - total unpaid amount
+            byCurrency[currency].outstanding += amount;
+          }
+        });
       });
 
-      allStages.forEach(stage => {
-        const amount = stage.amount || 0;
-
-        if (stage.payment_status === 'received' && stage.payment_received_at) {
-          const paidDate = new Date(stage.payment_received_at);
-          
-          // Earned this month
-          if (paidDate >= new Date(startOfMonth)) {
-            earnedThisMonth += amount;
-          }
-          
-          // Earned this year
-          if (paidDate >= new Date(startOfYear)) {
-            earnedThisYear += amount;
-          }
-        } else if (stage.payment_status !== 'received' && stage.status !== 'locked') {
-          // Outstanding = unpaid stages that are not locked
-          outstanding += amount;
-        }
-      });
-
-      console.log('[DashboardStats] Calculated:', { earnedThisMonth, earnedThisYear, outstanding, activeProjects });
+      // Find primary currency (most used)
+      const primaryCurrency = Object.entries(currencyCount)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] as CurrencyCode || 'USD';
 
       setStats({
-        earnedThisMonth,
-        earnedThisYear,
-        outstanding,
+        byCurrency: byCurrency as Record<CurrencyCode, CurrencyStats>,
         activeProjects,
-        currency: primaryCurrency as CurrencyCode,
+        primaryCurrency,
       });
 
     } catch (error) {
@@ -164,28 +164,62 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
     );
   }
 
+  // Get all currencies with data
+  const currencies = Object.keys(stats.byCurrency) as CurrencyCode[];
+  const hasMixedCurrencies = currencies.length > 1;
+
+  // Helper to format multi-currency values
+  const formatMultiCurrency = (getValue: (currency: CurrencyCode) => number) => {
+    if (currencies.length === 0) {
+      return formatCurrency(0, 'USD');
+    }
+    
+    if (!hasMixedCurrencies) {
+      // Single currency - simple display
+      return formatCurrency(getValue(currencies[0]), currencies[0]);
+    }
+
+    // Multiple currencies - show each on its own line
+    const nonZeroCurrencies = currencies.filter(c => getValue(c) > 0);
+    
+    if (nonZeroCurrencies.length === 0) {
+      return formatCurrency(0, stats.primaryCurrency);
+    }
+
+    return nonZeroCurrencies
+      .map(currency => formatCurrency(getValue(currency), currency))
+      .join('\n');
+  };
+
+  // Calculate totals for display
+  const earnedThisMonth = formatMultiCurrency(c => stats.byCurrency[c]?.earnedThisMonth || 0);
+  const earnedThisYear = formatMultiCurrency(c => stats.byCurrency[c]?.earnedThisYear || 0);
+  const outstanding = formatMultiCurrency(c => stats.byCurrency[c]?.outstanding || 0);
+
+  // Check if outstanding has any value
+  const hasOutstanding = currencies.some(c => (stats.byCurrency[c]?.outstanding || 0) > 0);
+
   const statCards = [
     {
       label: 'Earned This Month',
-      value: formatCurrency(stats.earnedThisMonth, stats.currency),
+      value: earnedThisMonth,
       icon: CalendarDays,
       iconColor: 'text-green-600',
       iconBg: 'bg-green-50',
     },
     {
       label: 'Earned This Year',
-      value: formatCurrency(stats.earnedThisYear, stats.currency),
+      value: earnedThisYear,
       icon: TrendingUp,
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-50',
     },
     {
       label: 'Outstanding',
-      value: formatCurrency(stats.outstanding, stats.currency),
+      value: outstanding,
       icon: DollarSign,
-      iconColor: stats.outstanding > 0 ? 'text-orange-600' : 'text-gray-600',
-      iconBg: stats.outstanding > 0 ? 'bg-orange-50' : 'bg-gray-50',
-      tooltip: 'Unpaid amounts from active stages',
+      iconColor: hasOutstanding ? 'text-orange-600' : 'text-gray-600',
+      iconBg: hasOutstanding ? 'bg-orange-50' : 'bg-gray-50',
     },
     {
       label: 'Active Projects',
@@ -209,7 +243,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
             </div>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mb-1">{stat.label}</p>
-          <p className="text-lg sm:text-2xl font-bold text-gray-900">
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 whitespace-pre-line">
             {stat.value}
           </p>
         </div>
