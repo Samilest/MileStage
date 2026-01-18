@@ -44,8 +44,8 @@ export default function Signup() {
     setError('');
     setSuccess('');
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -92,6 +92,8 @@ export default function Signup() {
     } catch (err: any) {
       if (err.message?.includes('already registered')) {
         setError('This email is already registered');
+      } else if (err.message?.includes('password') || err.message?.includes('Password')) {
+        setError('Password must be at least 8 characters');
       } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
         setError('Connection error. Please check your internet and try again.');
         toast.error('Connection lost. Retrying...');
@@ -200,14 +202,14 @@ export default function Signup() {
                 id="password"
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full min-h-[44px] h-12 px-4 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 placeholder="••••••••"
                 disabled={loading || oauthLoading || success !== ''}
               />
-              <p className="mt-1 text-xs text-gray-500">At least 6 characters</p>
+              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
             </div>
 
             <div>
