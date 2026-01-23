@@ -25,7 +25,7 @@ export default function TermsOfService() {
             Terms of Service
           </h1>
           <p className="text-lg text-gray-600 mb-8">
-            Last Updated: November 9, 2025
+            Last Updated: January 22, 2026
           </p>
 
           <div className="prose prose-lg max-w-none">
@@ -159,8 +159,27 @@ export default function TermsOfService() {
               <p className="text-gray-700 mb-4">
                 All payments go through Stripe. You connect your Stripe account. We never touch your money.
               </p>
-              <p className="text-gray-700">
+              <p className="text-gray-700 mb-4">
                 Stripe's terms apply to your transactions. We just track the status.
+              </p>
+              <p className="text-gray-700 mb-2"><strong>Restricted regions:</strong></p>
+              <p className="text-gray-700 mb-4">
+                Because we use Stripe for payment processing, you may not use MileStage for any transactions involving 
+                individuals, entities, or businesses located in countries or regions subject to U.S., Canadian, or 
+                international economic sanctions, or any jurisdiction deemed high-risk by Stripe. This includes 
+                countries under comprehensive sanctions programs administered by OFAC (Office of Foreign Assets Control) 
+                or similar regulatory bodies.
+              </p>
+              <p className="text-gray-700">
+                For the current list of restricted countries and prohibited activities, please refer to{' '}
+                <a 
+                  href="https://stripe.com/legal/restricted-businesses" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-green-600 hover:text-green-700 font-medium"
+                >
+                  Stripe's Restricted Businesses list
+                </a>.
               </p>
             </section>
 
