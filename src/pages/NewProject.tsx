@@ -295,10 +295,10 @@ export default function NewProject() {
     console.log('[NewProject] Stages Total:', stagesTotal);
     console.log('[NewProject] Down Payment:', includeDownPayment ? downPaymentAmount : 0);
 
-    if (projectTotal < 100) {
+    if (projectTotal < 1) {
       console.error('[NewProject] ERROR: Project total too low:', projectTotal);
-      setError(`Project total must be at least ${getCurrencySymbol(currency)}100`);
-      toast.error(`Project total must be at least ${getCurrencySymbol(currency)}100`);
+      setError(`Project total must be at least ${getCurrencySymbol(currency)}1`);
+      toast.error(`Project total must be at least ${getCurrencySymbol(currency)}1`);
       return;
     }
 
