@@ -710,7 +710,7 @@ Zelle: (555) 123-4567"
                     id="budgetReference"
                     type="number"
                     required
-                    min="100"
+                    min="1"
                     step="1"
                     value={budgetReference}
                     onChange={(e) => handleBudgetReferenceChange(parseFloat(e.target.value) || 0)}
