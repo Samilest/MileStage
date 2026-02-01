@@ -33,7 +33,38 @@ module.exports = async (req, res) => {
 
     console.log('[Confirm Payment] Payment verified! Updating stage:', stageId);
 
-    // 2. Update stage payment status AND mark as completed
+    // 2. First fetch stage details for email (before updating)
+    const { data: stageDetails, error: fetchError } = await supabaseAdmin
+      .from('stages')
+      .select(`
+        id,
+        name,
+        stage_number,
+        amount,
+        project_id,
+        projects!inner (
+          id,
+          project_name,
+          client_name,
+          client_email,
+          share_code,
+          currency,
+          user_id,
+          user_profiles!inner (
+            id,
+            email,
+            name
+          )
+        )
+      `)
+      .eq('id', stageId)
+      .single();
+
+    if (fetchError) {
+      console.error('[Confirm Payment] Error fetching stage details:', fetchError);
+    }
+
+    // 3. Update stage payment status AND mark as completed
     const { data: updatedStage, error: stageError } = await supabaseAdmin
       .from('stages')
       .update({
@@ -52,7 +83,7 @@ module.exports = async (req, res) => {
 
     console.log('[Confirm Payment] Stage updated successfully!');
 
-    // 3. Unlock next stage
+    // 4. Unlock next stage
     const { data: stages } = await supabaseAdmin
       .from('stages')
       .select('id, stage_number, status')
@@ -70,6 +101,81 @@ module.exports = async (req, res) => {
         
         console.log('[Confirm Payment] Unlocked next stage:', nextStage.id);
       }
+    }
+
+    // 5. Send email notifications (non-blocking - errors won't break payment flow)
+    if (stageDetails && stageDetails.projects) {
+      const project = stageDetails.projects;
+      const freelancer = project.user_profiles;
+      const emailApiUrl = process.env.VITE_APP_URL || 'https://milestage.com';
+
+      console.log('[Confirm Payment] Sending email notifications...');
+      console.log('[Confirm Payment] Freelancer:', freelancer?.email);
+      console.log('[Confirm Payment] Client:', project.client_email);
+
+      // Send payment received email to freelancer
+      try {
+        const freelancerEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'payment_received',
+            data: {
+              freelancerEmail: freelancer.email,
+              freelancerName: freelancer.name || 'there',
+              projectName: project.project_name,
+              stageName: stageDetails.name || `Stage ${stageDetails.stage_number}`,
+              stageNumber: stageDetails.stage_number,
+              amount: stageDetails.amount,
+              currency: project.currency || 'USD',
+              clientName: project.client_name,
+              projectId: project.id,
+            },
+          }),
+        });
+
+        if (freelancerEmailResponse.ok) {
+          console.log('[Confirm Payment] ✅ Payment received email sent to freelancer');
+        } else {
+          const errorText = await freelancerEmailResponse.text();
+          console.error('[Confirm Payment] Failed to send freelancer email:', errorText);
+        }
+      } catch (emailError) {
+        console.error('[Confirm Payment] Error sending freelancer email:', emailError.message);
+      }
+
+      // Send payment confirmation email to client
+      try {
+        const clientEmailResponse = await fetch(`${emailApiUrl}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'payment_confirmation',
+            data: {
+              clientEmail: project.client_email,
+              clientName: project.client_name,
+              projectName: project.project_name,
+              stageName: stageDetails.name || `Stage ${stageDetails.stage_number}`,
+              stageNumber: stageDetails.stage_number,
+              amount: stageDetails.amount,
+              currency: project.currency || 'USD',
+              freelancerName: freelancer.name || 'Your freelancer',
+              portalUrl: `https://milestage.com/client/${project.share_code}`,
+            },
+          }),
+        });
+
+        if (clientEmailResponse.ok) {
+          console.log('[Confirm Payment] ✅ Payment confirmation email sent to client');
+        } else {
+          const errorText = await clientEmailResponse.text();
+          console.error('[Confirm Payment] Failed to send client email:', errorText);
+        }
+      } catch (emailError) {
+        console.error('[Confirm Payment] Error sending client email:', emailError.message);
+      }
+    } else {
+      console.log('[Confirm Payment] Skipping emails - could not fetch stage/project details');
     }
 
     console.log('[Confirm Payment] ✅ Payment processing complete!');
