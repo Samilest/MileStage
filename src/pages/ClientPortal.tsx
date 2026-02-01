@@ -76,6 +76,7 @@ export default function ClientPortal() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const paymentProcessedRef = useRef(false);
+  const extensionProcessedRef = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (!shareCode) {
@@ -294,6 +295,62 @@ export default function ClientPortal() {
         // Refresh after a longer delay to give webhook time
         setTimeout(() => loadData(true), 2000);
       }
+    }
+  }, [searchParams, shareCode, loadData]);
+
+  // Handle extension payment confirmation from Stripe redirect
+  useEffect(() => {
+    // Prevent double-processing
+    if (extensionProcessedRef.current) return;
+
+    const extensionPayment = searchParams.get('extension_payment');
+    const stageId = searchParams.get('stage');
+
+    // Check if this is an extension payment return
+    if (extensionPayment === 'success' && stageId) {
+      extensionProcessedRef.current = true;
+      console.log('[ClientPortal] Extension payment success detected for stage:', stageId);
+      
+      toast.loading('Processing extra revision...', { id: 'extension-processing' });
+
+      // Call the confirm-extension-payment endpoint
+      fetch('/api/stripe/confirm-extension-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stageId }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('[ClientPortal] Extension confirmed:', data);
+          toast.dismiss('extension-processing');
+          
+          if (data.success) {
+            if (data.alreadyProcessed) {
+              toast.success('Extra revision already added!');
+            } else {
+              toast.success('Extra revision added successfully!');
+            }
+          } else {
+            console.error('[ClientPortal] Extension confirmation failed:', data);
+            toast.error(data.message || 'Could not confirm extension. Please refresh.');
+          }
+        })
+        .catch(err => {
+          console.error('[ClientPortal] Extension confirmation error:', err);
+          toast.dismiss('extension-processing');
+          toast.error('Could not confirm extension. Please refresh.');
+        })
+        .finally(() => {
+          // Clean URL parameters
+          window.history.replaceState({}, '', `/client/${shareCode}`);
+          // Refresh project data
+          setTimeout(() => loadData(true), 500);
+        });
+    } else if (extensionPayment === 'cancelled') {
+      // User cancelled extension payment
+      console.log('[ClientPortal] Extension payment cancelled');
+      toast.error('Extension payment was cancelled.');
+      window.history.replaceState({}, '', `/client/${shareCode}`);
     }
   }, [searchParams, shareCode, loadData]);
 
