@@ -388,14 +388,19 @@ export default function NewProject() {
       }
 
       stages.forEach((stage, index) => {
+        // Calculate extension price: use set price, or default to 20% of stage amount (min $25)
+        const extensionPrice = stage.extensionPrice > 0 
+          ? stage.extensionPrice 
+          : Math.max(25, Math.round(stage.amount * 0.2));
+        
         stagesData.push({
           project_id: projectData.id,
           stage_number: index + 1,
           name: stage.name,
           amount: stage.amount,
           revisions_included: stage.revisions,
-          extension_enabled: stage.extensionPrice > 0,
-          extension_price: stage.extensionPrice,
+          extension_enabled: true,
+          extension_price: extensionPrice,
           status: includeDownPayment ? 'locked' : (index === 0 ? 'active' : 'locked'),
           reference_code: `${shareCode}-S${index + 1}`,
         });
