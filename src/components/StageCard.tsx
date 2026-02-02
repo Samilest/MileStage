@@ -1513,7 +1513,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
 
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">
                 Complete Payment
@@ -1551,54 +1551,71 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             />
 
             {/* Collapsible: Offline Payment */}
-            <div className="mt-4">
+            <div className="mt-5 border-t border-gray-200 pt-4">
               <button
                 onClick={() => setShowOfflinePayment(!showOfflinePayment)}
-                className="w-full text-left text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2 py-2"
+                className="w-full text-left text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2 py-1 font-medium"
               >
-                <span className={`transition-transform ${showOfflinePayment ? 'rotate-90' : ''}`}>▶</span>
+                <span className={`text-xs transition-transform ${showOfflinePayment ? 'rotate-90' : ''}`}>▶</span>
                 Pay another way (PayPal, bank transfer, etc.)
               </button>
 
               {showOfflinePayment && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">
-                    Send {formatCurrency(stage.amount, currency)} using the details below, then click "I've Sent Payment".
+                <div className="mt-4 bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-700 mb-4">
+                    Send {formatCurrency(stage.amount, currency)} using one of these methods, then click "I've Sent Payment".
                   </p>
 
                   {manualPaymentInstructions ? (
-                    <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                    <div className="bg-white p-3 rounded-lg border border-gray-200 mb-4">
+                      <p className="font-medium text-sm text-gray-700 mb-1">Payment Details:</p>
                       <p className="text-sm text-gray-900 whitespace-pre-line">{manualPaymentInstructions}</p>
                     </div>
                   ) : paymentMethods && (paymentMethods.paypal || paymentMethods.venmo || paymentMethods.bank_transfer || paymentMethods.other) ? (
-                    <div className="bg-gray-50 p-3 rounded-lg mb-3 space-y-2">
+                    <div className="space-y-2 mb-4">
                       {paymentMethods.paypal && (
-                        <p className="text-sm"><span className="text-gray-500">PayPal:</span> <span className="font-medium">{paymentMethods.paypal}</span></p>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <p className="font-medium text-sm text-gray-600">PayPal</p>
+                          <p className="text-sm text-gray-900 font-mono">{paymentMethods.paypal}</p>
+                        </div>
                       )}
                       {paymentMethods.venmo && (
-                        <p className="text-sm"><span className="text-gray-500">Venmo:</span> <span className="font-medium">{paymentMethods.venmo}</span></p>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <p className="font-medium text-sm text-gray-600">Venmo</p>
+                          <p className="text-sm text-gray-900 font-mono">{paymentMethods.venmo}</p>
+                        </div>
                       )}
                       {paymentMethods.bank_transfer && (
-                        <p className="text-sm"><span className="text-gray-500">Bank:</span> <span className="font-medium whitespace-pre-line">{paymentMethods.bank_transfer}</span></p>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <p className="font-medium text-sm text-gray-600">Bank Transfer</p>
+                          <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.bank_transfer}</p>
+                        </div>
                       )}
                       {paymentMethods.other && (
-                        <p className="text-sm"><span className="text-gray-500">Other:</span> <span className="font-medium whitespace-pre-line">{paymentMethods.other}</span></p>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <p className="font-medium text-sm text-gray-600">Other</p>
+                          <p className="text-sm text-gray-900 whitespace-pre-line">{paymentMethods.other}</p>
+                        </div>
                       )}
                     </div>
                   ) : (
-                    <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                    <div className="bg-white p-3 rounded-lg border border-gray-200 mb-4">
                       <p className="text-sm text-gray-500">Contact the freelancer for payment details.</p>
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-500 mb-3">
-                    Reference: <span className="font-mono font-medium">STAGE{stage.stage_number}-{stage.id.slice(0, 8).toUpperCase()}</span>
-                  </p>
+                  <div className="bg-white p-3 rounded-lg border-2 border-blue-200 mb-4">
+                    <p className="font-medium text-sm text-gray-600">Reference Code:</p>
+                    <p className="text-base font-mono font-bold text-blue-600">
+                      STAGE{stage.stage_number}-{stage.id.slice(0, 8).toUpperCase()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Include this code with your payment</p>
+                  </div>
 
                   <button
                     onClick={handleMarkPaymentSent}
                     disabled={isMarkingPayment}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                    className="w-full bg-gray-700 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isMarkingPayment && <Loader2 className="w-4 h-4 animate-spin" />}
                     {isMarkingPayment ? 'Processing...' : "I've Sent Payment"}
