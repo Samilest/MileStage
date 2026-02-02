@@ -207,7 +207,10 @@ export default function NewProject() {
 
   const handleAmountChange = (index: number, newAmount: number) => {
     const updated = [...stages];
-    updated[index].amount = Math.max(0, newAmount);
+    const amount = Math.max(0, newAmount);
+    updated[index].amount = amount;
+    // Auto-update extension price: 20% of stage amount, min $25
+    updated[index].extensionPrice = Math.max(25, Math.round(amount * 0.2));
     setStages(updated);
   };
 
