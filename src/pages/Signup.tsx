@@ -7,6 +7,38 @@ import Button from '../components/Button';
 import { retryOperation } from '../lib/errorHandling';
 import Footer from '../components/Footer';
 
+// Password strength checker
+function getPasswordStrength(password: string): number {
+  if (password.length === 0) return 0;
+  
+  let strength = 0;
+  
+  // Length check
+  if (password.length >= 8) strength++;
+  if (password.length >= 12) strength++;
+  
+  // Contains lowercase and uppercase
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  
+  // Contains numbers
+  if (/\d/.test(password)) strength++;
+  
+  // Contains special characters
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+  
+  // Cap at 4
+  return Math.min(strength, 4);
+}
+
+function getPasswordStrengthText(password: string): string {
+  const strength = getPasswordStrength(password);
+  if (password.length < 8) return 'Too short - need at least 8 characters';
+  if (strength <= 1) return 'Weak - try adding uppercase, numbers, or symbols';
+  if (strength === 2) return 'Fair - could be stronger';
+  if (strength === 3) return 'Good';
+  return 'Strong';
+}
+
 export default function Signup() {
   const navigate = useNavigate();
   const setUser = useStore((state) => state.setUser);
@@ -204,7 +236,42 @@ export default function Signup() {
                 placeholder="••••••••"
                 disabled={loading || oauthLoading || success !== ''}
               />
-              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
+              {/* Password Strength Indicator */}
+              {password.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex gap-1 mb-1">
+                    {[1, 2, 3, 4].map((level) => {
+                      const strength = getPasswordStrength(password);
+                      const colors = {
+                        0: 'bg-gray-200',
+                        1: 'bg-red-500',
+                        2: 'bg-orange-500',
+                        3: 'bg-yellow-500',
+                        4: 'bg-green-500',
+                      };
+                      return (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            level <= strength ? colors[strength as keyof typeof colors] : 'bg-gray-200'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <p className={`text-xs ${
+                    getPasswordStrength(password) <= 1 ? 'text-red-600' :
+                    getPasswordStrength(password) === 2 ? 'text-orange-600' :
+                    getPasswordStrength(password) === 3 ? 'text-yellow-600' :
+                    'text-green-600'
+                  }`}>
+                    {getPasswordStrengthText(password)}
+                  </p>
+                </div>
+              )}
+              {password.length === 0 && (
+                <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
+              )}
             </div>
 
             <div>
