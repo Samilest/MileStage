@@ -77,16 +77,11 @@ export default function Signup() {
       );
 
       if (result?.user) {
-        setUser({
-          id: result.user.id,
-          email: email,
-          name: fullName,
-        });
-
+        // Don't set user yet - they need to verify email first
         setSuccess('Account created! Check your email.');
         toast.success('Check your email to verify your account.');
         setTimeout(() => {
-          navigate('/verify-email', { state: { email: email } });
+          navigate('/verify-email', { state: { email: email }, replace: true });
         }, 1500);
       }
     } catch (err: any) {
