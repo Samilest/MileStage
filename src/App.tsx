@@ -27,6 +27,7 @@ const ClientView = lazy(() => import('./pages/ClientView'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
 const Payment = lazy(() => import('./pages/Payment'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 
 function LoadingFallback() {
   return (
@@ -281,6 +282,7 @@ function App() {
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />

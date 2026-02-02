@@ -83,10 +83,10 @@ export default function Signup() {
           name: fullName,
         });
 
-        setSuccess('Account created! Redirecting...');
-        toast.success('Welcome! Account created.');
+        setSuccess('Account created! Check your email.');
+        toast.success('Check your email to verify your account.');
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/verify-email', { state: { email: email } });
         }, 1500);
       }
     } catch (err: any) {
