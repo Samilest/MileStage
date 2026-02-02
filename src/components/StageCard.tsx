@@ -1342,8 +1342,11 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 )}
               </div>
 
-              <p className="text-center text-sm text-gray-600 mb-4">
+              <p className="text-center text-sm text-gray-600 mb-2">
                 Revisions remaining: <strong className={revisionsRemaining === 0 ? 'text-red-600' : revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining}/{totalRevisions}</strong>
+              </p>
+              <p className="text-center text-xs text-gray-400 mb-4">
+                Tip: Major changes requested via notes may count toward revisions.
               </p>
             </>
           )}
