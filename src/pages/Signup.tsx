@@ -10,11 +10,14 @@ import Footer from '../components/Footer';
 // Password strength checker
 function getPasswordStrength(password: string): number {
   if (password.length === 0) return 0;
+  if (password.length < 8) return 1;
   
-  let strength = 0;
+  // Numbers only = weak
+  if (!/[a-zA-Z]/.test(password)) return 1;
   
-  // Length check
-  if (password.length >= 8) strength++;
+  let strength = 1; // Base: meets minimum requirements
+  
+  // Length bonus
   if (password.length >= 12) strength++;
   
   // Contains lowercase and uppercase
@@ -33,10 +36,11 @@ function getPasswordStrength(password: string): number {
 function getPasswordStrengthText(password: string): string {
   const strength = getPasswordStrength(password);
   if (password.length < 8) return 'Too short - need at least 8 characters';
-  if (strength <= 1) return 'Weak - try adding uppercase, numbers, or symbols';
-  if (strength === 2) return 'Fair - could be stronger';
-  if (strength === 3) return 'Good';
-  return 'Strong';
+  if (!/[a-zA-Z]/.test(password)) return 'Weak - must contain at least one letter';
+  if (strength <= 1) return 'Fair - try adding uppercase, numbers, or symbols';
+  if (strength === 2) return 'Good';
+  if (strength === 3) return 'Strong';
+  return 'Very strong';
 }
 
 export default function Signup() {
@@ -78,6 +82,11 @@ export default function Signup() {
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (!/[a-zA-Z]/.test(password)) {
+      setError('Password must contain at least one letter');
       return;
     }
 
