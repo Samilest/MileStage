@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useStore } from '../store/useStore';
 import { supabase } from '../lib/supabase';
+import { useSubscription } from '../hooks/useSubscription';
 import Navigation from '../components/Navigation';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -15,6 +16,7 @@ export default function NewProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const user = useStore((state) => state.user);
+  const { subscription } = useSubscription();
 
   const templateId = searchParams.get('template');
   const customStagesCount = searchParams.get('custom');
@@ -253,6 +255,13 @@ export default function NewProject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Check if trial expired
+    if (!subscription.canCreateProjects) {
+      toast.error('Your free trial has ended. Please upgrade to continue creating projects.');
+      navigate('/upgrade');
+      return;
+    }
 
     console.log('[NewProject] ===== Starting form submission =====');
     console.log('[NewProject] User ID:', user?.id);
