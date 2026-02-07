@@ -442,6 +442,9 @@ export default function ProjectOverview() {
           <p className="text-xs sm:text-sm text-gray-400">
             Created {new Date(project.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
+          <p className="text-sm sm:text-base font-semibold text-gray-700 mt-1">
+            Total Project Value: {formatCurrency(project.total_amount, project.currency || 'USD')}
+          </p>
           
           {/* PDF Download Buttons */}
           <div className="flex flex-wrap gap-2 mt-4">

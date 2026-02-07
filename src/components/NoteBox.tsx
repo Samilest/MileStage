@@ -261,7 +261,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h3 className="text-xl font-bold text-black flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             Notes & Feedback
@@ -277,19 +277,15 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             
             if (totalRemaining <= 0) return null;
             
-            const buttonText = freeRevisionsRemaining > 0 
-              ? 'Log Revision'
-              : `Log Revision (${extensionRevisionsRemaining} extra left)`;
-            
             return (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onMarkRevisionUsed(stageId, stage)}
                   disabled={isMarkingRevisionUsed || disabled}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                  className="px-3 sm:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  {isMarkingRevisionUsed ? 'Logging...' : buttonText}
+                  <RotateCcw className="w-4 h-4 flex-shrink-0" />
+                  <span>{isMarkingRevisionUsed ? 'Logging...' : 'Log Revision'}</span>
                 </button>
                 <div className="relative group">
                   <HelpCircle className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-help" />
