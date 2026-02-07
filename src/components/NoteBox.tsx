@@ -261,7 +261,7 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-xl font-bold text-black flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             Notes & Feedback
@@ -278,21 +278,21 @@ export default function NoteBox({ stageId, authorType, authorName, stage, onMark
             if (totalRemaining <= 0) return null;
             
             return (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => onMarkRevisionUsed(stageId, stage)}
                   disabled={isMarkingRevisionUsed || disabled}
-                  className="px-3 sm:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap"
+                  className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                 >
-                  <RotateCcw className="w-4 h-4 flex-shrink-0" />
-                  <span>{isMarkingRevisionUsed ? 'Logging...' : 'Log Revision'}</span>
+                  <RotateCcw className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{isMarkingRevisionUsed ? '...' : 'Log Revision'}</span>
                 </button>
                 <div className="relative group">
                   <HelpCircle className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-help" />
-                  <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="absolute right-0 bottom-full mb-2 w-56 sm:w-64 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <p>Client asked for a significant change in chat? Click to count it as a revision.</p>
                     <p className="mt-2 text-gray-300 text-xs">({totalRemaining} of {(stage.revisions_included || 0) + extensionRevisionsTotal} remaining)</p>
-                    <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 rotate-45"></div>
+                    <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-900 rotate-45"></div>
                   </div>
                 </div>
               </div>
