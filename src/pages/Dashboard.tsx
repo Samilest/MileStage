@@ -626,16 +626,15 @@ export default function Dashboard() {
                 onClick={handleRefresh}
                 disabled={refreshing}
                 variant="secondary"
-                className="flex-shrink-0"
+                className="flex-shrink-0 px-3 sm:px-4"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''} sm:mr-2`} />
                 <span className="hidden sm:inline">Refresh</span>
-                <span className="sm:hidden">↻</span>
               </Button>
               <Button
                 onClick={() => navigate('/templates')}
                 variant="primary"
-                className="flex-1 sm:flex-initial whitespace-nowrap"
+                className="whitespace-nowrap"
               >
                 <span className="hidden sm:inline">Create Project</span>
                 <span className="sm:hidden">Create</span>
