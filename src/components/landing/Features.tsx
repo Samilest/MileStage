@@ -41,7 +41,7 @@ export default function Features() {
         </svg>
       ),
       title: 'Automatic Notifications',
-      description: 'Payment received, stage approved, work delivered — everyone stays informed.',
+      description: 'Payment received, stage approved, work delivered – everyone stays informed.',
     },
     {
       icon: (
@@ -73,11 +73,12 @@ export default function Features() {
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
             Built for Freelancers Who Work in Stages
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          {/* FIXED: Wrap properly on mobile */}
+          <p className="text-lg text-gray-600 mb-8 flex flex-wrap justify-center gap-x-1 gap-y-1">
             {audiences.map((item, index) => (
-              <span key={index}>
+              <span key={index} className="whitespace-nowrap">
                 {item.title}
-                {index < audiences.length - 1 && <span className="mx-2 text-gray-300">·</span>}
+                {index < audiences.length - 1 && <span className="mx-1 sm:mx-2 text-gray-300">·</span>}
               </span>
             ))}
           </p>
