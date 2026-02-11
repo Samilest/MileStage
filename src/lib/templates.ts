@@ -59,7 +59,13 @@ export const TEMPLATES: Template[] = [
 export function generateShareCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = 'ST-';
+  // First part: 4 characters (human-readable prefix)
   for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  // Second part: 12 characters (security suffix)
+  code += '-';
+  for (let i = 0; i < 12; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return code;
