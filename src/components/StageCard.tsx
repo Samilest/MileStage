@@ -15,6 +15,7 @@ import {
   Circle,
   Pause,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -116,6 +117,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     rejection_reason: string | null;
   }>>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRevisionHistoryOpen, setIsRevisionHistoryOpen] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [actualPaymentStatus, setActualPaymentStatus] = useState<string>(
   stage.payment_status === 'received' ? 'paid' : (stage.payment_status || 'unpaid')
@@ -1094,28 +1096,43 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 )}
 
                 {stage.revisions && stage.revisions.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold text-gray-700 mb-3">Revision History:</h4>
-                    <div className="space-y-2">
-                      {stage.revisions.map((revision) => (
-                        <div key={revision.id} className="bg-white rounded p-3 border border-green-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900 text-sm">
-                              Revision {revision.revision_number}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {formatDate(revision.created_at)}
-                            </span>
+                  <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
+                      className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                    >
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Revision History ({stage.revisions.length})
+                      </h4>
+                      <ChevronDown 
+                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                          isRevisionHistoryOpen ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </button>
+                    {isRevisionHistoryOpen && (
+                      <div className="p-4 space-y-2">
+                        {stage.revisions.map((revision) => (
+                          <div key={revision.id} className="bg-white rounded p-3 border border-green-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-gray-900 text-sm">
+                                Revision {revision.revision_number}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatDate(revision.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
+                            {revision.completed_at && (
+                              <p className="text-xs text-green-600 mt-2">
+                                ✓ Completed {formatDate(revision.completed_at)}
+                              </p>
+                            )}
                           </div>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
-                          {revision.completed_at && (
-                            <p className="text-xs text-green-600 mt-2">
-                              ✓ Completed {formatDate(revision.completed_at)}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -1405,42 +1422,54 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {/* REVISION HISTORY - Moved to bottom */}
+        {/* REVISION HISTORY - Collapsible */}
         {stage.revisions.length > 0 && (
-          <div>
-            <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              Revision History
-            </h4>
-            <div className="space-y-2">
-              {stage.revisions.map((revision) => (
-                <div key={revision.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-gray-900">
-                      Revision {revision.revision_number}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
+              className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
+            >
+              <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Revision History ({stage.revisions.length})
+              </h4>
+              <ChevronDown 
+                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                  isRevisionHistoryOpen ? 'rotate-180' : ''
+                }`} 
+              />
+            </button>
+            {isRevisionHistoryOpen && (
+              <div className="p-4 space-y-2">
+                {stage.revisions.map((revision) => (
+                  <div key={revision.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-900">
+                        Revision {revision.revision_number}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatDate(revision.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
+                    <span
+                      className={`inline-block mt-2 px-2 py-1 rounded text-xs font-medium ${
+                        revision.completed_at
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
+                      {revision.completed_at ? 'Completed' : 'Pending'}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {formatDate(revision.created_at)}
-                    </span>
+                    {revision.completed_at && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Completed {formatDate(revision.completed_at)}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
-                  <span
-                    className={`inline-block mt-2 px-2 py-1 rounded text-xs font-medium ${
-                      revision.completed_at
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}
-                  >
-                    {revision.completed_at ? 'Completed' : 'Pending'}
-                  </span>
-                  {revision.completed_at && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Completed {formatDate(revision.completed_at)}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
