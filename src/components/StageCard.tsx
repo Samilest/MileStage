@@ -1338,13 +1338,13 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </>
           )}
 
-          {/* CLIENT ACTION BUTTONS - Clean and prominent */}
+          {/* CLIENT ACTION BUTTONS - Clean and centered */}
           {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={handleApproveStage}
-                  className="flex-1 bg-green-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
                   Approve & Pay
@@ -1352,9 +1352,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                 {canRequestRevision && (
                   <button
                     onClick={() => setIsRevisionModalOpen(true)}
-                    className="flex-1 bg-white text-gray-700 border-2 border-gray-300 px-5 py-3 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
+                    className="bg-white text-gray-700 border-2 border-gray-300 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
                   >
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <RotateCcw className="w-4 h-4" />
                     Request Changes
                   </button>
                 )}
