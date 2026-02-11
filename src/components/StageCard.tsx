@@ -1338,60 +1338,51 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             </>
           )}
 
-          {/* CLIENT ACTION BUTTONS - Clean and centered */}
+          {/* CLIENT ACTION BUTTONS - Side by side on desktop, stacked on mobile */}
           {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <button
                   onClick={handleApproveStage}
-                  className="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
+                  className="w-full sm:w-auto bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
                   Approve & Pay
                 </button>
-                {canRequestRevision && (
+                {canRequestRevision ? (
                   <button
                     onClick={() => setIsRevisionModalOpen(true)}
-                    className="bg-white text-gray-700 border-2 border-gray-300 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                    className="w-full sm:w-auto bg-white text-gray-700 border-2 border-gray-300 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Request Changes
                   </button>
-                )}
-              </div>
-              {revisionsRemaining < totalRevisions && (
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  {revisionsRemaining} of {totalRevisions} revisions remaining
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Extension purchase section - only show when revisions exhausted */}
-          {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <ExtensionStatusAlerts
-                pendingExtensions={pendingExtensions}
-                rejectedExtensions={rejectedExtensions}
-              />
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-                <p className="text-amber-800 font-medium text-sm mb-2">
-                  All {totalRevisions} revisions used
-                </p>
-                {pendingExtensions.length > 0 ? (
-                  <p className="text-xs text-amber-700">
-                    Extra revision payment pending verification
-                  </p>
-                ) : (
+                ) : stage.extension_enabled && pendingExtensions.length === 0 && (
                   <button
                     onClick={() => setIsExtensionModalOpen(true)}
-                    className="mt-2 bg-amber-500 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-amber-600 transition-all duration-200 text-sm"
+                    className="w-full sm:w-auto bg-amber-500 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-amber-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
                   >
+                    <Plus className="w-4 h-4" />
                     Buy Extra Revision – {formatCurrency(stage.extension_price, currency)}
                   </button>
                 )}
               </div>
+              <p className="text-center text-xs text-gray-500 mt-3">
+                {revisionsRemaining} of {totalRevisions} revisions remaining
+              </p>
+            </div>
+          )}
+
+          {/* Extension status alerts - show separately if there's a pending extension */}
+          {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && pendingExtensions.length > 0 && (
+            <div className="mt-4">
+              <ExtensionStatusAlerts
+                pendingExtensions={pendingExtensions}
+                rejectedExtensions={rejectedExtensions}
+              />
+              <p className="text-center text-xs text-amber-700 mt-2">
+                Extra revision payment pending verification
+              </p>
             </div>
           )}
         </div>
