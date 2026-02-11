@@ -16,6 +16,7 @@ import {
   Pause,
   Loader2,
   ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -118,6 +119,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   }>>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRevisionHistoryOpen, setIsRevisionHistoryOpen] = useState(false);
+  const [isDeliverablesOpen, setIsDeliverablesOpen] = useState(true);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [actualPaymentStatus, setActualPaymentStatus] = useState<string>(
   stage.payment_status === 'received' ? 'paid' : (stage.payment_status || 'unpaid')
@@ -1101,34 +1103,33 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
                       onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
                       className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
                     >
-                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
                         Revision History ({stage.revisions.length})
-                      </h4>
+                      </span>
                       <ChevronDown 
-                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
                           isRevisionHistoryOpen ? 'rotate-180' : ''
                         }`} 
                       />
                     </button>
                     {isRevisionHistoryOpen && (
-                      <div className="p-4 space-y-2">
+                      <div className="p-3 space-y-2 bg-white">
                         {stage.revisions.map((revision) => (
-                          <div key={revision.id} className="bg-white rounded p-3 border border-green-200">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-gray-900 text-sm">
+                          <div key={revision.id} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">
                                 Revision {revision.revision_number}
                               </span>
-                              <span className="text-xs text-gray-500">
-                                {formatDate(revision.created_at)}
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">
+                                Done
                               </span>
                             </div>
-                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
-                            {revision.completed_at && (
-                              <p className="text-xs text-green-600 mt-2">
-                                ✓ Completed {formatDate(revision.completed_at)}
-                              </p>
-                            )}
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap">{revision.feedback}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {formatDate(revision.created_at)}
+                              {revision.completed_at && ` • Completed ${formatDate(revision.completed_at)}`}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -1253,12 +1254,15 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
       </div>
 
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        <StageProgress
-          status={stage.status}
-          isLocked={stage.status === 'locked'}
-          deliverablesCount={stage.deliverables.length}
-          payment_status={actualPaymentStatus}
-        />
+        {/* Progress bar - Only show for freelancer view */}
+        {!readOnly && (
+          <StageProgress
+            status={stage.status}
+            isLocked={stage.status === 'locked'}
+            deliverablesCount={stage.deliverables.length}
+            payment_status={actualPaymentStatus}
+          />
+        )}
 
         {/* Show locked message and hide all content for locked stages */}
         {stage.status === 'locked' ? (
@@ -1275,137 +1279,118 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         ) : (
           <>
-        {/* DELIVERABLES SECTION - Prioritized at top for client review */}
+        {/* DELIVERABLES SECTION */}
         <div>
-          <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-3">
-            <FileText className="w-5 h-5" />
-            Deliverables ({stage.deliverables.length})
-          </h4>
+          <div 
+            className="flex items-center justify-between cursor-pointer py-2"
+            onClick={() => setIsDeliverablesOpen(!isDeliverablesOpen)}
+          >
+            <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-600" />
+              Deliverables ({stage.deliverables.length})
+            </h4>
+            <ChevronDown 
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                isDeliverablesOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </div>
 
-          {stage.deliverables.length > 0 ? (
-            <div className="space-y-3 mb-4">
-              {stage.deliverables.map((deliverable) => (
-                <div
-                  key={deliverable.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 mb-1">{deliverable.name}</div>
-                      {deliverable.description && (
-                        <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">
-                          {deliverable.description}
+          {isDeliverablesOpen && (
+            <>
+              {stage.deliverables.length > 0 ? (
+                <div className="space-y-2 mt-2">
+                  {stage.deliverables.map((deliverable) => (
+                    <div
+                      key={deliverable.id}
+                      className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-sm">{deliverable.name}</div>
+                        {deliverable.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                            {deliverable.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                          {deliverable.file_url}
                         </p>
-                      )}
+                      </div>
                       <a
                         href={deliverable.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-700 hover:underline break-all"
+                        className="flex-shrink-0 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-1.5"
                       >
-                        {deliverable.file_url}
+                        Open <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
-                    <a
-                      href={deliverable.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
-                    >
-                      Open →
-                    </a>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 mb-4">
-              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white flex items-center justify-center">
-                <FileText className="w-6 h-6 text-gray-400" />
-              </div>
-              <p className="text-gray-600 text-sm">
-                {readOnly ? 'Waiting for freelancer to deliver work' : 'No deliverables yet'}
-              </p>
-            </div>
+              ) : (
+                <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200 mt-2">
+                  <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    {readOnly ? 'Waiting for deliverables' : 'No deliverables yet'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
-          {/* CLIENT ACTION BUTTONS - Directly below deliverables */}
+          {/* CLIENT ACTION BUTTONS - Clean and prominent */}
           {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && (
-            <>
-              <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4 mb-4 flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-blue-900 mb-1">Work has been delivered!</p>
-                  <p className="text-sm text-blue-800">Please review the deliverables above and choose your next step.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center mb-3">
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={handleApproveStage}
-                  className="flex-1 sm:flex-initial bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2"
+                  className="flex-1 bg-green-500 text-white px-5 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
-                  <ThumbsUp className="w-5 h-5" />
+                  <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
                   Approve & Pay
                 </button>
                 {canRequestRevision && (
                   <button
                     onClick={() => setIsRevisionModalOpen(true)}
-                    className="flex-1 sm:flex-initial bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200 flex items-center justify-center gap-2"
+                    className="flex-1 bg-white text-gray-700 border-2 border-gray-300 px-5 py-3 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
-                    <RotateCcw className="w-5 h-5" />
-                    Request Changes ({revisionsRemaining})
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Request Changes
                   </button>
                 )}
               </div>
-
-              <p className="text-center text-sm text-gray-600 mb-2">
-                Revisions remaining: <strong className={revisionsRemaining === 0 ? 'text-red-600' : revisionsRemaining === 1 ? 'text-orange-600' : 'text-green-600'}>{revisionsRemaining}/{totalRevisions}</strong>
-              </p>
-              <p className="text-center text-xs text-gray-400 mb-4">
-                Tip: Major changes requested via notes may count toward revisions.
-              </p>
-            </>
+              {revisionsRemaining < totalRevisions && (
+                <p className="text-center text-xs text-gray-500 mt-2">
+                  {revisionsRemaining} of {totalRevisions} revisions remaining
+                </p>
+              )}
+            </div>
           )}
 
-          {/* Extension purchase section */}
+          {/* Extension purchase section - only show when revisions exhausted */}
           {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && (
-            <div className="mb-4 mt-12">
+            <div className="mt-4 pt-4 border-t border-gray-100">
               <ExtensionStatusAlerts
                 pendingExtensions={pendingExtensions}
                 rejectedExtensions={rejectedExtensions}
               />
 
-              <div className="bg-orange-50 border border-orange-300 rounded-lg p-4 text-center">
-                <p className="text-orange-800 font-semibold mb-2">
-                  All included revisions used ({stage.revisions_used}/{totalRevisions})
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                <p className="text-amber-800 font-medium text-sm mb-2">
+                  All {totalRevisions} revisions used
                 </p>
-                <p className="text-orange-700 text-sm mb-3">
-                  Need more changes? Purchase an extra revision to get one additional revision beyond what's included.
-                </p>
-
-                <div className="flex justify-center">
-                  {pendingExtensions.length > 0 ? (
-                    <div className="text-center">
-                      <button
-                        disabled
-                        className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg font-semibold cursor-not-allowed opacity-60"
-                      >
-                        ⏳ Extra Revision Payment Pending
-                      </button>
-                      <p className="text-xs text-gray-500 mt-2">
-                        You have a pending extra revision payment awaiting verification
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setIsExtensionModalOpen(true)}
-                      className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-all duration-200"
-                    >
-                      Buy Extra Revision - {formatCurrency(stage.extension_price, currency)}
-                    </button>
-                  )}
-                </div>
+                {pendingExtensions.length > 0 ? (
+                  <p className="text-xs text-amber-700">
+                    Extra revision payment pending verification
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setIsExtensionModalOpen(true)}
+                    className="mt-2 bg-amber-500 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-amber-600 transition-all duration-200 text-sm"
+                  >
+                    Buy Extra Revision – {formatCurrency(stage.extension_price, currency)}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1429,43 +1414,37 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
               onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
               className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
             >
-              <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Revision History ({stage.revisions.length})
-              </h4>
+              </span>
               <ChevronDown 
-                className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
                   isRevisionHistoryOpen ? 'rotate-180' : ''
                 }`} 
               />
             </button>
             {isRevisionHistoryOpen && (
-              <div className="p-4 space-y-2">
+              <div className="p-3 space-y-2 bg-white">
                 {stage.revisions.map((revision) => (
-                  <div key={revision.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-900">
+                  <div key={revision.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-900">
                         Revision {revision.revision_number}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {formatDate(revision.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{revision.feedback}</p>
-                    <span
-                      className={`inline-block mt-2 px-2 py-1 rounded text-xs font-medium ${
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         revision.completed_at
                           ? 'bg-green-100 text-green-700'
                           : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {revision.completed_at ? 'Completed' : 'Pending'}
-                    </span>
-                    {revision.completed_at && (
-                      <p className="text-xs text-green-600 mt-1">
-                        Completed {formatDate(revision.completed_at)}
-                      </p>
-                    )}
+                      }`}>
+                        {revision.completed_at ? 'Done' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{revision.feedback}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatDate(revision.created_at)}
+                      {revision.completed_at && ` • Completed ${formatDate(revision.completed_at)}`}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1482,49 +1461,34 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           </div>
         )}
 
-        {/* Payment status alerts - Only show ONE at a time for clarity */}
-        {/* Priority: Pending (newest state) > Rejected (old state) */}
+        {/* Payment status alerts - Clean and minimal */}
         {readOnly && pendingPayments.length > 0 && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <h3 className="font-bold text-yellow-900 mb-2">
-              ⏳ Payment Pending Verification
-            </h3>
-            <p className="text-sm text-yellow-800">
-              You marked the payment as sent. Waiting for the freelancer to verify payment received.
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="font-medium text-yellow-800 text-sm">
+              ⏳ Payment pending verification
             </p>
-            <p className="text-xs text-yellow-700 mt-2">
-              Amount: {formatCurrency(stage.amount, currency)} | Reference: {pendingPayments[0].reference_code}
+            <p className="text-xs text-yellow-700 mt-1">
+              Ref: {pendingPayments[0].reference_code}
             </p>
           </div>
         )}
 
-        {/* Only show rejected alert if there's NO pending payment (client hasn't retried yet) */}
         {readOnly && rejectedPayments.length > 0 && pendingPayments.length === 0 && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
-            <h3 className="font-bold text-red-900 mb-2">
-              ⚠️ Payment Issue
-            </h3>
-            <p className="text-red-800">
-              Your payment for {formatCurrency(stage.amount, currency)} was not received by the freelancer.
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="font-medium text-red-800 text-sm mb-2">
+              ⚠️ Payment not received
             </p>
             {rejectedPayments[0].rejection_reason && (
-              <p className="text-sm text-red-700 mt-2">
-                Reason: {rejectedPayments[0].rejection_reason}
+              <p className="text-xs text-red-700 mb-2">
+                {rejectedPayments[0].rejection_reason}
               </p>
             )}
-            <p className="text-sm text-red-700 mt-2">
-              Please verify your payment was sent, or try again using a different method.
-            </p>
-            <div className="flex justify-start mt-3">
-              <button
-                onClick={() => {
-                  setShowPaymentModal(true);
-                }}
-                className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 font-semibold transition-all duration-200"
-              >
-                Retry Payment
-              </button>
-            </div>
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium transition-colors"
+            >
+              Retry Payment
+            </button>
           </div>
         )}
       </div>
