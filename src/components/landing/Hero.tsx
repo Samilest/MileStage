@@ -91,8 +91,12 @@ export default function Hero() {
               ))}
             </div>
 
-            {/* Slide Indicators */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+            {/* Slide Indicators - in clear container below image */}
+          </div>
+          
+          {/* Dots below slider in subtle container */}
+          <div className="flex justify-center mt-4">
+            <div className="bg-gray-100 rounded-full px-4 py-2 flex gap-2">
               {slides.map((_, index) => (
                 <button
                   key={index}
@@ -111,17 +115,20 @@ export default function Hero() {
             </div>
           </div>
           
-          {/* Badges below slider - side by side */}
-          <div className="flex justify-center gap-4 mt-6">
-            <div className="bg-white rounded-lg shadow-lg px-4 py-3 border border-gray-100">
-              <p className="text-sm font-semibold text-gray-900">Multi-currency</p>
-              <p className="text-xs text-gray-500">USD, EUR, GBP & more</p>
-            </div>
-
-            <div className="bg-green-50 rounded-lg shadow-lg px-4 py-3 border border-green-200">
-              <p className="text-sm font-bold text-green-800">$0 Transaction Fees</p>
-              <p className="text-xs text-green-600">Keep 100% of payments</p>
-            </div>
+          {/* Simple inline badges */}
+          <div className="flex justify-center items-center gap-6 mt-6 text-sm text-gray-600">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Multi-currency (USD, EUR, GBP)
+            </span>
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              $0 transaction fees
+            </span>
           </div>
         </div>
       </div>
