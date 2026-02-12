@@ -111,14 +111,14 @@ export default function Hero() {
             </div>
           </div>
           
-          {/* Floating badges */}
-          <div className="relative sm:absolute sm:-bottom-4 sm:right-4 flex flex-col gap-3 mt-6 sm:mt-0 px-4 sm:px-0">
-            <div className="bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
+          {/* Badges below slider - side by side */}
+          <div className="flex justify-center gap-4 mt-6">
+            <div className="bg-white rounded-lg shadow-lg px-4 py-3 border border-gray-100">
               <p className="text-sm font-semibold text-gray-900">Multi-currency</p>
               <p className="text-xs text-gray-500">USD, EUR, GBP & more</p>
             </div>
 
-            <div className="bg-green-50 rounded-lg shadow-xl px-4 py-3 border border-green-200">
+            <div className="bg-green-50 rounded-lg shadow-lg px-4 py-3 border border-green-200">
               <p className="text-sm font-bold text-green-800">$0 Transaction Fees</p>
               <p className="text-xs text-green-600">Keep 100% of payments</p>
             </div>
