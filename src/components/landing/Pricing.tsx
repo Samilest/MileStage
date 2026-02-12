@@ -27,6 +27,9 @@ export default function Pricing() {
           <p className="text-lg text-gray-600">
             One plan. All features. No surprises.
           </p>
+          <p className="text-sm text-orange-600 font-medium mt-2">
+            🚀 Launch price — join early, pay less
+          </p>
         </div>
 
         {/* Toggle */}
