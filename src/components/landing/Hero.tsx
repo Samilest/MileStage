@@ -1,15 +1,48 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Hero() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const slides = [
+    {
+      src: '/assets/screenshots/hero-dashboard.gif',
+      alt: 'MileStage Dashboard Overview',
+    },
+    {
+      src: '/assets/screenshots/step1-create-project.png',
+      alt: 'Create Project with Templates',
+    },
+    {
+      src: '/assets/screenshots/step2-stages.png',
+      alt: 'Stage-based Payment Tracking',
+    },
+    {
+      src: '/assets/screenshots/step3-client-portal.png',
+      alt: 'Professional Client Portal',
+    },
+  ];
+
+  // Auto-advance slides
+  useEffect(() => {
+    if (isPaused) return;
+    
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 4000); // Change every 4 seconds
+
+    return () => clearInterval(timer);
+  }, [isPaused, slides.length]);
+
   return (
     <section className="relative bg-white pt-24 pb-16 sm:pt-32 sm:pb-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Centered Content */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.1] tracking-tight mb-6">
-            Stop Scope Creep.
-            <br />
-            <span className="text-green-600">Get Paid Per Stage.</span>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight mb-6">
+            <span className="block leading-tight">Stop Scope Creep.</span>
+            <span className="block text-green-600 leading-tight mt-3">Get Paid Per Stage.</span>
           </h1>
           
           <p className="text-lg sm:text-xl text-gray-600 mb-10 leading-relaxed max-w-2xl mx-auto">
@@ -33,18 +66,53 @@ export default function Hero() {
           </p>
         </div>
 
-        {/* Dashboard Screenshot */}
+        {/* Dashboard Screenshot Slider */}
         <div className="relative max-w-5xl mx-auto">
-          <div className="relative rounded-xl shadow-2xl border border-gray-200 overflow-hidden bg-gray-100">
-            <img 
-              src="/assets/screenshots/hero-dashboard.gif" 
-              alt="MileStage Dashboard"
-              className="w-full"
-            />
+          <div 
+            className="relative rounded-xl shadow-2xl border border-gray-200 overflow-hidden bg-gray-100"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            {/* Slides */}
+            <div className="relative">
+              {slides.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`transition-opacity duration-500 ${
+                    index === currentSlide ? 'opacity-100' : 'opacity-0 absolute inset-0'
+                  }`}
+                >
+                  <img 
+                    src={slide.src} 
+                    alt={slide.alt}
+                    className="w-full"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Slide Indicators */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setCurrentSlide(index);
+                    setIsPaused(true);
+                  }}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentSlide 
+                      ? 'bg-green-600 w-6' 
+                      : 'bg-gray-400 hover:bg-gray-600'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
           
-          {/* Floating badges - FIXED FOR MOBILE */}
-          <div className="relative sm:absolute sm:-bottom-4 sm:bottom-8 sm:right-4 sm:-right-4 flex flex-col gap-3 mt-6 sm:mt-0 px-4 sm:px-0">
+          {/* Floating badges */}
+          <div className="relative sm:absolute sm:-bottom-4 sm:right-4 flex flex-col gap-3 mt-6 sm:mt-0 px-4 sm:px-0">
             <div className="bg-white rounded-lg shadow-xl px-4 py-3 border border-gray-100">
               <p className="text-sm font-semibold text-gray-900">Multi-currency</p>
               <p className="text-xs text-gray-500">USD, EUR, GBP & more</p>
