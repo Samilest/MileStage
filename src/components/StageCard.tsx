@@ -1,4 +1,4 @@
-// FORCE REBUILD v8 - UX improvements: simplified layout, contextual actions, reduced visual noise
+// FORCE REBUILD v7 - payment_status='received' fix deployed
 import {
   Lock,
   Clock,
@@ -17,14 +17,13 @@ import {
   Loader2,
   ChevronDown,
   ExternalLink,
-  AlertCircle,
-  Send,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { notifyRevisionRequested, notifyStageApproved, notifyPaymentMarked, notifyExtensionPurchased } from '../lib/email';
 import NoteBox from './NoteBox';
+import StageProgress from './StageProgress';
 import ExtensionPurchaseModal from './ExtensionPurchaseModal';
 import ExtensionStatusAlerts from './ExtensionStatusAlerts';
 import StripePaymentButton from './StripePaymentButton';
@@ -91,49 +90,7 @@ interface StageCardProps {
   manualPaymentInstructions?: string | null;
 }
 
-// Simple status badge component to replace progress bar
-function StatusBadge({ status, paymentStatus }: { status: string; paymentStatus: string }) {
-  const getStatusConfig = () => {
-    // Check payment status first for completed stages
-    if (paymentStatus === 'received' || paymentStatus === 'paid') {
-      return { label: 'Completed', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' };
-    }
-    
-    switch (status) {
-      case 'locked':
-        return { label: 'Locked', color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
-      case 'active':
-      case 'in_progress':
-        return { label: 'Work in Progress', color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' };
-      case 'delivered':
-        return { label: 'Delivered - Awaiting Review', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' };
-      case 'payment_pending':
-        return { label: 'Payment Pending', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' };
-      case 'review':
-        return { label: 'In Review', color: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' };
-      case 'completed':
-      case 'complete':
-        return { label: 'Completed', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' };
-      case 'paused':
-        return { label: 'Paused', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' };
-      case 'cancelled':
-        return { label: 'Cancelled', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' };
-      default:
-        return { label: status, color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
-    }
-  };
-
-  const config = getStatusConfig();
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`}></span>
-      {config.label}
-    </span>
-  );
-}
-
-export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'freelancer', authorName, projectId, shareCode, currency = 'USD', paymentMethods = {}, manualPaymentInstructions }: StageCardProps) {
+export default function StageCard({ stage, readOnly = false, showNoteBox = false, authorType = 'client', authorName, projectId, shareCode, currency = 'USD', paymentMethods = {}, manualPaymentInstructions }: StageCardProps) {
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,7 +120,6 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRevisionHistoryOpen, setIsRevisionHistoryOpen] = useState(false);
   const [isDeliverablesOpen, setIsDeliverablesOpen] = useState(true);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [actualPaymentStatus, setActualPaymentStatus] = useState<string>(
   stage.payment_status === 'received' ? 'paid' : (stage.payment_status || 'unpaid')
@@ -344,7 +300,7 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           label: 'Locked',
           color: 'text-gray-500',
           bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200',
+          borderColor: 'border-gray-300',
           iconBg: 'bg-gray-200',
           cardOpacity: 'opacity-75',
         };
@@ -354,9 +310,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           icon: Circle,
           label: 'In Progress',
           color: 'text-yellow-600',
-          bgColor: 'bg-white',
+          bgColor: 'bg-yellow-50',
           borderColor: 'border-green-500',
-          iconBg: 'bg-green-500',
+          iconBg: 'bg-yellow-100',
           cardOpacity: '',
         };
       case 'delivered':
@@ -364,19 +320,19 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           icon: CheckCircle2,
           label: 'Delivered',
           color: 'text-blue-600',
-          bgColor: 'bg-white',
-          borderColor: 'border-blue-400',
-          iconBg: 'bg-blue-500',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          iconBg: 'bg-blue-100',
           cardOpacity: '',
         };
       case 'payment_pending':
         return {
           icon: DollarSign,
           label: 'Payment Pending',
-          color: 'text-orange-600',
-          bgColor: 'bg-white',
-          borderColor: 'border-orange-400',
-          iconBg: 'bg-orange-500',
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-200',
+          iconBg: 'bg-yellow-100',
           cardOpacity: '',
         };
       case 'paused':
@@ -394,9 +350,9 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
           icon: MessageSquare,
           label: 'In Review',
           color: 'text-yellow-600',
-          bgColor: 'bg-white',
-          borderColor: 'border-yellow-400',
-          iconBg: 'bg-yellow-500',
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-200',
+          iconBg: 'bg-yellow-100',
           cardOpacity: '',
         };
       case 'completed':
@@ -781,10 +737,6 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
   const revisionsRemaining = totalRevisions - (stage.revisions_used || 0);
   const canRequestRevision = revisionsRemaining > 0;
   const isCompleted = stage.status === 'completed' || stage.status === 'complete';
-
-  // Check for pending/active revision requests
-  const pendingRevisions = stage.revisions?.filter(r => !r.completed_at) || [];
-  const hasPendingRevision = pendingRevisions.length > 0;
 
   if (stage.stage_number === 0) {
     const isPaid = actualPaymentStatus === 'received' || actualPaymentStatus === 'paid' || stage.payment_status === 'received';
@@ -1192,7 +1144,6 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
     );
   }
 
-  // Main active stage card render
   return (
     <div
       className={`bg-white border-2 ${statusInfo.borderColor} rounded-xl overflow-hidden transition-shadow duration-300 ${
@@ -1203,343 +1154,323 @@ export default function StageCard({ stage, readOnly = false, showNoteBox = false
             : 'shadow-md hover:shadow-lg'
       }`}
     >
-      {/* HEADER - Simplified with inline status badge */}
-      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100">
-        <div className="flex items-start justify-between gap-4">
-          {/* Left: Icon + Title + Status Badge */}
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+      <div className={`${statusInfo.bgColor} px-4 sm:px-6 py-4 sm:py-6 border-b ${statusInfo.borderColor}`}>
+        {/* Mobile Layout */}
+        <div className="flex sm:hidden flex-col gap-4">
+          {/* Top Row: Stage Title */}
+          <div className="flex items-center gap-3">
             <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
-              <StatusIcon className={`w-5 h-5 text-white`} />
+              <StatusIcon className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className={`text-lg sm:text-xl font-bold ${
-                stage.status === 'locked' ? 'text-gray-500' : 'text-gray-900'
+              <h3 className={`text-lg font-bold ${
+                stage.status === 'locked' ? 'text-gray-600' : 'text-gray-900'
               } truncate`}>
                 Stage {stage.stage_number}: {stage.name}
               </h3>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <StatusBadge status={stage.status} paymentStatus={actualPaymentStatus} />
-                {stage.stage_number !== 0 && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    stage.revisions_used === 0 
-                      ? 'bg-green-100 text-green-700' 
-                      : stage.revisions_used >= totalRevisions 
-                        ? 'bg-red-100 text-red-700' 
-                        : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {stage.revisions_used}/{totalRevisions} rev
-                  </span>
-                )}
-              </div>
+              <span className={`text-sm font-semibold ${statusInfo.color}`}>
+                {statusInfo.label}
+              </span>
             </div>
           </div>
+          
+          {/* Bottom Row: Status Badge Left, Amount + Revisions Right */}
+          <div className="flex items-center justify-between">
+            <span
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold ${paymentInfo.bgColor} ${paymentInfo.color} ${
+                stage.payment_status === 'pending' ? 'animate-pulse-slow' : ''
+              }`}
+            >
+              {paymentInfo.label}
+            </span>
+            <div className="text-right">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
+              <div className="text-2xl font-black text-gray-900">
+                {formatCurrency(stage.amount, currency)}
+              </div>
+              {stage.stage_number !== 0 && (
+                <div className="text-sm font-semibold" style={{
+                  color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used >= totalRevisions ? '#ef4444' : '#f59e0b'
+                }}>
+                  Revisions: {stage.revisions_used}/{totalRevisions}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-          {/* Right: Amount */}
-          <div className="text-right flex-shrink-0">
-            <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Amount</div>
-            <div className="text-xl sm:text-2xl font-black text-gray-900">
-              {formatCurrency(stage.amount, currency)}
+        {/* Desktop Layout (unchanged) */}
+        <div className="hidden sm:flex items-center justify-between flex-wrap gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className={`${statusInfo.iconBg} rounded-full p-2 flex items-center justify-center flex-shrink-0`}>
+              <StatusIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${statusInfo.color}`} />
+            </div>
+            <div className="min-w-0">
+              <h3 className={`text-lg sm:text-xl font-bold ${
+                stage.status === 'locked' ? 'text-gray-600' : 'text-gray-900'
+              } truncate`}>
+                Stage {stage.stage_number}: {stage.name}
+              </h3>
+              <span className={`text-sm sm:text-base font-semibold ${statusInfo.color}`}>
+                {statusInfo.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <span
+              className={`px-4 py-2 rounded-full text-base font-semibold ${paymentInfo.bgColor} ${paymentInfo.color} ${
+                stage.payment_status === 'pending' ? 'animate-pulse-slow' : ''
+              }`}
+            >
+              {paymentInfo.label}
+            </span>
+            <div className="text-right">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Amount</div>
+              <div className="text-2xl lg:text-3xl font-black text-gray-900">
+                {formatCurrency(stage.amount, currency)}
+              </div>
+              {stage.stage_number !== 0 && (
+                <div className="flex items-center justify-end gap-2">
+                  <div className="text-sm font-semibold" style={{
+                    color: stage.revisions_used === 0 ? '#10b981' : stage.revisions_used >= totalRevisions ? '#ef4444' : '#f59e0b'
+                  }}>
+                    Revisions: {stage.revisions_used}/{totalRevisions}
+                  </div>
+                  {!readOnly && revisionsRemaining > 0 && (
+                    <button
+                      onClick={handleMarkRevisionUsed}
+                      disabled={isMarkingRevisionUsed}
+                      className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Mark 1 revision as used"
+                    >
+                      {isMarkingRevisionUsed ? '...' : 'Use'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* CONTEXTUAL ACTION BAR - Shows primary action based on state */}
-      {stage.status !== 'locked' && (
-        <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-100">
-          {/* Payment Pending - Freelancer view */}
-          {!readOnly && pendingPayments.length > 0 && (
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-2 text-orange-700">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm font-medium">Client marked payment as sent</span>
-              </div>
-              <button
-                onClick={() => {/* This would be handled by parent - mark as paid */}}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold text-sm hover:bg-green-600 transition-colors flex items-center gap-1.5"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Mark as Paid
-              </button>
-            </div>
-          )}
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Progress bar - Only show for freelancer view */}
+        {!readOnly && (
+          <StageProgress
+            status={stage.status}
+            isLocked={stage.status === 'locked'}
+            deliverablesCount={stage.deliverables.length}
+            payment_status={actualPaymentStatus}
+          />
+        )}
 
-          {/* Payment Pending - Client view */}
-          {readOnly && pendingPayments.length > 0 && (
-            <div className="flex items-center gap-2 text-yellow-700">
-              <Clock className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm">Payment pending verification • Ref: {pendingPayments[0].reference_code}</span>
-            </div>
-          )}
-
-          {/* Revision Requested - Show for both views */}
-          {hasPendingRevision && pendingPayments.length === 0 && (
-            <div className="flex items-center gap-2 text-orange-700">
-              <RotateCcw className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm font-medium">Revision requested - changes needed</span>
-            </div>
-          )}
-
-          {/* Work in Progress - Freelancer: Ready to submit */}
-          {!readOnly && (stage.status === 'active' || stage.status === 'in_progress') && stage.deliverables.length > 0 && !hasPendingRevision && pendingPayments.length === 0 && (
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span className="text-sm text-gray-600">Ready to submit? Add deliverables below, then:</span>
-              <button
-                onClick={() => {/* Handled by parent component */}}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg font-semibold text-sm hover:bg-green-600 transition-colors flex items-center gap-1.5"
-              >
-                <Send className="w-4 h-4" />
-                Submit for Client Review
-              </button>
-            </div>
-          )}
-
-          {/* Delivered - Client: Review actions */}
-          {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && pendingPayments.length === 0 && (
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <button
-                onClick={handleApproveStage}
-                className="px-5 py-2.5 bg-green-500 text-white rounded-lg font-semibold text-sm hover:bg-green-600 transition-colors flex items-center gap-2"
-              >
-                <ThumbsUp className="w-4 h-4" />
-                Approve & Pay
-              </button>
-              {canRequestRevision && (
-                <button
-                  onClick={() => setIsRevisionModalOpen(true)}
-                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-1.5"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Request Changes
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* No deliverables yet - Freelancer */}
-          {!readOnly && (stage.status === 'active' || stage.status === 'in_progress') && stage.deliverables.length === 0 && !hasPendingRevision && pendingPayments.length === 0 && (
-            <div className="flex items-center gap-2 text-gray-500">
-              <FileText className="w-4 h-4" />
-              <span className="text-sm">Add deliverables to submit for review</span>
-            </div>
-          )}
-
-          {/* Awaiting Review - Freelancer */}
-          {!readOnly && stage.status === 'delivered' && pendingPayments.length === 0 && !hasPendingRevision && (
-            <div className="flex items-center gap-2 text-blue-600">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-medium">Work submitted - waiting for client review</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="p-4 sm:p-6 space-y-4">
         {/* Show locked message and hide all content for locked stages */}
         {stage.status === 'locked' ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 sm:p-12 text-center">
-            <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-gray-400" />
+          <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-8 sm:p-12 text-center">
+            <div className="bg-gray-200 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-gray-500" />
             </div>
-            <p className="text-lg font-semibold text-gray-600 mb-2">
-              Stage Locked
+            <p className="text-lg sm:text-xl font-bold text-gray-700 mb-2">
+              🔒 Stage Locked
             </p>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
+            <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto">
               This stage will unlock once the previous stage is completed and payment is received.
             </p>
           </div>
         ) : (
           <>
-            {/* REVISION REQUESTS - Collapsible, less prominent */}
-            {stage.revisions.length > 0 && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
-                  className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
-                >
-                  <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4" />
-                    {hasPendingRevision ? (
-                      <span className="text-orange-700">Revision Requested</span>
-                    ) : (
-                      <>Revision History ({stage.revisions.length})</>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      {stage.revisions_used}/{totalRevisions} used
-                    </span>
-                    <ChevronDown 
-                      className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                        isRevisionHistoryOpen ? 'rotate-180' : ''
-                      }`} 
-                    />
-                  </div>
-                </button>
-                {isRevisionHistoryOpen && (
-                  <div className="p-3 space-y-2 bg-white border-t border-gray-100">
-                    {stage.revisions.map((revision) => (
-                      <div key={revision.id} className={`p-3 rounded-lg ${
-                        !revision.completed_at ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50'
-                      }`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-900">
-                            Revision {revision.revision_number}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            revision.completed_at
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-orange-100 text-orange-700'
-                          }`}>
-                            {revision.completed_at ? 'Done' : 'Pending'}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{revision.feedback}</p>
-                        <p className="text-xs text-gray-400 mt-2">
-                          {formatDate(revision.created_at)}
-                          {revision.completed_at && ` • Completed ${formatDate(revision.completed_at)}`}
+        {/* DELIVERABLES SECTION */}
+        <div>
+          <div 
+            className="flex items-center justify-between cursor-pointer py-2"
+            onClick={() => setIsDeliverablesOpen(!isDeliverablesOpen)}
+          >
+            <h4 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-600" />
+              Deliverables ({stage.deliverables.length})
+            </h4>
+            <ChevronDown 
+              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                isDeliverablesOpen ? 'rotate-180' : ''
+              }`} 
+            />
+          </div>
+
+          {isDeliverablesOpen && (
+            <>
+              {stage.deliverables.length > 0 ? (
+                <div className="space-y-2 mt-2">
+                  {stage.deliverables.map((deliverable) => (
+                    <div
+                      key={deliverable.id}
+                      className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-sm">{deliverable.name}</div>
+                        {deliverable.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                            {deliverable.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                          {deliverable.file_url}
                         </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* DELIVERABLES SECTION */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setIsDeliverablesOpen(!isDeliverablesOpen)}
-                className="w-full px-4 py-3 bg-white flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-gray-500" />
-                  Deliverables ({stage.deliverables.length})
-                </span>
-                <ChevronDown 
-                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                    isDeliverablesOpen ? 'rotate-180' : ''
-                  }`} 
-                />
-              </button>
-
-              {isDeliverablesOpen && (
-                <div className="border-t border-gray-100">
-                  {stage.deliverables.length > 0 ? (
-                    <div className="p-3 space-y-2">
-                      {stage.deliverables.map((deliverable) => (
-                        <div
-                          key={deliverable.id}
-                          className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900 text-sm">{deliverable.name}</div>
-                            {deliverable.description && (
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                                {deliverable.description}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">
-                              {deliverable.file_url}
-                            </p>
-                          </div>
-                          <a
-                            href={deliverable.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-1"
-                          >
-                            Open <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                      ))}
+                      <a
+                        href={deliverable.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-1.5"
+                      >
+                        Open <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
                     </div>
-                  ) : (
-                    <div className="p-6 text-center">
-                      <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">
-                        {readOnly ? 'Waiting for deliverables' : 'No deliverables yet'}
-                      </p>
-                    </div>
-                  )}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200 mt-2">
+                  <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    {readOnly ? 'Waiting for deliverables' : 'No deliverables yet'}
+                  </p>
                 </div>
               )}
-            </div>
+            </>
+          )}
 
-            {/* NOTES & FEEDBACK - Collapsible, collapsed by default when empty */}
-            {showNoteBox && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+          {/* CLIENT ACTION BUTTONS - Side by side on desktop, stacked on mobile */}
+          {readOnly && stage.status === 'delivered' && stage.payment_status !== 'received' && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <button
-                  onClick={() => setIsNotesOpen(!isNotesOpen)}
-                  className="w-full px-4 py-3 bg-white flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  onClick={handleApproveStage}
+                  className="w-full sm:w-auto bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
-                  <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-gray-500" />
-                    Notes & Feedback
-                  </span>
-                  <ChevronDown 
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-                      isNotesOpen ? 'rotate-180' : ''
-                    }`} 
-                  />
+                  <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Approve & Pay
                 </button>
-                {isNotesOpen && (
-                  <div className="border-t border-gray-100">
-                    <NoteBox
-                      stageId={stage.id}
-                      authorType={authorType}
-                      authorName={authorName || 'You'}
-                    />
-                  </div>
+                {canRequestRevision ? (
+                  <button
+                    onClick={() => setIsRevisionModalOpen(true)}
+                    className="w-full sm:w-auto bg-white text-gray-700 border-2 border-gray-300 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Request Changes
+                  </button>
+                ) : stage.extension_enabled && pendingExtensions.length === 0 && (
+                  <button
+                    onClick={() => setIsExtensionModalOpen(true)}
+                    className="w-full sm:w-auto bg-amber-500 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-amber-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Buy Extra Revision – {formatCurrency(stage.extension_price, currency)}
+                  </button>
                 )}
               </div>
-            )}
+              <p className="text-center text-xs text-gray-500 mt-3">
+                {revisionsRemaining} of {totalRevisions} revisions remaining
+              </p>
+            </div>
+          )}
 
-            {/* Extension status alerts */}
-            {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && pendingExtensions.length > 0 && (
-              <div className="mt-4">
-                <ExtensionStatusAlerts
-                  pendingExtensions={pendingExtensions}
-                  rejectedExtensions={rejectedExtensions}
-                />
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  Extra revision payment pending verification
-                </p>
+          {/* Extension status alerts - show separately if there's a pending extension */}
+          {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && pendingExtensions.length > 0 && (
+            <div className="mt-4">
+              <ExtensionStatusAlerts
+                pendingExtensions={pendingExtensions}
+                rejectedExtensions={rejectedExtensions}
+              />
+              <p className="text-center text-xs text-amber-700 mt-2">
+                Extra revision payment pending verification
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* NOTES & COMMUNICATION - Moved to bottom */}
+        {showNoteBox && (
+          <div>
+            <NoteBox
+              stageId={stage.id}
+              authorType={authorType}
+              authorName={authorName || 'You'}
+            />
+          </div>
+        )}
+
+        {/* REVISION HISTORY - Collapsible */}
+        {stage.revisions.length > 0 && (
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setIsRevisionHistoryOpen(!isRevisionHistoryOpen)}
+              className="w-full px-4 py-3 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Revision History ({stage.revisions.length})
+              </span>
+              <ChevronDown 
+                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                  isRevisionHistoryOpen ? 'rotate-180' : ''
+                }`} 
+              />
+            </button>
+            {isRevisionHistoryOpen && (
+              <div className="p-3 space-y-2 bg-white">
+                {stage.revisions.map((revision) => (
+                  <div key={revision.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        Revision {revision.revision_number}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        revision.completed_at
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {revision.completed_at ? 'Done' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{revision.feedback}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatDate(revision.created_at)}
+                      {revision.completed_at && ` • Completed ${formatDate(revision.completed_at)}`}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
+          </div>
+        )}
 
-            {/* Buy extra revision - only for client when no revisions left */}
-            {readOnly && stage.status === 'delivered' && !canRequestRevision && stage.extension_enabled && pendingExtensions.length === 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-                <p className="text-sm text-amber-800 mb-3">
-                  You've used all {totalRevisions} revisions. Need more changes?
-                </p>
-                <button
-                  onClick={() => setIsExtensionModalOpen(true)}
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors text-sm flex items-center gap-1.5 mx-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  Buy Extra Revision – {formatCurrency(stage.extension_price, currency)}
-                </button>
-              </div>
-            )}
-          </>
+        </>
         )}
 
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-green-50 border border-green-500 text-green-700 px-4 py-3 rounded-lg">
             {successMessage}
           </div>
         )}
 
-        {/* Rejected Payment Warning - Client view */}
+        {/* Payment status alerts - Clean and minimal */}
+        {readOnly && pendingPayments.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="font-medium text-yellow-800 text-sm">
+              ⏳ Payment pending verification
+            </p>
+            <p className="text-xs text-yellow-700 mt-1">
+              Ref: {pendingPayments[0].reference_code}
+            </p>
+          </div>
+        )}
+
         {readOnly && rejectedPayments.length > 0 && pendingPayments.length === 0 && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="font-medium text-red-800 text-sm mb-2">
               ⚠️ Payment not received
             </p>
             {rejectedPayments[0].rejection_reason && (
-              <p className="text-xs text-red-700 mb-3">
+              <p className="text-xs text-red-700 mb-2">
                 {rejectedPayments[0].rejection_reason}
               </p>
             )}
